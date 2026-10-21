@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>GSK Live Strategic Telemetry</title>
+  <style>
+    body { margin: 0; background: #0a0a10; color: #00ffcc; font-family: monospace; overflow: hidden; }
+    #header { padding: 12px; border-bottom: 1px solid #1a332a; display: flex; justify-space-between: space-between; }
+    canvas { display: block; width: 100vw; height: calc(100vh - 60px); }
+  </style>
+</head>
+<body>
+  <div id="header">
+    <div>GSK STRATEGIC TELEMETRY VISUALIZER v1.0</div>
+    <div id="status">STATUS: CONNECTED | PLT OPTIMIZED</div>
+  </div>
+  <canvas id="telemetryCanvas"></canvas>
+  <script>
+    const canvas = document.getElementById('telemetryCanvas');
+    const ctx = canvas.getContext('2d');
+    function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight - 60; }
+    window.addEventListener('resize', resize);
+    resize();
+    function draw() {
+      ctx.fillStyle = 'rgba(10, 10, 16, 0.2)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.strokeStyle = '#00ffcc';
+      ctx.beginPath();
+      ctx.arc(canvas.width / 2, canvas.height / 2, Math.sin(Date.now() * 0.002) * 50 + 100, 0, Math.PI * 2);
+      ctx.stroke();
+      requestAnimationFrame(draw);
+    }
+    draw();
+  </script>
+</body>
+</html>

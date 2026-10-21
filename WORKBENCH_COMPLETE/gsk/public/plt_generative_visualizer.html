@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PLT Generative Telemetry Shader Visualizer</title>
+<style>
+  body { margin: 0; overflow: hidden; background: #080810; color: #fff; font-family: monospace; }
+  #canvas { width: 100vw; height: 100vh; display: block; }
+  #telemetry-overlay { position: absolute; top: 16px; left: 16px; background: rgba(0,0,0,0.7); padding: 16px; border-radius: 8px; border: 1px solid #334; font-size: 13px; pointer-events: none; }
+  .metric { margin-bottom: 6px; }
+  .val { color: #00ffcc; font-weight: bold; }
+</style>
+</head>
+<body>
+<canvas id="canvas"></canvas>
+<div id="telemetry-overlay">
+  <h3>PLT Telemetry Shader Engine</h3>
+  <div class="metric">Profit Vector: <span id="p-val" class="val">0.90</span></div>
+  <div class="metric">Love Vector: <span id="l-val" class="val">0.85</span></div>
+  <div class="metric">Tax Vector: <span id="t-val" class="val">0.05</span></div>
+  <div class="metric">Harmony Index: <span id="h-val" class="val">0.94</span></div>
+</div>
+<script>
+  const canvas = document.getElementById('canvas');
+  const gl = canvas.getContext('webgl2');
+  if (!gl) { console.error('WebGL2 unsupported'); }
+  // Telemetry state
+  let pltState = { profit: 0.90, love: 0.85, tax: 0.05 };
+  function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; gl.viewport(0, 0, canvas.width, canvas.height); }
+  window.addEventListener('resize', resize); resize();
+</script>
+</body>
+</html>

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>High-Frequency Telemetry Streaming Engine</title>
+  <style>
+    body { margin: 0; background: #0a0a0f; color: #00ffcc; font-family: monospace; overflow: hidden; }
+    #canvas { display: block; width: 100vw; height: 100vh; }
+    .hud { position: absolute; top: 16px; left: 16px; background: rgba(10, 10, 15, 0.85); padding: 16px; border: 1px solid #00ffcc; border-radius: 4px; box-shadow: 0 0 10px rgba(0,255,204,0.3); }
+    .hud h1 { margin: 0 0 8px 0; font-size: 16px; text-transform: uppercase; letter-spacing: 1px; color: #ffffff; }
+    .metric { font-size: 12px; margin-bottom: 4px; display: flex; justify-content: space-between; min-width: 260px; }
+    .val { font-weight: bold; color: #00ffcc; }
+  </style>
+</head>
+<body>
+  <div class="hud">
+    <h1>Telemetry Streaming Engine</h1>
+    <div class="metric"><span>LOOP FREQUENCY:</span><span class="val" id="freq-val">1000 Hz</span></div>
+    <div class="metric"><span>LATENCY (SUB-MS):</span><span class="val" id="latency-val">0.24 ms</span></div>
+    <div class="metric"><span>BUFFER DEPTH:</span><span class="val" id="buffer-val">65,536 events/s</span></div>
+    <div class="metric"><span>PLT VALUE RATIO:</span><span class="val" id="plt-val">1.618</span></div>
+  </div>
+  <canvas id="canvas"></canvas>
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+    window.addEventListener('resize', resize);
+    resize();
+
+    const dataPoints = new Array(200).fill(0);
+    let frameCount = 0;
+
+    function render() {
+      ctx.fillStyle = 'rgba(10, 10, 15, 0.2)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      const t = performance.now() * 0.005;
+      const newVal = Math.sin(t) * 40 + Math.random() * 15 + canvas.height * 0.5;
+      dataPoints.push(newVal);
+      dataPoints.shift();
+
+      ctx.beginPath();
+      ctx.strokeStyle = '#00ffcc';
+      ctx.lineWidth = 2;
+      const step = canvas.width / dataPoints.length;
+      for (let i = 0; i < dataPoints.length; i++) {
+        const x = i * step;
+        const y = dataPoints[i];
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+
+      frameCount++;
+      if (frameCount % 10 === 0) {
+        document.getElementById('latency-val').textContent = (0.15 + Math.random() * 0.2).toFixed(3) + ' ms';
+        document.getElementById('freq-val').textContent = Math.floor(950 + Math.random() * 100) + ' Hz';
+      }
+
+      requestAnimationFrame(render);
+    }
+    requestAnimationFrame(render);
+  </script>
+</body>
+</html>

@@ -1,0 +1,45 @@
+{
+  "buildings": [
+    {
+      "id": "bldg-1",
+      "type": "tower",
+      "name": "STRANGER-TEST-TOWER",
+      "position": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "color": "#4488ff",
+      "createdBy": "gsk-world-bridge",
+      "ts": 1792531596067
+    },
+    {
+      "id": "bldg-2",
+      "type": "library",
+      "name": "UTB-ANNEX",
+      "position": {
+        "x": 4,
+        "y": 0,
+        "z": -2
+      },
+      "color": null,
+      "createdBy": "utb-world-tools",
+      "ts": 1792531624483
+    },
+    {
+      "id": "bldg-3",
+      "type": "monument",
+      "name": "PROFIT-GATE",
+      "position": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "color": "#4488ff",
+      "createdBy": "gsk-world-bridge",
+      "ts": 1792531800827
+    }
+  ],
+  "seq": 3,
+  "savedAt": 1792531800832
+}

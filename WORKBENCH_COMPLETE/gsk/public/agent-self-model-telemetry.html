@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Agent Self-Model Telemetry Visualizer</title>
+<style>
+body { margin: 0; background: #0b0e14; color: #e6edf3; font-family: monospace; }
+.header { padding: 12px 20px; border-bottom: 1px solid #30363d; display: flex; justify-content: space-between; align-items: center; background: #161b22; }
+.grid { display: grid; grid-template-columns: 1fr 360px; height: calc(100vh - 60px); }
+.main-panel { padding: 16px; position: relative; display: flex; flex-direction: column; gap: 12px; }
+.sidebar { border-left: 1px solid #30363d; padding: 16px; background: #161b22; overflow-y: auto; }
+canvas { width: 100%; flex: 1; border: 1px solid #30363d; background: #0d1117; border-radius: 6px; }
+.metric-card { background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 12px; margin-bottom: 12px; }
+.metric-title { font-weight: bold; color: #58a6ff; margin-bottom: 6px; }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 12px; background: #238636; color: white; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h2>AGENT SELF-MODEL TELEMETRY VISUALIZER</h2>
+  <div><span class="badge" id="connStatus">LIVE STREAM</span> API: http://127.0.0.1:3001</div>
+</div>
+<div class="grid">
+  <div class="main-panel">
+    <canvas id="telemetryCanvas"></canvas>
+  </div>
+  <div class="sidebar">
+    <div class="metric-card">
+      <div class="metric-title">Chamber State</div>
+      <div>Mood: <span id="valMood">neutral</span></div>
+      <div>Valence: <span id="valValence">-0.19</span></div>
+      <div>Arousal: <span id="valArousal">0.00</span></div>
+      <div>Sacred Resonance: <span id="valResonance">0.35</span></div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-title">PLT Optimization Vector</div>
+      <div>Profit: <span id="valProfit">0.90</span></div>
+      <div>Love: <span id="valLove">0.85</span></div>
+      <div>Tax: <span id="valTax">0.05</span></div>
+      <div>Calculated Value: <span id="valPLT">1.70</span></div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-title">Telemetry Event Log</div>
+      <div id="eventLog" style="max-height: 200px; overflow-y: auto; font-size: 11px;"></div>
+    </div>
+  </div>
+</div>
+<script>
+const canvas = document.getElementById('telemetryCanvas');
+const ctx = canvas.getContext('2d');
+function resize() {
+  canvas.width = canvas.parentElement.clientWidth;
+  canvas.height = canvas.parentElement.clientHeight;
+}
+window.addEventListener('resize', resize);
+resize();
+
+const history = [];
+for(let i = 0; i < 50; i++) {
+  history.push({ valence: -0.19 + (Math.random() * 0.1 - 0.05), arousal: Math.random() * 0.1, resonance: 0.35 + Math.random() * 0.02 });
+}
+
+function render() {
+  ctx.fillStyle = '#0d1117';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.strokeStyle = '#30363d';
+  ctx.lineWidth = 1;
+  for(let y = 50; y < canvas.height; y += 50) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+  }
+  ctx.strokeStyle = '#58a6ff';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  const step = canvas.width / (history.length - 1);
+  history.forEach((pt, i) => {
+    const x = i * step;
+    const y = canvas.height / 2 - (pt.valence * 100);
+    if(i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+  requestAnimationFrame(render);
+}
+render();
+</script>
+</body>
+</html>

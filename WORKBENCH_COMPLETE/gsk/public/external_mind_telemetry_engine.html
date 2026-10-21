@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>External Mind Telemetry Engine</title>
+  <style>
+    body { background: #0a0a10; color: #00ffcc; font-family: monospace; padding: 24px; }
+    .card { border: 1px solid #00ffcc; padding: 16px; border-radius: 8px; background: rgba(0,255,204,0.05); }
+  </style>
+</head>
+<body>
+  <div id="app" class="card">
+    <h1>External Mind Telemetry Engine</h1>
+    <p>Mapping live agent state to external tools...</p>
+    <div id="status">Connecting to http://127.0.0.1:3001 ...</div>
+  </div>
+  <script>
+    const baseUrl = 'http://127.0.0.1:3001';
+    console.log('[Mind Telemetry Engine] Active on endpoint:', baseUrl);
+  </script>
+</body>
+</html>

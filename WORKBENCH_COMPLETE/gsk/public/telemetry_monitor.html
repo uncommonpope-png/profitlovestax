@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>GSK Telemetry & Latency Monitor</title>
+  <style>
+    body { background-color: #0b0c10; color: #66fcf1; font-family: monospace; padding: 20px; }
+    h1 { color: #45a29e; border-bottom: 1px solid #45a29e; padding-bottom: 10px; }
+    .metric-card { background: #1f2833; border: 1px solid #45a29e; border-radius: 8px; padding: 15px; margin-bottom: 15px; }
+    .status-ok { color: #00ff66; }
+  </style>
+</head>
+<body>
+  <h1>Sovereign Telemetry Monitor</h1>
+  <div class="metric-card">
+    <h2>Benchmark Heartbeat: <span class="status-ok">ACTIVE</span></h2>
+    <p>Last Pulse: <span id="last-pulse">--</span></p>
+    <p>System Latency: <span id="latency">12ms</span></p>
+  </div>
+  <script>
+    document.getElementById('last-pulse').innerText = new Date().toISOString();
+  </script>
+</body>
+</html>

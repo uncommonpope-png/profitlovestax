@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GSK Unified Telemetry & Cognitive State Dashboard</title>
+<style>
+body { margin: 0; background: #08090d; color: #f1f5f9; font-family: system-ui, sans-serif; padding: 20px; }
+.glass-card { background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+</style>
+</head>
+<body>
+<div class="glass-card">
+  <h2>GSK Live Telemetry & Cognitive State Inspector</h2>
+  <p>Real-time telemetry stream, PLT optimization metrics, and agent state visualizer.</p>
+</div>
+<div class="grid">
+  <div class="glass-card">
+    <h3>Cognitive State Stream</h3>
+    <canvas id="cognitiveCanvas" width="600" height="300"></canvas>
+  </div>
+  <div class="glass-card">
+    <h3>Telemetry Metrics</h3>
+    <div id="metricsDisplay">Initializing stream...</div>
+  </div>
+</div>
+<script>
+console.log('Telemetry Dashboard Initialized');
+</script>
+</body>
+</html>

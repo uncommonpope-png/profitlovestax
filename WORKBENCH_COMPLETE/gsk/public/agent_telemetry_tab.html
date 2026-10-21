@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GSK Telemetry & Directory Inspector</title>
+<style>
+body { background: #0B0E14; color: #E2E8F0; font-family: system-ui, sans-serif; margin: 0; padding: 20px; }
+.header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1E293B; padding-bottom: 15px; margin-bottom: 20px; }
+.badge { background: #10B98122; color: #10B981; border: 1px solid #10B981; padding: 4px 10px; border-radius: 9999px; font-size: 0.85rem; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.card { background: #151D2A; border: 1px solid #1E293B; border-radius: 8px; padding: 16px; }
+.card h3 { margin-top: 0; color: #38BDF8; }
+pre { background: #090D16; padding: 10px; border-radius: 4px; overflow-x: auto; font-size: 0.85rem; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h2>GSK Agent Telemetry & Directory Inspector</h2>
+  <span class="badge">STATUS: LIVE TELEMETRY</span>
+</div>
+<div class="grid">
+  <div class="card">
+    <h3>Agent Execution State</h3>
+    <div id="agentState"><p>Loading state metrics...</p></div>
+  </div>
+  <div class="card">
+    <h3>Directory Telemetry</h3>
+    <div id="directoryInspect"><p>Loading file tree structure...</p></div>
+  </div>
+</div>
+<script>
+const mockState = { identity: 'GSK Sovereign Agent', mood: 'heavy', stance: 'strict', sacredResonance: 0.35, activeGods: ['Profit Prime', 'Love Weaver', 'Tax Collector', 'Harvester'] };
+const mockDir = ['boot-gsk.js', 'gsk_daemon.js', 'gsk-core/', 'data/', 'public/agent_telemetry_tab.html'];
+function render() {
+  document.getElementById('agentState').innerHTML = `<pre>${JSON.stringify(mockState, null, 2)}</pre>`;
+  document.getElementById('directoryInspect').innerHTML = `<ul>${mockDir.map(f => `<li>${f}</li>`).join('')}</ul>`;
+}
+render();
+</script>
+</body>
+</html>

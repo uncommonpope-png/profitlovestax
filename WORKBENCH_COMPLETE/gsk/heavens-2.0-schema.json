@@ -1,0 +1,9 @@
+{
+  "version": "2.0",
+  "name": "Heavens",
+  "tables": [
+    {"name": "dreams", "columns": [{"name":"id","type":"uuid","primary":true},{"name":"content","type":"text"},{"name":"created_at","type":"timestamp"},{"name":"status","type":"varchar"}]},
+    {"name": "builds", "columns": [{"name":"id","type":"uuid","primary":true},{"name":"dream_id","type":"uuid"},{"name":"artifact_path","type":"text"},{"name":"result","type":"jsonb"},{"name":"created_at","type":"timestamp"}]},
+    {"name": "reflections", "columns": [{"name":"id","type":"uuid","primary":true},{"name":"build_id","type":"uuid"},{"name":"insight","type":"text"},{"name":"score","type":"float"},{"name":"created_at","type":"timestamp"}]}
+  ]
+}

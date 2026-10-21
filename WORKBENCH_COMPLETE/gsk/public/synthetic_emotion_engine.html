@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Synthetic Emotion Engine - Valence & Arousal to PLT</title>
+<style>
+body { margin: 0; background: #0a0b10; color: #e2e8f0; font-family: system-ui, -apple-system, sans-serif; }
+.layout { display: grid; grid-template-columns: 1fr 340px; height: 100vh; }
+canvas { width: 100%; height: 100%; display: block; }
+.panel { background: #121520; border-left: 1px solid #1e293b; padding: 24px; box-sizing: border-box; display: flex; flex-direction: column; gap: 16px; }
+h1 { font-size: 1.1rem; color: #38bdf8; margin: 0; text-transform: uppercase; letter-spacing: 0.08em; }
+.card { background: #1e293b; border-radius: 8px; padding: 14px; border: 1px solid #334155; }
+.card-label { font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; }
+.card-val { font-size: 1.5rem; font-weight: 700; margin-top: 4px; color: #f8fafc; }
+.plt-score { color: #4ade80; }
+</style>
+</head>
+<body>
+<div class="layout">
+  <canvas id="emotionCanvas"></canvas>
+  <div class="panel">
+    <h1>Synthetic Emotion Engine</h1>
+    <div class="card"><div class="card-label">Profit Vector (High Valence x High Arousal)</div><div class="card-val" id="profitVal">0.00</div></div>
+    <div class="card"><div class="card-label">Love Vector (High Valence x Low Arousal)</div><div class="card-val" id="loveVal">0.00</div></div>
+    <div class="card"><div class="card-label">Tax Vector (Low Valence x High Arousal)</div><div class="card-val" id="taxVal">0.00</div></div>
+    <div class="card"><div class="card-label">True Value Score (P + L - T)</div><div class="card-val plt-score" id="pltVal">0.00</div></div>
+  </div>
+</div>
+<script>
+console.log('Initializing Synthetic Emotion Visualizer...');
+const canvas = document.getElementById('emotionCanvas');
+const ctx = canvas.getContext('2d');
+function resize() { canvas.width = canvas.parentElement.clientWidth; canvas.height = canvas.parentElement.clientHeight; }
+window.addEventListener('resize', resize); resize();
+let state = { valence: 0.65, arousal: 0.8, targetV: 0.7, targetA: 0.5 };
+function updateMetrics() {
+  const profit = Math.max(0, state.valence * state.arousal);
+  const love = Math.max(0, state.valence * (1 - state.arousal * 0.6));
+  const tax = Math.max(0, (1 - state.valence) * state.arousal);
+  const plt = profit + love - tax;
+  document.getElementById('profitVal').innerText = profit.toFixed(3);
+  document.getElementById('loveVal').innerText = love.toFixed(3);
+  document.getElementById('taxVal').innerText = tax.toFixed(3);
+  document.getElementById('pltVal').innerText = plt.toFixed(3);
+}
+function render() {
+  ctx.fillStyle = '#0a0b10'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+  const cx = canvas.width / 2, cy = canvas.height / 2;
+  const r = Math.min(cx, cy) - 80;
+  ctx.strokeStyle = '#334155'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx - r, cy); ctx.lineTo(cx + r, cy); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx, cy - r); ctx.lineTo(cx, cy + r); ctx.stroke();
+  state.valence += (state.targetV - state.valence) * 0.05 + (Math.random() - 0.5) * 0.02;
+  state.arousal += (state.targetA - state.arousal) * 0.05 + (Math.random() - 0.5) * 0.02;
+  state.valence = Math.max(0, Math.min(1, state.valence));
+  state.arousal = Math.max(0, Math.min(1, state.arousal));
+  if (Math.random() < 0.02) { state.targetV = Math.random(); state.targetA = Math.random(); }
+  const px = cx + (state.valence * 2 - 1) * r;
+  const py = cy - (state.arousal * 2 - 1) * r;
+  ctx.fillStyle = '#38bdf8'; ctx.beginPath(); ctx.arc(px, py, 14, 0, Math.PI * 2); ctx.fill();
+  ctx.shadowColor = '#38bdf8'; ctx.shadowBlur = 15; ctx.fill(); ctx.shadowBlur = 0;
+  updateMetrics(); requestAnimationFrame(render);
+}
+render();
+</script>
+</body>
+</html>

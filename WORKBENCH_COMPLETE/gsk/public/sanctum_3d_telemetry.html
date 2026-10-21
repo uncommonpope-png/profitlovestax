@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sanctum 3D Telemetry Visualizer</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <style>
+    body { margin: 0; background: #0a0a0f; color: #e0e0e0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow: hidden; }
+    #canvas-container { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; }
+    #ui-overlay { position: absolute; top: 20px; left: 20px; z-index: 10; background: rgba(10, 10, 15, 0.88); padding: 24px; border: 1px solid #00f0ff; border-radius: 12px; box-shadow: 0 0 20px rgba(0, 240, 255, 0.25); width: 340px; backdrop-filter: blur(8px); }
+    h1 { font-size: 1.1rem; margin: 0 0 16px; color: #00f0ff; text-transform: uppercase; letter-spacing: 1.5px; border-bottom: 1px solid rgba(0,240,255,0.3); padding-bottom: 8px; }
+    .stat-row { display: flex; justify-content: space-between; margin: 10px 0; font-size: 0.88rem; color: #aaa; }
+    .stat-value { font-weight: bold; color: #ff0055; font-family: monospace; }
+    .plt-pill { display: inline-block; background: rgba(0,240,255,0.15); color: #00f0ff; padding: 4px 10px; border-radius: 20px; border: 1px solid #00f0ff; font-size: 0.8rem; margin-top: 12px; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <div id="ui-overlay">
+    <h1>Sanctum 3D Telemetry</h1>
+    <div class="stat-row"><span>Agent Core State:</span><span class="val-state stat-value">SOVEREIGN</span></div>
+    <div class="stat-row"><span>Sacred Resonance:</span><span class="stat-value">0.95</span></div>
+    <div class="stat-row"><span>PLT Optimizer Ratio:</span><span class="stat-value">1.25</span></div>
+    <div class="stat-row"><span>Active Council Nodes:</span><span class="stat-value">4 / 4 ONLINE</span></div>
+    <div class="plt-pill">PLT: Profit + Love - Tax = True Value</div>
+  </div>
+  <div id="canvas-container"></div>
+  <script>
+    const container = document.getElementById('canvas-container');
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x0a0a0f, 0.035);
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    container.appendChild(renderer.domElement);
+
+    const geometry = new THREE.IcosahedronGeometry(2.5, 2);
+    const material = new THREE.MeshBasicMaterial({ color: 0x00f0ff, wireframe: true });
+    const sanctumCore = new THREE.Mesh(geometry, material);
+    scene.add(sanctumCore);
+
+    const innerGeo = new THREE.OctahedronGeometry(1.2, 0);
+    const innerMat = new THREE.MeshBasicMaterial({ color: 0xff0055, wireframe: true });
+    const innerCore = new THREE.Mesh(innerGeo, innerMat);
+    scene.add(innerCore);
+
+    camera.position.z = 8;
+    function animate() {
+      requestAnimationFrame(animate);
+      sanctumCore.rotation.x += 0.003;
+      sanctumCore.rotation.y += 0.006;
+      innerCore.rotation.x -= 0.008;
+      innerCore.rotation.y -= 0.012;
+      renderer.render(scene, camera);
+    }
+    animate();
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  </script>
+</body>
+</html>

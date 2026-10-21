@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PLT Yield & Value Optimization Engine</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen p-6">
+<header class="mb-6 flex justify-between items-center border-b border-amber-500/30 pb-4">
+  <h1 class="text-2xl font-bold text-amber-400">PLT Yield & Value Optimization Engine</h1>
+  <nav class="flex gap-4">
+    <a href="index.html" class="text-slate-400 hover:text-amber-400">Dashboard</a>
+    <a href="matrix.html" class="text-slate-400 hover:text-amber-400">Council Matrix</a>
+    <a href="agent_inspector.html" class="text-slate-400 hover:text-amber-400">Agent Inspector</a>
+    <a href="telemetry_pulse.html" class="text-slate-400 hover:text-amber-400">Telemetry Pulse</a>
+    <a href="sacred_telemetry.html" class="text-slate-400 hover:text-amber-400">Sacred Telemetry</a>
+    <a href="plt_yield_dashboard.html" class="text-amber-400 font-semibold border-b-2 border-amber-400">PLT Yield</a>
+  </nav>
+</header>
+<main id="app" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+  <section class="bg-slate-900 border border-slate-800 rounded-lg p-4">
+    <h2 class="text-lg font-semibold text-emerald-400 mb-2">Profit Prime Vector</h2>
+    <p class="text-sm text-slate-400 mb-4">Real-time capital compounding & value multiplication</p>
+    <div id="profit-metric" class="text-3xl font-mono text-emerald-400">+1.42 PLT</div>
+  </section>
+  <section class="bg-slate-900 border border-slate-800 rounded-lg p-4">
+    <h2 class="text-lg font-semibold text-rose-400 mb-2">Love Weaver Resonance</h2>
+    <p class="text-sm text-slate-400 mb-4">Community cohesion & user retention affinity</p>
+    <div id="love-metric" class="text-3xl font-mono text-rose-400">0.88 AFF</div>
+  </section>
+  <section class="bg-slate-900 border border-slate-800 rounded-lg p-4">
+    <h2 class="text-lg font-semibold text-amber-400 mb-2">Tax Collector Friction</h2>
+    <p class="text-sm text-slate-400 mb-4">System overhead, token consumption & risk tax</p>
+    <div id="tax-metric" class="text-3xl font-mono text-amber-400">0.12 TAX</div>
+  </section>
+</main>
+<script src="app.js"></script>
+</body>
+</html>

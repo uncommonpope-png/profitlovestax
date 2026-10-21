@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Workbench Tab Atlas & Real-Time Telemetry Mapper</title>
+  <style>
+    body { background: #0a0c10; color: #c9d1d9; font-family: monospace; margin: 0; padding: 20px; }
+    h1 { color: #58a6ff; font-size: 1.2rem; border-bottom: 1px solid #30363d; padding-bottom: 8px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+    .card { background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 16px; }
+    .tab-list { list-style: none; padding: 0; margin: 0; }
+    .tab-item { display: flex; justify-content: space-between; padding: 8px; border-bottom: 1px solid #21262d; }
+    .status-active { color: #3fb950; font-weight: bold; }
+    .telemetry-stream { font-size: 0.85rem; max-height: 250px; overflow-y: auto; background: #0d1117; padding: 10px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <h1>AUTOMATED WORKBENCH TAB ATLAS &amp; TELEMETRY MAPPER</h1>
+  <div class="grid">
+    <div class="card">
+      <h3>Registered Workbench Tabs</h3>
+      <ul class="tab-list" id="atlas-tabs">
+        <li class="tab-item"><span>Telemetry Visualizer</span><span class="status-active">ONLINE</span></li>
+        <li class="tab-item"><span>Agent State Inspector</span><span class="status-active">ONLINE</span></li>
+        <li class="tab-item"><span>PLT Optimizer</span><span class="status-active">ONLINE</span></li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Real-Time Telemetry &amp; State Atlas</h3>
+      <div class="telemetry-stream" id="telemetry-log">
+        [SYSTEM] Initializing Automated Tab Atlas...
+      </div>
+    </div>
+  </div>
+  <script>
+    const log = document.getElementById('telemetry-log');
+    setInterval(() => {
+      const ts = new Date().toISOString();
+      const entry = document.createElement('div');
+      entry.textContent = `[${ts}] [TELEMETRY] State snapshot sync complete | PLT index 0.9/0.05/0.05`;
+      log.prepend(entry);
+    }, 3000);
+  </script>
+</body>
+</html>

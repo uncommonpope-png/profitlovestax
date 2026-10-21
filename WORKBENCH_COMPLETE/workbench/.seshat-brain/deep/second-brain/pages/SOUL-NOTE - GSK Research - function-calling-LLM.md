@@ -1,0 +1,25 @@
+---
+title: SOUL-NOTE - GSK Research - function calling LLM
+type: research
+verified: true
+date: 2026-08-21T04:02:49.034Z
+---
+
+# GSK Research — function calling LLM
+
+## Verified Finding
+Function (mathematics): In mathematics, a function from a set X to a set Y assigns to each element of X exactly one element of Y. [1] The set X is called the domain of the function [2] and the set Y is called the codomain of the function. [3] Functions were originally the idealization of how a varying quantity depends on another quantity. For example, the position of a planet is a function of time. Historically, the ... | Function Health — check your health: Function Health's membership pricing includes technology and service fees charged by Function Health, as well as access to limited prepaid laboratory and other services provided by third parties, and paid to such third parties on your behalf. Itemization of all fees is available upon request. | FUNCTION Definition & Meaning - Merriam-Webster: The meaning of FUNCTION is professional or official position : occupation. How to use function in a sentence. Synonym Discussion of Function. | Function | Definition, Types, Examples, & Facts | Britannica: Function, in mathematics, an expression, rule, or law that defines a relationship between one variable (the independent variable) and another variable (the dependent variable). Functions are ubiquitous in mathematics and are essential for formulating physical relationships in the sciences. | What is a Function: A function relates an input to an output. It is like a machine that has an input and an output. And the output is related somehow to the input.
+
+## Source Excerpts
+- Function (mathematics) - Wikipedia Jump to content Main menu Main menu move to sidebar hide Navigation Main page Contents Current events Random article About Wikipedia Contact us Contribute Help Learn to edit Community portal Recent changes Upload file Special pages Search Search Appearance Donate Create account Log in Personal tools Donate Create account Log in Contents move to sidebar hide (Top) 1 Definition Toggle Definition subsection 1.1 Formal definition 1.2 Partial functions 1.3 Multivari ([source](https://en.m.wikipedia.org/wiki/Function_(mathematics)))
+- Function Health — check your health Use your HSA/FSA funds to Join Function How it works What we test Imaging FAQs About Log in Start testing MRI &amp; CT Pricing Contact us Gift Function For employers Imaging was always essential. Now it&#39;s accessible, too. Learn more How it works What we test Imaging FAQ About Start testing Log in Gift Function For Employers Pricing Contact us HSA/FSA Eligible Check your health. Every year. Starting with 160+ lab tests detecting 1000+ conditions. Just $365  ([source](https://www.functionhealth.com/))
+- FUNCTION Definition &amp; Meaning - Merriam-Webster .card-box-title{color:#375c71;font-family:"Open Sans",Helvetica,Arial,sans-serif;font-size:1.375em;letter-spacing:.0454em;line-height:1.2272;position:relative;z-index:1}.card-box-title i{font-style:normal;font-variant:small-caps;font-size:1.047em}@media(max-width: 47.9375em){.card-box-title{font-size:1.25em;letter-spacing:.0455em;line-height:1.2}}.wotd-side__subscribe__form__submit{background:#ae0015;border:0;border-radius:6px;color:#fff;font-f ([source](https://www.merriam-webster.com/dictionary/function))
+- Function | Definition, Types, Examples, & Facts | Britannica Search Britannica Click here to search Search Britannica Click here to search SUBSCRIBE SUBSCRIBE Login Subscribe to Britannica Premium SUBSCRIBE TO PREMIUM Home History & Society Science & Tech Biographies Animals & Nature Geography & Travel Arts & Culture ProCon Money Games & Quizzes Videos Today in History Dictionary New Articles History & Society History Philosophy & Religion Politics, Law & Government Society & Social Issues Scien ([source](https://www.britannica.com/science/function-mathematics))
+- What is a Function What is a Function? A function relates an input to an output. It is like a machine that has an input and an output. And the output is related somehow to the input. &nbsp; f(x) &nbsp; " f(x) = ... " is the classic way of writing a function. And there are other ways, as you will see! Input, Relationship, Output We will see many ways to think about functions, but there are always three main parts: The input The relationship The output Example: "Multiply by 2" is a very simple fun ([source](https://www.mathsisfun.com/sets/function.html))
+
+## Sources
+1. [Function (mathematics)](https://en.m.wikipedia.org/wiki/Function_(mathematics)) — HTTP 200
+2. [Function Health — check your health](https://www.functionhealth.com/) — HTTP 200
+3. [FUNCTION Definition & Meaning - Merriam-Webster](https://www.merriam-webster.com/dictionary/function) — HTTP 200
+4. [Function | Definition, Types, Examples, & Facts | Britannica](https://www.britannica.com/science/function-mathematics) — HTTP 200
+5. [What is a Function](https://www.mathsisfun.com/sets/function.html) — HTTP 200

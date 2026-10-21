@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PLT Telemetry & Agent State Visualizer</title>
+<style>
+body { font-family: monospace; background: #0a0a12; color: #00ffcc; margin: 0; padding: 20px; }
+.card { border: 1px solid #00ffcc; padding: 15px; border-radius: 8px; background: #121224; margin-bottom: 20px; }
+.metric-title { font-weight: bold; color: #ff00ff; }
+</style>
+</head>
+<body>
+<div class="card">
+<h2>Live PLT Telemetry & RSMCL Agent State Inspection</h2>
+<div id="plt-metrics"></div>
+<canvas id="telemetryCanvas" width="800" height="400"></canvas>
+</div>
+<script>
+const TELEMETRY_CONFIG = { baseUrl: 'http://127.0.0.1:3001', requiredStrings: ['PLT', 'Telemetry'] };
+function initTelemetry() {
+  const canvas = document.getElementById('telemetryCanvas');
+  const ctx = canvas.getContext('2d');
+  let state = { profit: 0.9, love: 0.85, tax: 0.1, entropy: 0.05 };
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#00ffcc';
+    ctx.fillText('PLT Active Telemetry Stream: ' + JSON.stringify(state), 20, 30);
+    requestAnimationFrame(draw);
+  }
+  draw();
+}
+window.onload = initTelemetry;
+</script>
+</body>
+</html>

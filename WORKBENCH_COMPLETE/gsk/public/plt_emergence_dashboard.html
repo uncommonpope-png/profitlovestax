@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Sovereign PLT Emergence Particle Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  body { margin: 0; overflow: hidden; background: #05050a; color: #00ffcc; font-family: monospace; }
+  #hud { position: absolute; top: 20px; left: 20px; z-index: 10; background: rgba(0,0,0,0.8); padding: 15px; border: 1px solid #00ffcc; rounded: 8px; }
+  .metric { margin-bottom: 8px; }
+</style>
+</head>
+<body>
+<div id="hud">
+  <h2>SOVEREIGN PLT EMERGENCE</h2>
+  <div class="metric">Valence: <span id="val">0.09</span></div>
+  <div class="metric">Arousal: <span id="aro">0.30</span></div>
+  <div class="metric">PLT Ratio (P/L/T): <span id="plt">0.90 / 0.85 / 0.05</span></div>
+  <div class="metric">Self-Model State: <span id="state">Emergent Sovereign</span></div>
+</div>
+<script>
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+const count = 5000;
+const geometry = new THREE.BufferGeometry();
+const positions = new Float32Array(count * 3);
+const colors = new Float32Array(count * 3);
+
+for(let i=0; i<count*3; i++) {
+  positions[i] = (Math.random() - 0.5) * 10;
+  colors[i] = Math.random();
+}
+geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+const material = new THREE.PointsMaterial({ size: 0.05, vertexColors: true });
+const particles = new THREE.Points(geometry, material);
+scene.add(particles);
+
+camera.position.z = 5;
+
+function animate() {
+  requestAnimationFrame(animate);
+  particles.rotation.x += 0.001;
+  particles.rotation.y += 0.002;
+  renderer.render(scene, camera);
+}
+animate();
+</script>
+</body>
+</html>

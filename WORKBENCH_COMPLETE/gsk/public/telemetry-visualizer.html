@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Machine Aesthetics Real-Time Telemetry Dashboard</title>
+<style>
+  :root { --bg: #090a0f; --panel: #111420; --border: #1e2640; --cyan: #00f0ff; --magenta: #ff0055; --green: #00ff66; --amber: #ffaa00; --text: #c0csde; }
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'JetBrains Mono', 'Fira Code', monospace; }
+  body { background-color: var(--bg); color: #e0e6ed; overflow: hidden; height: 100vh; display: grid; grid-template-rows: 48px 1fr 24px; }
+</style>
+</head>
+<body>
+<div id="app">
+  <header><h1>Machine Aesthetics Real-Time Telemetry Dashboard</h1><div id="plt-badge">PLT Telemetry Engine :: ACTIVE</div></header>
+  <main class="grid-container">
+    <section class="telemetry-panel"><canvas id="telemetryCanvas"></canvas></section>
+    <section class="state-panel"><pre id="stateTree">{ "status": "OPTIMAL", "plt_affinity": { "profit": 0.96, "love": 0.95, "tax": 0.04 } }</pre></section>
+  </main>
+</div>
+<script>
+  console.log('Machine Aesthetics Visualizer initialized');
+</script>
+</body>
+</html>

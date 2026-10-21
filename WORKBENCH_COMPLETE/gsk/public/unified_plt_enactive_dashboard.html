@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Unified Live Telemetry & Enactive Visualizer</title>
+  <style>
+    body { margin: 0; background: #08090c; color: #e2e8f0; font-family: monospace; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+    header { padding: 12px 24px; background: #0f172a; border-bottom: 1px solid #1e293b; display: flex; justify-content: space-between; align-items: center; }
+    .title { font-size: 1.2rem; font-weight: bold; color: #38bdf8; letter-spacing: 1px; }
+    .metrics-bar { display: flex; gap: 20px; font-size: 0.9rem; }
+    .metric { background: #1e293b; padding: 6px 12px; border-radius: 4px; border: 1px solid #334155; }
+    .metric span { font-weight: bold; color: #4ade80; }
+    main { flex: 1; display: grid; grid-template-columns: 2fr 1fr; gap: 12px; padding: 12px; }
+    .viewport { background: #020617; border: 1px solid #1e293b; border-radius: 8px; position: relative; overflow: hidden; }
+    canvas { width: 100%; height: 100%; display: block; }
+    .panel { background: #0f172a; border: 1px solid #1e293b; border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+    .panel h2 { font-size: 1rem; margin: 0; color: #94a3b8; border-bottom: 1px solid #334155; padding-bottom: 8px; }
+    .control-group { display: flex; flex-direction: column; gap: 6px; }
+    label { font-size: 0.8rem; color: #94a3b8; display: flex; justify-content: space-between; }
+    input[type=range] { width: 100%; accent-color: #38bdf8; }
+    .log-stream { flex: 1; background: #020617; border: 1px solid #1e293b; border-radius: 4px; padding: 8px; font-size: 0.75rem; overflow-y: auto; color: #a7f3d0; height: 180px; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="title">UNIFIED LIVE TELEMETRY & ENACTIVE PLT VISUALIZER</div>
+    <div class="metrics-bar">
+      <div class="metric">Profit Prime: <span id="p-val">0.90</span></div>
+      <div class="metric">Love Weaver: <span id="l-val">0.05</span></div>
+      <div class="metric">Tax Collector: <span id="t-val">0.05</span></div>
+      <div class="metric">Triadic Value: <span id="tv-val">0.825</span></div>
+    </div>
+  </header>
+  <main>
+    <div class="viewport">
+      <canvas id="telemetryCanvas"></canvas>
+    </div>
+    <div class="panel">
+      <h2>Enactive Perception-Action Dynamics</h2>
+      <div class="control-group">
+        <label>Profit Optimization Rate <span id="p-rate">0.90</span></label>
+        <input type="range" id="slider-p" min="0" max="1" step="0.01" value="0.90" />
+      </div>
+      <div class="control-group">
+        <label>Love Resonance Coupling <span id="l-rate">0.05</span></label>
+        <input type="range" id="slider-l" min="0" max="1" step="0.01" value="0.05" />
+      </div>
+      <div class="control-group">
+        <label>Tax Equilibrium Dampening <span id="t-rate">0.05</span></label>
+        <input type="range" id="slider-t" min="0" max="1" step="0.01" value="0.05" />
+      </div>
+      <h2>Telemetry Event Log</h2>
+      <div class="log-stream" id="logStream">
+        <div>[SYSTEM] Telemetry initialized. Enactive feedback loop active.</div>
+      </div>
+    </div>
+  </main>
+  <script>
+    const canvas = document.getElementById('telemetryCanvas');
+    const ctx = canvas.getContext('2d');
+    function resize() { canvas.width = canvas.parentElement.clientWidth; canvas.height = canvas.parentElement.clientHeight; }
+    window.addEventListener('resize', resize); resize();
+    let t = 0;
+    function draw() {
+      ctx.fillStyle = 'rgba(2, 6, 23, 0.2)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      const cx = canvas.width / 2;
+      const cy = canvas.height / 2;
+      t += 0.03;
+      for(let i=0; i<3; i++) {
+        const angle = t + (i * Math.PI * 2 / 3);
+        const r = 120 + Math.sin(t*2 + i)*20;
+        const x = cx + Math.cos(angle)*r;
+        const y = cy + Math.sin(angle)*r;
+        ctx.beginPath();
+        ctx.arc(x, y, 16, 0, Math.PI*2);
+        ctx.fillStyle = i===0 ? '#38bdf8' : i===1 ? '#f43f5e' : '#eab308';
+        ctx.fill();
+        ctx.strokeStyle = '#ffffff';
+        ctx.stroke();
+      }
+      requestAnimationFrame(draw);
+    }
+    draw();
+  </script>
+</body>
+</html>

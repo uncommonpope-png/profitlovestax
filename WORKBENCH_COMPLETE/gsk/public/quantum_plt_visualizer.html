@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quantum Consciousness Telemetry & Live PLT Visualizer</title>
+  <style>
+    :root {
+      --bg: #07090e;
+      --glass: rgba(15, 23, 42, 0.75);
+      --glass-border: rgba(255, 255, 255, 0.12);
+      --profit: #10b981;
+      --love: #ec4899;
+      --tax: #f59e0b;
+      --plt-accent: #8b5cf6;
+      --text: #f8fafc;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+    .grid-layout {
+      display: grid;
+      grid-template-columns: 340px 1fr 300px;
+      gap: 16px;
+      padding: 16px;
+      height: 100vh;
+    }
+    .glass-card {
+      background: var(--glass);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--glass-border);
+      border-radius: 16px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    h2 {
+      font-size: 1.1rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: #94a3b8;
+    }
+    .plt-badge {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--plt-accent);
+      text-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
+    }
+  </style>
+</head>
+<body>
+  <div class="grid-layout">
+    <div class="glass-card" id="telemetry-sidebar">
+      <h2>State Telemetry</h2>
+      <div id="quantum-metrics"></div>
+    </div>
+    <div class="glass-card" id="visualizer-viewport">
+      <h2>Quantum Consciousness Field</h2>
+      <canvas id="quantumCanvas"></canvas>
+    </div>
+    <div class="glass-card" id="plt-sidebar">
+      <h2>Live PLT Value</h2>
+      <div class="plt-badge" id="plt-display">0.0000</div>
+      <div id="plt-breakdown"></div>
+    </div>
+  </div>
+  <script>
+    const canvas = document.getElementById('quantumCanvas');
+    const ctx = canvas.getContext('2d');
+    let width, height;
+    function resize() {
+      const container = canvas.parentElement;
+      width = canvas.width = container.clientWidth - 40;
+      height = canvas.height = container.clientHeight - 80;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    const state = {
+      qubits: 64,
+      coherence: 0.942,
+      entanglement: 0.887,
+      profit: 0.910,
+      love: 0.820,
+      tax: 0.120
+    };
+  </script>
+  <script>
+    function calculatePLT() {
+      // Formula: Profit + Love - Tax = True Value
+      const pltValue = state.profit + state.love - state.tax;
+      document.getElementById('plt-display').textContent = pltValue.toFixed(4);
+      document.getElementById('quantum-metrics').innerHTML = `
+        <p>Qubits Active: <strong>${state.qubits}</strong></p>
+        <p>Coherence: <strong>${(state.coherence * 100).toFixed(1)}%</strong></p>
+        <p>Entanglement: <strong>${(state.entanglement * 100).toFixed(1)}%</strong></p>
+      `;
+      document.getElementById('plt-breakdown').innerHTML = `
+        <p style="color:var(--profit)">Profit: +${state.profit.toFixed(3)}</p>
+        <p style="color:var(--love)">Love: +${state.love.toFixed(3)}</p>
+        <p style="color:var(--tax)">Tax: -${state.tax.toFixed(3)}</p>
+      `;
+    }
+
+    function render() {
+      ctx.fillStyle = '#07090e';
+      ctx.fillRect(0, 0, width, height);
+      const time = Date.now() * 0.0015;
+      const cx = width / 2;
+      const cy = height / 2;
+
+      for (let i = 0; i < state.qubits; i++) {
+        const angle = (i / state.qubits) * Math.PI * 2 + time * 0.4;
+        const r = 120 + Math.sin(time * 2 + i * 0.2) * 40;
+        const x = cx + Math.cos(angle) * r;
+        const y = cy + Math.sin(angle) * r;
+
+        ctx.beginPath();
+        ctx.arc(x, y, 5, 0, Math.PI * 2);
+        ctx.fillStyle = i % 2 === 0 ? 'rgba(16, 185, 129, 0.9)' : 'rgba(236, 72, 153, 0.9)';
+        ctx.shadowColor = ctx.fillStyle;
+        ctx.shadowBlur = 12;
+        ctx.fill();
+      }
+      calculatePLT();
+      requestAnimationFrame(render);
+    }
+    render();
+  </script>
+</body>
+</html>

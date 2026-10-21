@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PLT Value Optimization & Agent Telemetry Visualizer</title>
+<style>
+  body { font-family: monospace; background: #0a0a10; color: #00ffcc; padding: 20px; }
+  .card { border: 1px solid #00ffcc; padding: 15px; border-radius: 8px; margin-bottom: 20px; background: rgba(0,255,204,0.05); }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
+  .val { font-size: 1.5em; font-weight: bold; color: #ff007f; }
+</style>
+</head>
+<body>
+  <h1>PLT Value Optimization & Telemetry Visualizer</h1>
+  <div class="grid">
+    <div class="card"><h3>Profit Prime (P)</h3><div id="plt-p" class="val">0.90</div></div>
+    <div class="card"><h3>Love Weaver (L)</h3><div id="plt-l" class="val">0.05</div></div>
+    <div class="card"><h3>Tax Collector (T)</h3><div id="plt-t" class="val">0.05</div></div>
+  </div>
+  <div class="card">
+    <h3>Real-Time Agent Telemetry Stream</h3>
+    <pre id="telemetry-log">[INIT] Telemetry visualizer connected to http://127.0.0.1:3001...</pre>
+  </div>
+</body>
+</html>

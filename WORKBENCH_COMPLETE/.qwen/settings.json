@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(get-content *)",
+      "Bash(foreach-object *)"
+    ]
+  },
+  "$version": 4
+}

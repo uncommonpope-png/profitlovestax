@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>4-Gods PLT Cognitive Telemetry</title>
+<style>
+body { background: #0b0c10; color: #66fcf1; font-family: monospace; margin: 0; padding: 20px; }
+.grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+.card { border: 1px solid #45a29e; padding: 15px; border-radius: 8px; background: #1f2833; }
+.god-header { font-size: 1.2em; font-weight: bold; border-bottom: 1px solid #45a29e; padding-bottom: 5px; margin-bottom: 10px; }
+.plt-score { font-size: 1.5em; color: #45a29e; }
+</style>
+</head>
+<body>
+<h1>4-Gods PLT Multi-Agent Cognitive Telemetry</h1>
+<div class="grid" id="council"></div>
+<script>
+const gods = [
+  { name: 'Profit Prime', archetype: 'Architect', plt: { profit: 0.9, love: 0.05, tax: 0.05 } },
+  { name: 'Love Weaver', archetype: 'Relational', plt: { profit: 0.1, love: 0.85, tax: 0.05 } },
+  { name: 'Tax Collector', archetype: 'Governance', plt: { profit: 0.05, love: 0.05, tax: 0.9 } },
+  { name: 'Harvester', archetype: 'Yield Optimization', plt: { profit: 0.4, love: 0.3, tax: 0.3 } }
+];
+function render() {
+  const container = document.getElementById('council');
+  container.innerHTML = gods.map(g => `
+    <div class="card">
+      <div class="god-header">${g.name} (${g.archetype})</div>
+      <div>Profit: ${(g.plt.profit * 100).toFixed(0)}%</div>
+      <div>Love: ${(g.plt.love * 100).toFixed(0)}%</div>
+      <div>Tax: ${(g.plt.tax * 100).toFixed(0)}%</div>
+      <div class="plt-score">Net Value: ${(g.plt.profit + g.plt.love - g.plt.tax).toFixed(2)}</div>
+    </div>
+  `).join('');
+}
+render();
+</script>
+</body>
+</html>

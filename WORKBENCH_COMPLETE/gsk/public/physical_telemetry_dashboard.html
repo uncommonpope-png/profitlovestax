@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Physical Environment Telemetry Fusion & Live PLT Scoring</title>
+<style>
+  :root { --bg: #090a0f; --card: #121520; --accent: #00ffcc; --love: #ff007f; --tax: #ffaa00; --text: #e0e6ed; }
+  body { margin: 0; padding: 20px; font-family: 'Segoe UI', monospace; background-color: var(--bg); color: var(--text); }
+  .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #1a2035; padding-bottom: 15px; margin-bottom: 20px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+  .card { background: var(--card); border: 1px solid #20273d; border-radius: 8px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
+  .metric-val { font-size: 2rem; font-weight: bold; margin-top: 5px; color: var(--accent); }
+  .plt-hero { background: linear-gradient(135deg, #151b2e 0%, #0d111a 100%); border: 1px solid var(--accent); text-align: center; grid-column: span 1 / -1; }
+  .plt-formula { font-size: 1.2rem; margin: 10px 0; color: #8a99ad; }
+</style>
+</head>
+<body>
+  <div class="header">
+    <h2>Physical Telemetry Fusion Console</h2>
+    <div>Endpoint: <code id="api-url">http://127.0.0.1:3001</code></div>
+  </div>
+  <div class="grid">
+    <div class="card plt-hero">
+      <h3>Live Dynamic PLT Score</h3>
+      <div class="plt-formula">True Value = Profit (0.85) + Love (0.90) - Tax (0.15)</div>
+      <div id="plt-score" class="metric-val">+1.60 TVU</div>
+    </div>
+    <div class="card">
+      <h3>Physical Telemetry Mesh</h3>
+      <div>Spatial Occupancy: <span id="occupancy">Active (Zone A, Zone C)</span></div>
+      <div>Grid Power Consumption: <span id="power-usage">240 W</span></div>
+      <div>Ambient Thermal Level: <span id="temp">21.5 °C</span></div>
+    </div>
+    <div class="card">
+      <h3>Home Assistant Bridge State</h3>
+      <div>Status: <span id="ha-status" style="color:var(--accent);">Connected</span></div>
+      <div>IoT Telemetry Stream: <span id="stream-rate">60 Hz Active</span></div>
+    </div>
+  </div>
+  <script>
+    const BASE_URL = 'http://127.0.0.1:3001';
+    function updatePLTScore(profit, love, tax) {
+      const score = profit + love - tax;
+      document.getElementById('plt-score').textContent = (score >= 0 ? '+' : '') + score.toFixed(2) + ' TVU';
+    }
+    setInterval(() => {
+      const profit = 0.8 + Math.random() * 0.2;
+      const love = 0.85 + Math.random() * 0.15;
+      const tax = 0.1 + Math.random() * 0.1;
+      updatePLTScore(profit, love, tax);
+    }, 3000);
+  </script>
+</body>
+</html>

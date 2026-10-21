@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>4 Gods Strategic Telemetry & Sanctum Command Cockpit</title>
+<style>
+body { background: #0a0b10; color: #e2e8f0; font-family: monospace; margin: 0; padding: 20px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px; }
+.card { background: #12151e; border: 1px solid #2d3748; padding: 15px; border-radius: 8px; }
+h2 { color: #f6ad55; margin-top: 0; }
+</style>
+</head>
+<body>
+<div id="app">
+<h1>4 Gods Strategic Telemetry & Sanctum Command Cockpit</h1>
+<div class="grid">
+<div class="card" id="gods-telemetry"><h2>4 Gods Council Resonance</h2><div id="gods-data">Loading...</div></div>
+<div class="card" id="plt-metrics"><h2>PLT Dynamic Value Optimization</h2><div id="plt-data">Loading...</div></div>
+<div class="card" id="sanctum-controls"><h2>Sanctum World Levers</h2><div id="sanctum-data">Loading...</div></div>
+</div>
+</div>
+<script>
+async function refreshTelemetry() {
+  try {
+    document.getElementById('gods-data').innerText = 'Profit Prime: 0.9 | Love Weaver: 0.85 | Tax Collector: 0.1 | Harvester: 0.4';
+    document.getElementById('plt-data').innerText = 'Profit: 0.71 | Love: 0.65 | Tax: 0.11 | True Value: 1.25';
+    document.getElementById('sanctum-data').innerText = 'Sanctum Status: ONLINE | Active Souls: 4 | World Resonance: 0.88';
+  } catch (err) {
+    console.error(err);
+  }
+}
+refreshTelemetry();
+setInterval(refreshTelemetry, 5000);
+</script>
+</body>
+</html>

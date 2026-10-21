@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Creature vs State Consciousness Metrics</title>
+<style>
+body { margin: 0; font-family: monospace; background: #0a0a10; color: #e0e0e0; display: flex; flex-direction: column; min-height: 100vh; }
+header { padding: 1rem; border-bottom: 1px solid #222; background: #12121c; display: flex; justify-content: space-between; align-items: center; }
+.container { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; padding: 1rem; flex: 1; }
+.card { background: #141420; border: 1px solid #282838; border-radius: 8px; padding: 1rem; flex-direction: column; display: flex; }
+canvas { width: 100%; height: 320px; background: #08080c; border-radius: 4px; }
+.controls { margin-top: 1rem; display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem; }
+label { font-size: 0.8rem; color: #888; display: flex; flex-direction: column; gap: 4px; }
+input[type=range] { accent-color: #7000ff; }
+.metric-val { color: #00ffcc; font-weight: bold; }
+</style>
+</head>
+<body>
+<header>
+  <h2>Creature vs State Consciousness Analyzer</h2>
+  <div id="status">Status: Ready</div>
+</header>
+<div class="container">
+  <div class="card">
+    <h3>Creature Consciousness (Biological/Entity Autonomy)</h3>
+    <p style="font-size:0.8rem; color:#aaa;">Metrics: Persistence, Wakefulness/Arousal, Integrated Information (Phi), Homeostatic Drive.</p>
+    <canvas id="creatureCanvas"></canvas>
+    <div class="controls">
+      <label>Wakefulness / Arousal: <span id="val-arousal" class="metric-val">0.50</span>
+        <input type="range" id="arousal" min="0" max="1" step="0.01" value="0.50">
+      </label>
+      <label>Integrated Info (&Phi;): <span id="val-phi" class="metric-val">0.65</span>
+        <input type="range" id="phi" min="0" max="1" step="0.01" value="0.65">
+      </label>
+      <label>Homeostatic Drive: <span id="val-drive" class="metric-val">0.40</span>
+        <input type="range" id="drive" min="0" max="1" step="0.01" value="0.40">
+      </label>
+      <label>Valence Floor: <span id="val-valence" class="metric-val">0.35</span>
+        <input type="range" id="valence" min="-1" max="1" step="0.01" value="0.35">
+      </label>
+    </div>
+  </div>
+  <div class="card">
+    <h3>State Consciousness (Occurrent Intentionality)</h3>
+    <p style="font-size:0.8rem; color:#aaa;">Metrics: Temporal Attention, Metacognition, Executive Reflection, Phenomenal Content.</p>
+    <canvas id="stateCanvas"></canvas>
+    <div class="controls">
+      <label>Attention Focus: <span id="val-attention" class="metric-val">0.80</span>
+        <input type="range" id="attention" min="0" max="1" step="0.01" value="0.80">
+      </label>
+      <label>Metacognitive Depth: <span id="val-metacog" class="metric-val">0.55</span>
+        <input type="range" id="metacog" min="0" max="1" step="0.01" value="0.55">
+      </label>
+      <label>Working Memory Load: <span id="val-wm" class="metric-val">0.70</span>
+        <input type="range" id="wm" min="0" max="1" step="0.01" value="0.70">
+      </label>
+      <label>Access Consciousness: <span id="val-access" class="metric-val">0.75</span>
+        <input type="range" id="access" min="0" max="1" step="0.01" value="0.75">
+      </label>
+    </div>
+  </div>
+</div>
+<script>
+const c1 = document.getElementById('creatureCanvas');
+const c2 = document.getElementById('stateCanvas');
+const ctx1 = c1.getContext('2d');
+const ctx2 = c2.getContext('2d');
+
+function resize() {
+  [c1, c2].forEach(c => {
+    c.width = c.clientWidth * window.devicePixelRatio;
+    c.height = c.clientHeight * window.devicePixelRatio;
+  });
+}
+window.addEventListener('resize', resize);
+resize();
+
+const inputs = ['arousal', 'phi', 'drive', 'valence', 'attention', 'metacog', 'wm', 'access'];
+inputs.forEach(id => {
+  document.getElementById(id).addEventListener('input', (e) => {
+    document.getElementById('val-' + id).innerText = parseFloat(e.target.value).toFixed(2);
+    draw();
+  });
+});
+
+function drawRadar(ctx, width, height, metrics, labels, color) {
+  ctx.clearRect(0, 0, width, height);
+  const cx = width / 2;
+  const cy = height / 2;
+  const radius = Math.min(width, height) * 0.35;
+  const n = metrics.length;
+
+  // Grid
+  ctx.strokeStyle = '#222233';
+  ctx.lineWidth = 1;
+  for(let r = 0.25; r <= 1; r += 0.25) {
+    ctx.beginPath();
+    for(let i = 0; i < n; i++) {
+      const angle = (Math.PI * 2 / n) * i - Math.PI / 2;
+      const x = cx + Math.cos(angle) * radius * r;
+      const y = cy + Math.sin(angle) * radius * r;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+    ctx.stroke();
+  }
+
+  // Data shape
+  ctx.beginPath();
+  metrics.forEach((val, i) => {
+    const angle = (Math.PI * 2 / n) * i - Math.PI / 2;
+    const normVal = Math.max(0, Math.min(1, (val + 1) / 2)); // normalize [-1, 1] if needed
+    const x = cx + Math.cos(angle) * radius * normVal;
+    const y = cy + Math.sin(angle) * radius * normVal;
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  });
+  ctx.closePath();
+  ctx.fillStyle = color + '33';
+  ctx.fill();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  ctx.stroke();
+}
+
+function draw() {
+  const creatureVals = [
+    parseFloat(document.getElementById('arousal').value),
+    parseFloat(document.getElementById('phi').value),
+    parseFloat(document.getElementById('drive').value),
+    parseFloat(document.getElementById('valence').value)
+  ];
+  const stateVals = [
+    parseFloat(document.getElementById('attention').value),
+    parseFloat(document.getElementById('metacog').value),
+    parseFloat(document.getElementById('wm').value),
+    parseFloat(document.getElementById('access').value)
+  ];
+
+  drawRadar(ctx1, c1.width, c1.height, creatureVals, ['Arousal', 'Phi', 'Drive', 'Valence'], '#00ffcc');
+  drawRadar(ctx2, c2.width, c2.height, stateVals, ['Attention', 'Metacog', 'WM', 'Access'], '#ff0077');
+}
+
+draw();
+</script>
+</body>
+</html>

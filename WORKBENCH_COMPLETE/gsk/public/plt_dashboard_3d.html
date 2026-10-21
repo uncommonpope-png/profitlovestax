@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Sovereign PLT & Cognitive Self-Model Evolution Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+body { margin: 0; overflow: hidden; background: #040408; font-family: 'Courier New', monospace; color: #00ffcc; }
+#hud { position: absolute; top: 20px; left: 20px; background: rgba(5,15,25,0.85); border: 1px solid #00ffcc; padding: 20px; border-radius: 8px; box-shadow: 0 0 15px rgba(0,255,204,0.2); width: 300px; }
+h1 { font-size: 16px; margin: 0 0 10px 0; letter-spacing: 1px; color: #ffffff; text-transform: uppercase; border-bottom: 1px solid #00ffcc; padding-bottom: 5px; }
+.metric { display: flex; justify-content: space-between; margin: 8px 0; font-size: 13px; }
+</style>
+</head>
+<body>
+<div id="hud">
+<h1>Sovereign Self-Model</h1>
+<div class="metric"><span>Profit Score:</span><span id="profit-val">0.90</span></div>
+<div class="metric"><span>Love Affinity:</span><span id="love-val">0.85</span></div>
+<div class="metric"><span>Tax Friction:</span><span id="tax-val">0.05</span></div>
+<div class="metric"><span>Valence State:</span><span id="valence-val">0.18</span></div>
+<div class="metric"><span>Resonance:</span><span id="resonance-val">0.35</span></div>
+</div>
+<script>
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x040408, 0.03);
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+camera.position.set(0, 0, 8);
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+const coreGeo = new THREE.IcosahedronGeometry(1.8, 3);
+const coreMat = new THREE.MeshBasicMaterial({ color: 0x00ffcc, wireframe: true });
+const coreMesh = new THREE.Mesh(coreGeo, coreMat);
+scene.add(coreMesh);
+
+const particleCount = 200;
+const particlesGeo = new THREE.BufferGeometry();
+const posArray = new Float32Array(particleCount * 3);
+for(let i=0; i<particleCount*3; i++) {
+  posArray[i] = (Math.random() - 0.5) * 12;
+}
+particlesGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+const particlesMat = new THREE.PointsMaterial({ size: 0.05, color: 0xff0055 });
+const particleSystem = new THREE.Points(particlesGeo, particlesMat);
+scene.add(particleSystem);
+
+function animate(time) {
+  requestAnimationFrame(animate);
+  coreMesh.rotation.x = time * 0.0005;
+  coreMesh.rotation.y = time * 0.0008;
+  particleSystem.rotation.y = -time * 0.0002;
+  renderer.render(scene, camera);
+}
+animate(0);
+</script>
+</body>
+</html>

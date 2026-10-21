@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>GSK Unified Memory & Flowise Telemetry Visualizer</title>
+  <style>
+    body { background: #0a0a0c; color: #00ffcc; font-family: monospace; margin: 0; padding: 20px; }
+    .header { font-size: 1.4rem; border-bottom: 1px solid #00ffcc; padding-bottom: 10px; margin-bottom: 20px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .card { background: #141419; border: 1px solid #333; border-radius: 8px; padding: 15px; }
+    #memory-log, #flowise-stream { height: 300px; overflow-y: auto; font-size: 12px; background: #050508; padding: 10px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <div class="header">⚡ GSK UNIFIED TELEMETRY: AGENT MEMORY & FLOWISE PIPELINE ⚡</div>
+  <div class="grid">
+    <div class="card">
+      <h3>🧠 Agent Memory & PLT Value Log</h3>
+      <div id="memory-log">Connecting to memory stream...</div>
+    </div>
+    <div class="card">
+      <h3>🌊 Flowise Telemetry & Node Execution</h3>
+      <div id="flowise-stream">Connecting to Flowise telemetry...</div>
+    </div>
+  </div>
+  <script>
+    console.log('Telemetry visualizer loaded.');
+  </script>
+</body>
+</html>

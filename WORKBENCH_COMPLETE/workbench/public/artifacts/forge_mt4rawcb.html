@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PLT Sovereign Pyramid Visualizer</title>
+<script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; user-select: none; }
+  body, html { width: 100%; height: 100%; overflow: hidden; background-color: #030308; color: #fff; }
+  #canvas-container { width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; }
+  
+  .ui-layer {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    z-index: 10; pointer-events: none;
+    display: flex; flex-direction: column; justify-content: space-between;
+    padding: 24px;
+  }
+  
+  .interactive { pointer-events: auto; }
+  
+  .header {
+    background: rgba(10, 10, 22, 0.7);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 16px 24px;
+    display: flex; justify-content: space-between; align-items: center;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  }
+  
+  .title-group h1 {
+    font-size: 20px; font-weight: 800;
+    background: linear-gradient(135deg, #00ffaa, #00f2fe, #ff2a8d);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    text-transform: uppercase; letter-spacing: 2px;
+  }
+  .title-group p { font-size: 11px; color: rgba(255, 255, 255, 0.5); font-family: monospace; margin-top: 2px; }
+  
+  .true-value-card { text-align: right; }
+  .true-value-label { font-size: 10px; font-family: monospace; letter-spacing: 2px; color: rgba(255, 255, 255, 0.5); }
+  .true-value-display {
+    font-size: 32px; font-weight: 900; font-family: 'Courier New', Courier, monospace;
+    text-shadow: 0 0 20px rgba(0, 242, 254, 0.8);
+    transition: all 0.3s ease;
+  }
+  
+  .bar-label {
+    position: absolute;
+    transform: translate(-50%, -100%);
+    font-weight: 800;
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    background: rgba(5, 5, 14, 0.85);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #fff;
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.05s linear;
+    white-space: nowrap;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.7);
+  }
+  
+  .control-panel {
+    background: rgba(10, 10, 22, 0.75);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 20px;
+    padding: 20px;
+    width: 320px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.7);
+  }
+  
+  .control-title {
+    font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px;
+    color: rgba(255,255,255,0.7); margin-bottom: 16px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  
+  .slider-group { margin-bottom: 14px; }
+  .slider-header { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 6px; font-family: monospace; }
+  .slider-header span:first-child { font-weight: 700; letter-spacing: 1px; }
+  
+  input[type=range] {
+    -webkit-appearance: none; width: 100%; height: 6px; border-radius: 3px;
+    background: rgba(255, 255, 255, 0.1); outline: none; transition: background 0.3s;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border-radius: 50%;
+    cursor: pointer; transition: transform 0.1s, background 0.3s; box-shadow: 0 0 10px rgba(0,0,0,0.5);
+  }
+  
+  #slider-profit::-webkit-slider-thumb { background: #00ffaa; box-shadow: 0 0 12px #00ffaa; }
+  #slider-love::-webkit-slider-thumb { background: #ff2a8d; box-shadow: 0 0 12px #ff2a8d; }
+  #slider-tax::-webkit-slider-thumb { background: #ff3b30; box-shadow: 0 0 12px #ff3b30; }
+
+  .p-color { color: #00ffaa; text-shadow: 0 0 10px rgba(0,255,170,0.5); }
+  .l-color { color: #ff2a8d; text-shadow: 0 0 10px rgba(255,42,141,0.5); }
+  .t-color { color: #ff3b30; text-shadow: 0 0 10px rgba(255,59,48,0.5); }
+  
+  .preset-btns { display: flex; gap: 8px; margin-top: 12px; }
+  .btn {
+    flex: 1; padding: 8px; font-size: 9px; font-weight: 700; border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.05); color: #ccc;
+    cursor: pointer; transition: all 0.2s; text-align: center; text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .btn:hover { background: rgba(255,255,255,0.15); color: #fff; border-color: rgba(255,255,255,0.3); }
+
+  @keyframes pulseGlow {
+    0% { transform: scale(1); filter: brightness(1); }
+    50% { transform: scale(1.05); filter: brightness(1.3); }
+    100% { transform: scale(1); filter: brightness(1); }
+  }
+  .pulsing { animation: pulseGlow 2s infinite ease-in-out; }
+  
+  .hint {
+    position: absolute; bottom: 24px; right: 24px;
+    font-size: 10px; font-family: monospace; color: rgba(255,255,255,0.4);
+    background: rgba(0,0,0,0.5); padding: 8px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08);
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+
+<div id="canvas-container"></div>
+
+<div class="ui-layer">
+  <div class="header interactive">
+    <div class="title-group">
+      <h1>PLT Sovereign Visualizer</h1>
+      <p>PROFIT + LOVE - TAX = TRUE VALUE</p>
+    </div>
+    <div class="true-value-card">
+      <div class="true-value-label">SOVEREIGN TRUE VALUE</div>
+      <div id="true-value" class="true-value-display pulsing p-color">+50.00</div>
+    </div>
+  </div>
+
+  <div id="label-profit" class="bar-label"><span class="p-color">PROFIT</span> <span id="val-p-badge">+50</span></div>
+  <div id="label-love" class="bar-label"><span class="l-color">LOVE</span> <span id="val-l-badge">+30</span></div>
+  <div id="label-tax" class="bar-label"><span class="t-color">TAX</span> <span id="val-t-badge">-30</span></div>
+
+  <div class="control-panel interactive">
+    <div class="control-title">
+      <span>Framework Metrics</span>
+      <span style="font-size: 9px; opacity: 0.5;">REALTIME MATRIX</span>
+    </div>
+
+    <div class="slider-group">
+      <div class="slider-header">
+        <span class="p-color">PROFIT (P)</span>
+        <span id="txt-profit" class="p-color">50</span>
+      </div>
+      <input type="range" id="slider-profit" min="0" max="100" value="50">
+    </div>
+
+    <div class="slider-group">
+      <div class="slider-header">
+        <span class="l-color">LOVE (L)</span>
+        <span id="txt-love" class="l-color">30</span>
+      </div>
+      <input type="range" id="slider-love" min="0" max="100" value="30">
+    </div>
+
+    <div class="slider-group">
+      <div class="slider-header">
+        <span class="t-color">TAX (T)</span>
+        <span id="txt-tax" class="t-color">30</span>
+      </div>
+      <input type="range" id="slider-tax" min="0" max="100" value="30">
+    </div>
+
+    <div class="preset-btns">
+      <button class="btn" onclick="setPreset(90, 80, 15)">Sovereign</button>
+      <button class="btn" onclick="setPreset(20, 85, 10)">Pure Love</button>
+      <button class="btn" onclick="setPreset(95, 15, 80)">Tax Drain</button>
+    </div>
+  </div>
+
+  <div class="hint">DRAG TO ROTATE 3D SCENE | SCROLL TO ZOOM</div>
+</div>
+
+<script>
+  const container = document.getElementById('canvas-container');
+  const scene = new THREE.Scene();
+  scene.fog = new THREE.FogExp2(0x030308, 0.035);
+
+  const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  container.appendChild(renderer.domElement);
+
+  const ambientLight = new THREE.AmbientLight(0x1a1a2e, 1.5);
+  scene.add(ambientLight);
+
+  const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
+  dirLight.position.set(10, 20, 10);
+  dirLight.castShadow = true;
+  dirLight.shadow.mapSize.width = 2048;
+  dirLight.shadow.mapSize.height = 2048;
+  scene.add(dirLight);
+
+  const profitLight = new THREE.PointLight(0x00ffaa, 3, 12);
+  scene.add(profitLight);
+
+  const loveLight = new THREE.PointLight(0xff2a8d, 3, 12);
+  scene.add(loveLight);
+
+  const taxLight = new THREE.PointLight(0xff3b30, 3, 12);
+  scene.add(taxLight);
+
+  const gridHelper = new THREE.GridHelper(40, 40, 0x00f2fe, 0x111122);
+  gridHelper.position.y = -2.01;
+  scene.add(gridHelper);
+
+  const floorGeo = new THREE.PlaneGeometry(80, 80);
+  const floorMat = new THREE.MeshStandardMaterial({ color: 0x030308, roughness: 0.8, metalness: 0.2 });
+  const floor = new THREE.Mesh(floorGeo, floorMat);
+  floor.rotation.x = -Math.PI / 2;
+  floor.position.y = -2.02;
+  floor.receiveShadow = true;
+  scene.add(floor);
+
+  const pyramidHeight = 2.5;
+  const pyramidRadius = 3.5;
+  const pyramidGeo = new THREE.ConeGeometry(pyramidRadius, pyramidHeight, 4);
+  const pyramidMat = new THREE.MeshPhysicalMaterial({
+    color: 0x0a0a16,
+    roughness: 0.2,
+    metalness: 0.8,
+    clearcoat: 0.5,
+    clearcoatRoughness: 0.1
+  });
+  const pyramidMesh = new THREE.Mesh(pyramidGeo, pyramidMat);
+  pyramidMesh.rotation.y = Math.PI / 4;
+  pyramidMesh.position.y = -2.0 + (pyramidHeight / 2);
+  pyramidMesh.castShadow = true;
+  pyramidMesh.receiveShadow = true;
+  scene.add(pyramidMesh);
+
+  const edgesGeo = new THREE.EdgesGeometry(pyramidGeo);
+  const edgesMat = new THREE.LineBasicMaterial({ color: 0x00f2fe, linewidth: 2 });
+  const edgesWireframe = new THREE.LineSegments(edgesGeo, edgesMat);
+  pyramidMesh.add(edgesWireframe);
+
+  const apexGeo = new THREE.OctahedronGeometry(0.35);
+  const apexMat = new THREE.MeshStandardMaterial({
+    color: 0xffffff,
+    emissive: 0x00f2fe,
+    emissiveIntensity: 2,
+    roughness: 0.1
+  });
+  const apexGem = new THREE.Mesh(apexGeo, apexMat);
+  apexGem.position.y = pyramidHeight / 2 + 0.3;
+  pyramidMesh.add(apexGem);
+
+  const ringGeo = new THREE.TorusGeometry(1.2, 0.03, 16, 64);
+  const ringMat = new THREE.MeshBasicMaterial({ color: 0x00f2fe, wireframe: true });
+  const apexRing = new THREE.Mesh(ringGeo, ringMat);
+  apexRing.rotation.x = Math.PI / 2;
+  apexRing.position.y = pyramidMesh.position.y + pyramidHeight / 2 + 0.3;
+  scene.add(apexRing);
+
+  const barRadius = 2.2;
+  const angles = [0, (Math.PI * 2) / 3, (Math.PI * 4) / 3];
+  
+  function createBar(color, emissiveColor) {
+    const group = new THREE.Group();
+    
+    const geo = new THREE.CylinderGeometry(0.35, 0.35, 1, 32);
+    const mat = new THREE.MeshStandardMaterial({
+      color: color,
+      emissive: emissiveColor,
+      emissiveIntensity: 0.8,
+      roughness: 0.1,
+      metalness: 0.3,
+      transparent: true,
+      opacity: 0.9
+    });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.castShadow = true;
+    mesh.position.y = 0.5;
+    group.add(mesh);
+
+    const coreGeo = new THREE.CylinderGeometry(0.18, 0.18, 1, 16);
+    const coreMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    const coreMesh = new THREE.Mesh(coreGeo, coreMat);
+    coreMesh.position.y = 0.5;
+    group.add(coreMesh);
+
+    const pedGeo = new THREE.CylinderGeometry(0.5, 0.55, 0.2, 32);
+    const pedMat = new THREE.MeshStandardMaterial({ color: 0x111122, metalness: 0.9, roughness: 0.3 });
+    const pedMesh = new THREE.Mesh(pedGeo, pedMat);
+    pedMesh.position.y = -0.1;
+    group.add(pedMesh);
+
+    scene.add(group);
+    return { group, mesh, coreMesh, mat };
+  }
+
+  const profitBar = createBar(0x00ffaa, 0x00aa66);
+  const loveBar = createBar(0xff2a8d, 0xaa1155);
+  const taxBar = createBar(0xff3b30, 0xaa1111);
+
+  profitBar.group.position.set(Math.cos(angles[0]) * barRadius, -2.0, Math.sin(angles[0]) * barRadius);
+  loveBar.group.position.set(Math.cos(angles[1]) * barRadius, -2.0, Math.sin(angles[1]) * barRadius);
+  taxBar.group.position.set(Math.cos(angles[2]) * barRadius, -2.0, Math.sin(angles[2]) * barRadius);
+
+  const particleCount = 200;
+  const particleGeo = new THREE.BufferGeometry();
+  const particlePositions = new Float32Array(particleCount * 3);
+  for (let i = 0; i < particleCount * 3; i += 3) {
+    particlePositions[i] = (Math.random() - 0.5) * 20;
+    particlePositions[i + 1] = Math.random() * 12 - 2;
+    particlePositions[i + 2] = (Math.random() - 0.5) * 20;
+  }
+  particleGeo.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
+  const particleMat = new THREE.PointsMaterial({
+    color: 0x00f2fe,
+    size: 0.08,
+    transparent: true,
+    opacity: 0.6,
+    blending: THREE.AdditiveBlending
+  });
+  const particles = new THREE.Points(particleGeo, particleMat);
+  scene.add(particles);
+
+  let valP = 50;
+  let valL = 30;
+  let valT = 30;
+
+  const sliderP = document.getElementById('slider-profit');
+  const sliderL = document.getElementById('slider-love');
+  const sliderT = document.getElementById('slider-tax');
+
+  const txtP = document.getElementById('txt-profit');
+  const txtL = document.getElementById('txt-love');
+  const txtT = document.getElementById('txt-tax');
+
+  const valPBadge = document.getElementById('val-p-badge');
+  const valLBadge = document.getElementById('val-l-badge');
+  const valTBadge = document.getElementById('val-t-badge');
+
+  const trueValueDisplay = document.getElementById('true-value');
+
+  const labelP = document.getElementById('label-profit');
+  const labelL = document.getElementById('label-love');
+  const labelT = document.getElementById('label-tax');
+
+  function updateValues() {
+    valP = parseFloat(sliderP.value);
+    valL = parseFloat(sliderL.value);
+    valT = parseFloat(sliderT.value);
+
+    txtP.innerText = valP;
+    txtL.innerText = valL;
+    txtT.innerText = valT;
+
+    valPBadge.innerText = '+' + valP;
+    valLBadge.innerText = '+' + valL;
+    valTBadge.innerText = '-' + valT;
+
+    const trueVal = valP + valL - valT;
+    const formatted = (trueVal >= 0 ? '+' : '') + trueVal.toFixed(2);
+    trueValueDisplay.innerText = formatted;
+
+    if (trueVal > 50) {
+      trueValueDisplay.className = "true-value-display pulsing p-color";
+      apexMat.emissive.setHex(0x00ffaa);
+      edgesMat.color.setHex(0x00ffaa);
+      ringMat.color.setHex(0x00ffaa);
+    } else if (trueVal >= 0) {
+      trueValueDisplay.className = "true-value-display pulsing l-color";
+      apexMat.emissive.setHex(0x00f2fe);
+      edgesMat.color.setHex(0x00f2fe);
+      ringMat.color.setHex(0x00f2fe);
+    } else {
+      trueValueDisplay.className = "true-value-display pulsing t-color";
+      apexMat.emissive.setHex(0xff3b30);
+      edgesMat.color.setHex(0xff3b30);
+      ringMat.color.setHex(0xff3b30);
+    }
+  }
+
+  sliderP.addEventListener('input', updateValues);
+  sliderL.addEventListener('input', updateValues);
+  sliderT.addEventListener('input', updateValues);
+
+  window.setPreset = function(p, l, t) {
+    sliderP.value = p;
+    sliderL.value = l;
+    sliderT.value = t;
+    updateValues();
+  };
+
+  let isDragging = false;
+  let prevMouseX = 0;
+  let prevMouseY = 0;
+  let rotX = 0.35;
+  let rotY = 0.5;
+  let distance = 13;
+
+  function updateCamera() {
+    rotX = Math.max(-Math.PI / 4, Math.min(Math.PI / 3, rotX));
+    camera.position.x = distance * Math.sin(rotY) * Math.cos(rotX);
+    camera.position.y = distance * Math.sin(rotX) + 1.5;
+    camera.position.z = distance * Math.cos(rotY) * Math.cos(rotX);
+    camera.lookAt(0, 0.5, 0);
+  }
+  updateCamera();
+
+  window.addEventListener('mousedown', (e) => {
+    if (e.target.closest('.interactive')) return;
+    isDragging = true;
+    prevMouseX = e.clientX;
+    prevMouseY = e.clientY;
+  });
+
+  window.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+    const deltaX = e.clientX - prevMouseX;
+    const deltaY = e.clientY - prevMouseY;
+    rotY -= deltaX * 0.005;
+    rotX += deltaY * 0.005;
+    prevMouseX = e.clientX;
+    prevMouseY = e.clientY;
+    updateCamera();
+  });
+
+  window.addEventListener('mouseup', () => { isDragging = false; });
+  
+  window.addEventListener('wheel', (e) => {
+    distance += e.deltaY * 0.008;
+    distance = Math.max(6, Math.min(25, distance));
+    updateCamera();
+  });
+
+  const tempV = new THREE.Vector3();
+  function projectTo2D(pos3D, element) {
+    tempV.copy(pos3D);
+    tempV.project(camera);
+    const x = (tempV.x * .5 + .5) * window.innerWidth;
+    const y = (-(tempV.y * .5) + .5) * window.innerHeight;
+    element.style.transform = `translate(-50%, -100%) translate(${x}px,${y}px)`;
+    element.style.opacity = tempV.z > 1 ? 0 : 1;
+  }
+
+  let clock = new THREE.Clock();
+
+  function animate() {
+    requestAnimationFrame(animate);
+
+    const time = clock.getElapsedTime();
+    const scaleFactor = 0.06;
+
+    const targetHeightP = Math.max(0.2, valP * scaleFactor);
+    const targetHeightL = Math.max(0.2, valL * scaleFactor);
+    const targetHeightT = Math.max(0.2, valT * scaleFactor);
+
+    profitBar.mesh.scale.y = THREE.MathUtils.lerp(profitBar.mesh.scale.y, targetHeightP, 0.1);
+    profitBar.coreMesh.scale.y = profitBar.mesh.scale.y;
+
+    loveBar.mesh.scale.y = THREE.MathUtils.lerp(loveBar.mesh.scale.y, targetHeightL, 0.1);
+    loveBar.coreMesh.scale.y = loveBar.mesh.scale.y;
+
+    taxBar.mesh.scale.y = THREE.MathUtils.lerp(taxBar.mesh.scale.y, targetHeightT, 0.1);
+    taxBar.coreMesh.scale.y = taxBar.mesh.scale.y;
+
+    profitLight.position.set(profitBar.group.position.x, profitBar.group.position.y + profitBar.mesh.scale.y + 0.3, profitBar.group.position.z);
+    loveLight.position.set(loveBar.group.position.x, loveBar.group.position.y + loveBar.mesh.scale.y + 0.3, loveBar.group.position.z);
+    taxLight.position.set(taxBar.group.position.x, taxBar.group.position.y + taxBar.mesh.scale.y + 0.3, taxBar.group.position.z);
+
+    pyramidMesh.rotation.y = Math.PI / 4 + Math.sin(time * 0.5) * 0.05;
+    apexGem.rotation.y = time * 1.5;
+    apexGem.rotation.x = time * 0.8;
+    apexRing.rotation.z = time * 0.4;
+    apexRing.scale.setScalar(1 + Math.sin(time * 3) * 0.04);
+
+    const positions = particles.geometry.attributes.position.array;
+    for (let i = 1; i < particleCount * 3; i += 3) {
+      positions[i] += Math.sin(time + i) * 0.003;
+      if (positions[i] > 10) positions[i] = -2;
+    }
+    particles.geometry.attributes.position.needsUpdate = true;
+
+    const pPos = new THREE.Vector3().copy(profitBar.group.position).add(new THREE.Vector3(0, profitBar.mesh.scale.y + 0.4, 0));
+    const lPos = new THREE.Vector3().copy(loveBar.group.position).add(new THREE.Vector3(0, loveBar.mesh.scale.y + 0.4, 0));
+    const tPos = new THREE.Vector3().copy(taxBar.group.position).add(new THREE.Vector3(0, taxBar.mesh.scale.y + 0.4, 0));
+
+    projectTo2D(pPos, labelP);
+    projectTo2D(lPos, labelL);
+    projectTo2D(tPos, labelT);
+
+    renderer.render(scene, camera);
+  }
+
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+
+  updateValues();
+  animate();
+</script>
+</body>
+</html>

@@ -1,0 +1,1 @@
+// Frequency Spectrum Telemetry Component scaffold

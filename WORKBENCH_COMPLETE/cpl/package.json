@@ -1,0 +1,19 @@
+{
+  "name": "cpl",
+  "version": "1.0.0",
+  "description": "Connectome/Perception Layer - GenesisHost",
+  "main": "host/genesis-host.cjs",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node host/genesis-host.cjs",
+    "dev": "node host/genesis-host.cjs",
+    "test": "echo \"No tests specified\" && exit 0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "keywords": ["cpl", "genesis", "connectome", "perception"],
+  "author": "BUYaSOUL Team",
+  "license": "MIT",
+  "dependencies": {}
+}

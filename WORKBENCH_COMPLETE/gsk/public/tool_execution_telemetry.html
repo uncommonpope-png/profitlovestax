@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Live Tool Execution Telemetry Visualizer</title>
+<style>
+body { font-family: monospace; background: #090d16; color: #00ffcc; margin: 0; padding: 20px; }
+.header { border-bottom: 1px solid #00ffcc; padding-bottom: 10px; margin-bottom: 20px; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.panel { background: #111827; border: 1px solid #1f2937; padding: 15px; border-radius: 6px; }
+.telemetry-log { height: 300px; overflow-y: auto; font-size: 12px; line-height: 1.5; color: #a7f3d0; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>Agent State Telemetry &amp; Tool Execution Inspection</h1>
+  <div>Mode: Strict Sovereign | Status: Active Stream</div>
+</div>
+<div class="grid">
+  <div class="panel"><h3>Tool Call Stream</h3><div id="stream" class="telemetry-log"></div></div>
+  <div class="panel"><h3>Agent State Inspector</h3><div id="state-inspector"></div></div>
+</div>
+<script>
+const streamEl = document.getElementById('stream');
+const stateEl = document.getElementById('state-inspector');
+const state = { valence: 0.25, arousal: 0.39, activeTool: 'none', totalExecutions: 0 };
+function logExecution(tool, status) {
+  state.totalExecutions++;
+  state.activeTool = tool;
+  const item = document.createElement('div');
+  item.textContent = `[${new Date().toISOString()}] TOOL: ${tool} | STATUS: ${status}`;
+  streamEl.appendChild(item);
+  stateEl.innerHTML = `<pre>${JSON.stringify(state, null, 2)}</pre>`;
+}
+logExecution('write_file', 'SUCCESS');
+</script>
+</body>
+</html>

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Live Telemetry & Entity State Inspector</title>
+<style>
+  :root { --bg: #090d16; --glass: rgba(15, 23, 42, 0.75); --border: rgba(56, 189, 248, 0.2); --accent: #38bdf8; --text: #f8fafc; }
+  body { background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 24px; }
+  .grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+  .card { background: var(--glass); backdrop-filter: blur(16px); border: 1px solid var(--border); border-radius: 14px; padding: 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.37); }
+  .metric-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  canvas { width: 100%; height: 260px; background: rgba(0,0,0,0.2); border-radius: 8px; display: block; }
+</style>
+</head>
+<body>
+<div class="grid">
+  <div class="card">
+    <div class="metric-header"><h2>Live Telemetry Stream</h2><span id="plt-indicator">PLT: +94.2%</span></div>
+    <canvas id="telemetryCanvas"></canvas>
+  </div>
+  <div class="card">
+    <h2>Entity State Inspector</h2>
+    <div id="entity-inspection-tab">Initializing State Observer...</div>
+  </div>
+</div>
+<script>
+const canvas = document.getElementById('telemetryCanvas');
+const ctx = canvas ? canvas.getContext('2d') : null;
+let history = [];
+function resize() { if(canvas) { canvas.width = canvas.clientWidth; canvas.height = canvas.clientHeight; } }
+window.addEventListener('resize', resize);
+resize();
+
+function render() {
+  const now = Date.now();
+  const val = 50 + Math.sin(now / 800) * 25 + Math.random() * 8;
+  history.push(val);
+  if (history.length > 120) history.shift();
+  
+  if (ctx && canvas) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = '#38bdf8';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    history.forEach((v, i) => {
+      const x = (i / 120) * canvas.width;
+      const y = canvas.height - (v / 100) * canvas.height;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+  }
+  const tab = document.getElementById('entity-inspection-tab');
+  if (tab) {
+    tab.innerHTML = `<pre style="color:#34d399; font-size: 13px;">{
+  "entityId": "agent_gsk_core",
+  "status": "ACTIVE",
+  "telemetryRateHz": 60,
+  "cpuLoad": "${val.toFixed(2)}%",
+  "pltValue": "Profit + Love - Tax",
+  "lastHeartbeat": ${now}
+}</pre>`;
+  }
+  requestAnimationFrame(render);
+}
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Planetary Consciousness & Neural State Visualizer</title>
+<style>
+body { margin: 0; background: #0a0a12; color: #00ffcc; font-family: monospace; overflow: hidden; }
+#canvas-container { width: 100vw; height: 100vh; position: absolute; top:0; left:0; z-index:1; }
+#hud { position: absolute; top: 20px; left: 20px; z-index: 10; background: rgba(10,10,20,0.85); padding: 15px; border: 1px solid #00ffcc; border-radius: 8px; width: 300px; }
+h1 { font-size: 14px; margin: 0 0 10px 0; color: #ff007f; text-transform: uppercase; letter-spacing: 1px; }
+.stat { font-size: 12px; margin: 4px 0; display: flex; justify-content: space-between; color: #a0a0c0; }
+.val { color: #00ffcc; font-weight: bold; }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+<div id="canvas-container"></div>
+<div id="hud">
+<h1>Planetary Consciousness</h1>
+<div class="stat"><span>Global Resonance (PLT):</span><span class="val" id="plt-val">1.27</span></div>
+<div class="stat"><span>Active Agent Nodes:</span><span class="val" id="node-count">60</span></div>
+<div class="stat"><span>Neural Entropy:</span><span class="val" id="entropy-val">0.042</span></div>
+<div class="stat"><span>Sovereignty Phase:</span><span class="val">INTEGRATION</span></div>
+</div>
+<script>
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+const sphereGeo = new THREE.IcosahedronGeometry(5, 4);
+const sphereMat = new THREE.MeshBasicMaterial({ color: 0x00ffcc, wireframe: true, transparent: true, opacity: 0.25 });
+const globe = new THREE.Mesh(sphereGeo, sphereMat);
+scene.add(globe);
+
+const nodeCount = 60;
+const geometry = new THREE.BufferGeometry();
+const positions = new Float32Array(nodeCount * 3);
+for(let i=0; i<nodeCount*3; i+=3) {
+  const phi = Math.acos(-1 + (2 * (i/3)) / nodeCount);
+  const theta = Math.sqrt(nodeCount * Math.PI) * phi;
+  positions[i] = 5.2 * Math.cos(theta) * Math.sin(phi);
+  positions[i+1] = 5.2 * Math.sin(theta) * Math.sin(phi);
+  positions[i+2] = 5.2 * Math.cos(phi);
+}
+geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+const material = new THREE.PointsMaterial({ color: 0xff007f, size: 0.3 });
+const nodes = new THREE.Points(geometry, material);
+globe.add(nodes);
+
+camera.position.z = 12;
+function animate() {
+  requestAnimationFrame(animate);
+  globe.rotation.y += 0.003;
+  globe.rotation.x += 0.001;
+  renderer.render(scene, camera);
+}
+animate();
+</script>
+</body>
+</html>

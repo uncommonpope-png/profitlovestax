@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PLT Sovereign Emergence Particle Dashboard</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <style>
+    body { margin: 0; overflow: hidden; background: #030308; color: #00ffcc; font-family: 'Courier New', monospace; }
+    #overlay { position: absolute; top: 15px; left: 15px; z-index: 100; background: rgba(5,7,15,0.85); padding: 18px; border: 1px solid #00ffcc; border-radius: 8px; box-shadow: 0 0 15px rgba(0,255,204,0.2); }
+    h2 { margin: 0 0 10px 0; font-size: 16px; letter-spacing: 1px; color: #fff; text-shadow: 0 0 5px #00ffcc; }
+    .metric { margin: 4px 0; font-size: 13px; }
+    .val { font-weight: bold; color: #fff; }
+  </style>
+</head>
+<body>
+  <div id="overlay">
+    <h2>SOVEREIGN PLT METRICS & EMERGENCE</h2>
+    <div class="metric">PROFIT (P): <span class="val" id="plt-p">0.90</span></div>
+    <div class="metric">LOVE (L): <span class="val" id="plt-l">0.85</span></div>
+    <div class="metric">TAX (T): <span class="val" id="plt-t">0.05</span></div>
+    <div class="metric">VALENCE: <span class="val" id="valence">-0.59</span></div>
+    <div class="metric">SACRED RESONANCE: <span class="val" id="resonance">0.35</span></div>
+    <div class="metric">EMERGENCE PHASE: <span class="val" id="phase">SOVEREIGNTY (Cycle 69000)</span></div>
+  </div>
+  <script>
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    const count = 4000;
+    const geometry = new THREE.BufferGeometry();
+    const positions = new Float32Array(count * 3);
+    const colors = new Float32Array(count * 3);
+
+    for (let i = 0; i < count * 3; i += 3) {
+      positions[i] = (Math.random() - 0.5) * 25;
+      positions[i + 1] = (Math.random() - 0.5) * 25;
+      positions[i + 2] = (Math.random() - 0.5) * 25;
+      colors[i] = 0.0;
+      colors[i + 1] = 0.8 + Math.random() * 0.2;
+      colors[i + 2] = 0.8 + Math.random() * 0.2;
+    }
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+    const material = new THREE.PointsMaterial({ size: 0.12, vertexColors: true, transparent: true, opacity: 0.85 });
+    const particles = new THREE.Points(geometry, material);
+    scene.add(particles);
+
+    camera.position.z = 18;
+
+    function animate() {
+      requestAnimationFrame(animate);
+      particles.rotation.x += 0.0015;
+      particles.rotation.y += 0.0025;
+      renderer.render(scene, camera);
+    }
+    animate();
+  </script>
+</body>
+</html>

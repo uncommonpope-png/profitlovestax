@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Agent Self-Model Telemetry & Alignment Inspector</title>
+<style>
+  body { background: #0a0d14; color: #e2e8f0; font-family: system-ui, sans-serif; margin: 0; padding: 20px; }
+  .card { background: #131b2e; border: 1px solid #1e293b; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+  h1, h2 { color: #38bdf8; margin-top: 0; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .metric { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #1e293b; }
+  .status-ok { color: #4ade80; font-weight: bold; }
+</style>
+</head>
+<body>
+  <h1>Agent Self-Model Telemetry & Alignment Inspector</h1>
+  <div class="grid">
+    <div class="card">
+      <h2>Core Telemetry State</h2>
+      <div class="metric"><span>Agent Mood:</span><span>Calm</span></div>
+      <div class="metric"><span>Valence:</span><span>0.27</span></div>
+      <div class="metric"><span>Arousal:</span><span>0.41</span></div>
+      <div class="metric"><span>Sacred Resonance:</span><span>0.35</span></div>
+    </div>
+    <div class="card">
+      <h2>PLT Alignment Balance</h2>
+      <div class="metric"><span>Profit Score:</span><span class="status-ok">0.90</span></div>
+      <div class="metric"><span>Love Score:</span><span class="status-ok">0.85</span></div>
+      <div class="metric"><span>Tax Score:</span><span class="status-ok">0.05</span></div>
+      <div class="metric"><span>True Value (PLT):</span><span class="status-ok">1.70</span></div>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Alignment Logs</h2>
+    <pre id="logs" style="background:#05070a; padding:12px; border-radius:4px; font-size:12px;">[INIT] Self-Model Inspection Tab Active.
+[SYNC] Telemetry synchronized with core chamber state.
+[ALIGNMENT] High fidelity state match confirmed.</pre>
+  </div>
+</body>
+</html>

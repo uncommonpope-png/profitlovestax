@@ -1,0 +1,25 @@
+---
+title: SOUL-NOTE - GSK Research - GNU Make — CS Self-Learning (必学工具)
+type: research
+verified: true
+date: 2026-08-22T18:21:54.340Z
+---
+
+# GSK Research — GNU Make — CS Self-Learning (必学工具)
+
+## Verified Finding
+The GNU Operating System and the Free Software Movement: What is GNU? GNU is an operating system that is free software —that is, it respects users' freedom. The GNU operating system consists of GNU packages (programs specifically released by the GNU Project) as well as free software released by third parties. | GNU: GNU (/ ɡnuː / ⓘ GNOO) [3][4] is an extensive collection of free software (387 packages as of June 2025), [5] which can be used as an operating system or can be used in parts with other operating systems. [6][7][8] Most of GNU is licensed under the GNU Project 's own General Public License (GPL). Richard Stallman, founder of the GNU project GNU is also the project within which the free ... | Gnu: Willkommen im Land der Gnus! Dort wo das Fleisch am saftigsten ist! Du bist etwas durchgeknallt und hast Humor? Na, dann bleib doch etwas und schau dich gerne etwas genauer um! (Die anderen Gnus ... | Gnu | African Antelope, Horned Mammal & Conservation Status | Britannica: Gnu, (genus Connochaetes), either of two species of large African antelopes of the family Bovidae in the tribe Alcelaphini. They are among the most specialized and successful of African herbivores and are dominant in plains ecosystems. The common wildebeest (Connochaetes taurinus) is a keystone | Wildebeest: Wildebeest (/ ˈwɪl.dɪ.biːst /, WIL-di-beest; [2][3][4] / ˈvɪl. -/, VIL-, [4]), also called gnu (/ nuː /, NOO or / njuː /, NEW), [5][6][7] are antelopes of the genus Connochaetes and native to Eastern and Southern Africa. They belong to the family Bovidae, which includes true antelopes, cattle, goats, sheep, and other even-toed horned ungulates. There are two species of wildebeest: the ...
+
+## Source Excerpts
+- The GNU Operating System and the Free Software Movement Skip to main text Free Software Supporter : JOIN&nbsp;THE&nbsp;FSF GNU Operating System Supported by the Free Software Foundation Site navigation Skip ABOUT&nbsp;GNU PHILOSOPHY LICENSES EDUCATION SOFTWARE DISTROS DOCS MALWARE HELP&nbsp;GNU AUDIO&nbsp;&amp;&nbsp;VIDEO GNU&nbsp;ART FUN GNU'S&nbsp;WHO? SOFTWARE&nbsp;DIRECTORY HARDWARE SITEMAP GNU is the only operating system developed specifically to give its users freedom. What is GNU, and wh ([source](https://www.gnu.org/))
+- GNU - Wikipedia Jump to content Main menu Main menu move to sidebar hide Navigation Main page Contents Current events Random article About Wikipedia Contact us Contribute Help Learn to edit Community portal Recent changes Upload file Special pages Search Search Appearance Donate Create account Log in Personal tools Donate Create account Log in Contents move to sidebar hide (Top) 1 Name 2 History 3 Components 4 GNU as an operating system Toggle GNU as an operating system subsection 4.1 Non-GNU ke ([source](https://en.wikipedia.org/wiki/GNU))
+- (function() {window.ytplayer={}; ytcfg.set({"CLIENT_CANARY_STATE":"none","DEVICE":"ceng\u003dUSER_DEFINED\u0026cplatform\u003dDESKTOP","DISABLE_YT_IMG_DELAY_LOADING":false,"ELEMENT_POOL_DEFAULT_CAP":75,"EVENT_ID":"wOiJaviBCPXwieoPyp-2iQ4","EXPERIMENT_FLAGS":{"PremiumClientSharedConfig__enable_att_context_processor":true,"ab_det_apm":true,"ab_det_el_h":true,"ab_det_sb_lo":true,"action_companion_center_align_description":true,"align_ask_youtube_input_on_focus":true,"allow_skip_networkless":true,"a ([source](https://www.youtube.com/channel/UC0m40b5CPcB801gVEz25WuQ))
+- Gnu | African Antelope, Horned Mammal & Conservation Status | Britannica Search Britannica Click here to search Search Britannica Click here to search SUBSCRIBE SUBSCRIBE Login Subscribe to Britannica Premium SUBSCRIBE TO PREMIUM Home History & Society Science & Tech Biographies Animals & Nature Geography & Travel Arts & Culture ProCon Money Games & Quizzes Videos Today in History Dictionary New Articles History & Society History Philosophy & Religion Politics, Law & Government Society & Social  ([source](https://www.britannica.com/animal/gnu))
+- Wildebeest - Wikipedia Jump to content Main menu Main menu move to sidebar hide Navigation Main page Contents Current events Random article About Wikipedia Contact us Contribute Help Learn to edit Community portal Recent changes Upload file Special pages Search Search Appearance Donate Create account Log in Personal tools Donate Create account Log in Contents move to sidebar hide (Top) 1 Etymology 2 Classification Toggle Classification subsection 2.1 Taxonomy and evolution 2.2 Genetics and hybri ([source](https://en.wikipedia.org/wiki/Wildebeest))
+
+## Sources
+1. [The GNU Operating System and the Free Software Movement](https://www.gnu.org/) — HTTP 200
+2. [GNU](https://en.wikipedia.org/wiki/GNU) — HTTP 200
+3. [Gnu](https://www.youtube.com/channel/UC0m40b5CPcB801gVEz25WuQ) — HTTP 200
+4. [Gnu | African Antelope, Horned Mammal & Conservation Status | Britannica](https://www.britannica.com/animal/gnu) — HTTP 200
+5. [Wildebeest](https://en.wikipedia.org/wiki/Wildebeest) — HTTP 200

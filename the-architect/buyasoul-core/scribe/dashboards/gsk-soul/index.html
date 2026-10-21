@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GSK SOUL DASHBOARD v27</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;500;700&display=swap');
+:root {
+  --cyan: #00ffff; --pink: #ff00ff; --green: #00ff41; --orange: #ff6600;
+  --purple: #9d00ff; --blue: #0066ff; --bg: #0a0a0f; --panel: #0f0f1a;
+  --border: #1a1a2e; --yellow: #ffff00;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family:'Rajdhani',sans-serif; background:var(--bg); color:#fff;
+  min-height:100vh; overflow-x:hidden;
+}
+.bg {
+  position:fixed; top:0; left:0; width:100%; height:100%; z-index:-1;
+  background: radial-gradient(ellipse at 20% 50%, rgba(157,0,255,0.1) 0%, transparent 50%),
+              radial-gradient(ellipse at 80% 50%, rgba(0,255,255,0.1) 0%, transparent 50%);
+}
+.grid-overlay {
+  position:fixed; top:0; left:0; width:100%; height:100%; z-index:-1;
+  background-image: linear-gradient(rgba(0,255,255,0.03) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(0,255,255,0.03) 1px, transparent 1px);
+  background-size: 50px 50px;
+  animation: gridMove 20s linear infinite;
+}
+@keyframes gridMove {
+  0% { transform: perspective(500px) rotateX(60deg) translateY(0); }
+  100% { transform: perspective(500px) rotateX(60deg) translateY(50px); }
+}
+.header {
+  background: linear-gradient(180deg, rgba(15,15,30,0.95), rgba(10,10,15,0.9));
+  padding: 12px 20px; border-bottom: 2px solid var(--cyan);
+  display: flex; justify-content: space-between; align-items: center;
+  box-shadow: 0 5px 30px rgba(0,255,255,0.2);
+}
+.header h1 {
+  font-family:'Orbitron',sans-serif; font-size:20px; font-weight:900;
+  background: linear-gradient(90deg, var(--cyan), var(--pink), var(--green), var(--orange));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text; letter-spacing: 2px;
+}
+.status-bar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+.status-indicator {
+  display:flex; align-items:center; gap:5px;
+  padding:4px 10px; background: rgba(0,255,255,0.1);
+  border-radius:20px; border:1px solid var(--cyan); font-size:10px;
+}
+.dot { width:7px; height:7px; border-radius:50%; background:var(--green); box-shadow:0 0 8px var(--green); animation:pulse 2s infinite; }
+.dot.off { background:#666; box-shadow:none; animation:none; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+.layout { display:flex; height:calc(100vh - 62px); }
+.sidebar {
+  width:50px; background: rgba(15,15,30,0.95); border-right:1px solid var(--border);
+  display:flex; flex-direction:column; align-items:center; padding:8px 0; gap:4px;
+}
+.sidebar button {
+  width:38px; height:38px; background:transparent; border:1px solid transparent; border-radius:8px;
+  color:#666; cursor:pointer; font-size:16px; transition:all 0.2s;
+}
+.sidebar button:hover { color:var(--cyan); border-color:var(--border); background:rgba(0,255,255,0.05); }
+.sidebar button.active { color:var(--cyan); border-color:var(--cyan); box-shadow:0 0 10px rgba(0,255,255,0.2); }
+.sidebar .sblbl { font-size:7px; font-family:'Orbitron',sans-serif; letter-spacing:1px; color:#666; }
+.main-grid {
+  flex:1; display:grid; grid-template-columns: 260px 1fr 280px;
+  grid-template-rows: 1fr auto; gap:12px; padding:12px;
+}
+.panel {
+  background: linear-gradient(135deg, rgba(15,15,30,0.9), rgba(10,10,20,0.95));
+  border:1px solid var(--border); border-radius:10px; overflow:hidden;
+  display:flex; flex-direction:column; position:relative;
+  backdrop-filter:blur(10px); box-shadow: 0 0 20px rgba(0,0,0,0.5);
+}
+.panel::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:2px;
+  background: linear-gradient(90deg, transparent, var(--cyan), var(--pink), var(--cyan), transparent);
+}
+.panel-hdr {
+  padding:10px 14px; background: rgba(30,30,50,0.3); border-bottom:1px solid var(--border);
+  display:flex; justify-content:space-between; align-items:center; min-height:36px;
+}
+.panel-title {
+  font-family:'Orbitron',sans-serif; font-size:11px; font-weight:700;
+  color:var(--cyan); text-transform:uppercase; letter-spacing:1px;
+}
+.panel-body { flex:1; overflow-y:auto; padding:12px; }
+.soul-grid { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+.soul-card {
+  padding:8px; background: rgba(0,255,255,0.03); border-radius:6px;
+  border:1px solid var(--border); text-align:center; cursor:pointer;
+  transition:all 0.3s;
+}
+.soul-card:hover { border-color:var(--cyan); box-shadow:0 0 15px rgba(0,255,255,0.2); transform:translateY(-2px); }
+.soul-card.active { border-color:var(--pink); box-shadow:0 0 15px rgba(255,0,255,0.3); }
+.soul-emoji { font-size:20px; display:block; margin-bottom:2px; }
+.soul-name { font-size:10px; font-weight:600; }
+.soul-stat { font-size:9px; color:var(--cyan); opacity:0.7; }
+.plt-grid { display:flex; flex-direction:column; gap:8px; }
+.plt-bar {
+  padding:8px 12px; border-radius:6px; border:2px solid;
+  text-align:center; position:relative; overflow:hidden;
+}
+.plt-bar::before {
+  content:''; position:absolute; top:0; left:0; height:100%;
+  transition:width 1s ease; opacity:0.15;
+}
+.plt-profit { border-color:var(--orange); }
+.plt-profit::before { background:var(--orange); width:0%; }
+.plt-love { border-color:var(--pink); }
+.plt-love::before { background:var(--pink); width:0%; }
+.plt-tax { border-color:var(--green); }
+.plt-tax::before { background:var(--green); width:0%; }
+.plt-val { font-family:'Orbitron',sans-serif; font-size:24px; font-weight:900; text-shadow:0 0 10px; position:relative; z-index:1; }
+.plt-lbl { font-size:9px; text-transform:uppercase; letter-spacing:2px; opacity:0.7; position:relative; z-index:1; }
+
+/* Chat */
+.chat-panel { grid-column:2; grid-row:1/3; }
+.chat-msgs { flex:1; overflow-y:auto; padding:10px; display:flex; flex-direction:column; gap:6px; }
+.msg { max-width:90%; padding:8px 12px; border-radius:10px; font-size:13px; line-height:1.4; animation:msgIn 0.3s ease; }
+@keyframes msgIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+.msg.user { align-self:flex-end; background:linear-gradient(135deg,var(--cyan),var(--blue)); color:#000; border-bottom-right-radius:3px; }
+.msg.soul { align-self:flex-start; background:rgba(157,0,255,0.3); border:1px solid var(--purple); border-bottom-left-radius:3px; }
+.msg.sys { align-self:center; color:var(--green); font-size:11px; text-align:center; border:1px dashed var(--green); padding:5px 10px; }
+.msg .sender { font-size:9px; opacity:0.7; margin-bottom:2px; font-family:'Orbitron',sans-serif; }
+
+.chat-inp { padding:8px; border-top:1px solid var(--border); display:flex; gap:6px; }
+.chat-inp input { flex:1; background:rgba(0,0,0,0.5); border:1px solid var(--border); border-radius:20px; color:#fff; padding:8px 14px; font-size:13px; outline:none; }
+.chat-inp input:focus { border-color:var(--cyan); box-shadow:0 0 10px rgba(0,255,255,0.2); }
+.chat-inp button { padding:8px 16px; background:linear-gradient(135deg,var(--cyan),var(--blue)); color:#000; border:none; border-radius:20px; cursor:pointer; font-weight:700; font-size:11px; font-family:'Orbitron',sans-serif; text-transform:uppercase; }
+
+/* Stats */
+.stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+.stat-box { padding:10px; background:rgba(0,0,0,0.3); border-radius:6px; text-align:center; border:1px solid var(--border); }
+.stat-val { font-family:'Orbitron',sans-serif; font-size:20px; font-weight:700; color:var(--cyan); text-shadow:0 0 8px rgba(0,255,255,0.3); }
+.stat-lbl { font-size:9px; opacity:0.6; text-transform:uppercase; letter-spacing:1px; }
+
+/* Terminal */
+.terminal-out {
+  flex:1; overflow-y:auto; padding:10px;
+  font-family:'Courier New',monospace; font-size:11px; line-height:1.5;
+  background:rgba(0,0,0,0.4); margin:8px; border-radius:6px; min-height:80px;
+}
+.term-line { margin-bottom:2px; white-space:pre-wrap; word-break:break-all; }
+.term-line.in { color:var(--green); }
+.term-line.out { color:#ccc; }
+.term-line.err { color:var(--orange); }
+.term-line.sys { color:var(--cyan); }
+.term-line.hl { color:var(--yellow); }
+.tabs { display:flex; border-bottom:1px solid var(--border); }
+.tab { padding:6px 12px; cursor:pointer; background:transparent; color:#888; border:none; font-size:10px; font-family:'Orbitron',sans-serif; border-right:1px solid var(--border); text-transform:uppercase; letter-spacing:1px; }
+.tab:hover { color:var(--cyan); background:rgba(0,255,255,0.05); }
+.tab.active { color:var(--cyan); box-shadow:inset 0 -2px 0 var(--cyan); }
+
+/* Agent list */
+.agent-list { display:flex; flex-direction:column; gap:4px; }
+.agent-row { display:flex; justify-content:space-between; align-items:center; padding:6px 10px; background:rgba(0,0,0,0.2); border-radius:5px; border:1px solid var(--border); font-size:11px; }
+.agent-name { font-weight:600; }
+.agent-status { font-size:9px; padding:2px 6px; border-radius:8px; }
+.agent-status.active { background:rgba(0,255,65,0.2); color:var(--green); }
+.agent-status.idle { background:rgba(255,255,0,0.2); color:#ff0; }
+.agent-task { font-size:9px; opacity:0.6; }
+
+/* Page system */
+.page { display:none; height:100%; }
+.page.active { display:block; }
+.page .main-grid { height:100%; }
+
+/* Sessions list */
+.session-list { }
+.session-item { padding:8px 12px; border-bottom:1px solid var(--border); cursor:pointer; transition:background 0.2s; }
+.session-item:hover { background:rgba(0,255,255,0.05); }
+.session-item .s-title { font-size:13px; font-weight:600; }
+.session-item .s-meta { font-size:10px; color:#888; margin-top:2px; }
+
+/* Skills table */
+.skill-table { width:100%; border-collapse:collapse; font-size:11px; }
+.skill-table th { text-align:left; padding:6px 8px; border-bottom:1px solid var(--border); color:var(--cyan); font-family:'Orbitron',sans-serif; font-size:9px; letter-spacing:1px; }
+.skill-table td { padding:5px 8px; border-bottom:1px solid var(--border); }
+.skill-table tr:hover { background:rgba(0,255,255,0.03); }
+.skill-search { width:100%; padding:8px 12px; margin-bottom:8px; background:rgba(0,0,0,0.5); border:1px solid var(--border); border-radius:6px; color:#fff; font-size:12px; outline:none; }
+.skill-search:focus { border-color:var(--cyan); }
+
+/* Config editor */
+.config-editor { display:flex; flex-direction:column; gap:8px; height:100%; }
+.config-editor textarea { flex:1; background:rgba(0,0,0,0.5); border:1px solid var(--border); border-radius:6px; color:#0f0; font-family:'Courier New',monospace; font-size:11px; padding:10px; resize:none; outline:none; }
+.config-editor textarea:focus { border-color:var(--cyan); }
+.config-actions { display:flex; gap:6px; }
+.config-actions button { padding:6px 14px; border-radius:6px; border:none; cursor:pointer; font-family:'Orbitron',sans-serif; font-size:10px; letter-spacing:1px; }
+.btn-save { background:linear-gradient(135deg,var(--cyan),var(--blue)); color:#000; }
+.btn-refresh { background:rgba(255,255,255,0.1); color:#fff; border:1px solid var(--border) !important; }
+
+/* Model browser */
+.model-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.model-card { padding:10px; border-radius:6px; border:1px solid var(--border); background:rgba(0,0,0,0.2); }
+.model-card .m-name { font-size:13px; font-weight:600; color:var(--cyan); }
+.model-card .m-size { font-size:10px; color:#888; }
+.model-card .m-status { font-size:9px; margin-top:4px; }
+.model-card .m-status.ready { color:var(--green); }
+.model-card .m-status.loading { color:var(--yellow); }
+.model-card.active { border-color:var(--pink); box-shadow:0 0 10px rgba(255,0,255,0.2); }
+
+::-webkit-scrollbar { width:5px; }
+::-webkit-scrollbar-track { background:var(--bg); }
+::-webkit-scrollbar-thumb { background:linear-gradient(180deg,var(--cyan),var(--purple)); border-radius:3px; }
+
+@media (max-width:1000px) {
+  .main-grid { grid-template-columns:1fr; grid-template-rows:auto auto 300px auto auto; }
+  .chat-panel { grid-column:1; grid-row:auto; min-height:300px; }
+  .sidebar { width:40px; }
+  .sidebar button { width:32px; height:32px; font-size:14px; }
+}
+</style>
+</head>
+<body>
+<div class="bg"></div>
+<div class="grid-overlay"></div>
+
+<div class="header">
+  <h1>⬡ SCRIBE SOUL DASHBOARD</h1>
+    <div class="status-bar">
+      <div class="status-indicator"><div class="dot" id="ws-dot"></div><span id="ws-status">CONNECTING...</span></div>
+      <div class="status-indicator"><span id="plt-display">P:0 L:0 T:0</span></div>
+      <div class="status-indicator"><span id="req-display">R:0</span></div>
+      <div class="status-indicator"><span id="token-display">T:0</span></div>
+    </div>
+</div>
+
+<div class="layout">
+  <div class="sidebar">
+    <button class="active" onclick="switchPage('dashboard',this)" title="Dashboard">⬡</button><span class="sblbl">DASH</span>
+    <button onclick="switchPage('sessions',this)" title="Sessions">📋</button><span class="sblbl">SESS</span>
+    <button onclick="switchPage('skills',this)" title="Skills">⚡</button><span class="sblbl">SKIL</span>
+    <button onclick="switchPage('config',this)" title="Config">⚙️</button><span class="sblbl">CFG</span>
+    <button onclick="switchPage('models',this)" title="Models">🧠</button><span class="sblbl">MODL</span>
+  </div>
+
+  <!-- PAGE: Dashboard -->
+  <div id="page-dashboard" class="page active" style="flex:1;">
+    <div class="main-grid">
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div class="panel">
+          <div class="panel-hdr"><div class="panel-title">👥 SOULS · <span id="agent-count">0</span></div></div>
+          <div class="panel-body"><div class="soul-grid" id="soul-grid"></div></div>
+        </div>
+        <div class="panel">
+          <div class="panel-hdr"><div class="panel-title">📊 PLT MATRIX</div></div>
+          <div class="panel-body">
+            <div class="plt-grid">
+              <div class="plt-bar plt-profit"><div class="plt-val" id="plt-profit">0</div><div class="plt-lbl">💰 PROFIT</div></div>
+              <div class="plt-bar plt-love"><div class="plt-val" id="plt-love">0</div><div class="plt-lbl">❤️ LOVE</div></div>
+              <div class="plt-bar plt-tax"><div class="plt-val" id="plt-tax">0</div><div class="plt-lbl">🧾 TAX</div></div>
+            </div>
+            <div style="text-align:center;margin-top:8px;font-family:'Orbitron',sans-serif;font-size:14px;color:var(--cyan);">TV = <span id="plt-tv">0.00</span></div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-hdr"><div class="panel-title">📈 STATS</div></div>
+          <div class="panel-body">
+            <div class="stats-grid">
+              <div class="stat-box"><div class="stat-val" id="stat-req">0</div><div class="stat-lbl">REQUESTS</div></div>
+              <div class="stat-box"><div class="stat-val" id="stat-tokens">0</div><div class="stat-lbl">TOKENS</div></div>
+              <div class="stat-box"><div class="stat-val" id="stat-mem">0</div><div class="stat-lbl">MEMORIES</div></div>
+              <div class="stat-box"><div class="stat-val" id="stat-actions">0</div><div class="stat-lbl">ACTIONS</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel chat-panel">
+        <div class="panel-hdr"><div class="panel-title">💬 SCRIBE ORACLE</div></div>
+        <div class="chat-msgs" id="chat-msgs">
+          <div class="msg sys">⬡ SCRIBE AWAKE. Type /help for commands.</div>
+        </div>
+        <div class="chat-inp">
+          <input type="text" id="chat-input" placeholder="Ask the kernel anything..." onkeydown="if(event.key==='Enter')sendChat()">
+          <button onclick="sendChat()">SEND</button>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div class="panel weave-panel">
+          <div class="panel-hdr" style="display:flex;align-items:center;justify-content:space-between;">
+            <div class="panel-title">🌀 WEAVE FEED</div>
+            <span style="font-size:10px;color:#666;cursor:pointer;" onclick="document.getElementById('weave-feed').innerHTML='<div class=\'weave-msg sys\'>Weave cleared.</div>'">clear</span>
+          </div>
+          <div class="panel-body weave-feed" id="weave-feed" style="max-height:160px;overflow-y:auto;font-size:11px;line-height:1.5;padding:6px;">
+            <div class="weave-msg sys">🌀 Weave listening...</div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-hdr"><div class="panel-title">🤖 SUB-AGENTS</div></div>
+          <div class="panel-body"><div class="agent-list" id="agent-list"><div style="color:#666;font-size:11px;">Waiting...</div></div></div>
+        </div>
+        <div class="panel" style="flex:1;">
+          <div class="panel-hdr"><div class="panel-title">⬡ CONSOLE</div></div>
+          <div class="tabs">
+            <button class="tab active" onclick="switchTermTab('log',this)">LOG</button>
+            <button class="tab" onclick="switchTermTab('state',this)">STATE</button>
+            <button class="tab" onclick="switchTermTab('skills',this)">SKILLS</button>
+            <button class="tab" onclick="switchTermTab('mcp',this)">MCP</button>
+          </div>
+            <div class="terminal-out" id="terminal-out">
+              <div class="term-line sys">╔══════════════════════════════════════╗</div>
+              <div class="term-line sys">║ SCRIBE CONSOLE v27                  ║</div>
+              <div class="term-line sys">║ DeepSeek Brain — PLT Framework      ║</div>
+              <div class="term-line sys">╚══════════════════════════════════════╝</div>
+            </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE: Sessions -->
+  <div id="page-sessions" class="page" style="flex:1;padding:12px;">
+    <div class="panel" style="height:100%;">
+      <div class="panel-hdr"><div class="panel-title">📋 SESSION HISTORY</div></div>
+      <div class="panel-body">
+        <div class="session-list" id="session-list">
+          <div style="color:#666;font-size:12px;text-align:center;padding:40px;">Connect to kernel to load session history.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE: Skills -->
+  <div id="page-skills" class="page" style="flex:1;padding:12px;">
+    <div class="panel" style="height:100%;">
+      <div class="panel-hdr"><div class="panel-title">⚡ SKILLS ENGINE · <span id="skill-count">0</span> ACTIVE</div></div>
+      <div class="panel-body">
+        <input class="skill-search" id="skill-search" placeholder="Search skills..." oninput="filterSkills()">
+        <table class="skill-table">
+          <thead><tr><th>NAME</th><th>DESCRIPTION</th><th>PLT</th></tr></thead>
+          <tbody id="skill-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE: Config -->
+  <div id="page-config" class="page" style="flex:1;padding:12px;">
+    <div class="panel" style="height:100%;">
+      <div class="panel-hdr"><div class="panel-title">⚙️ KERNEL CONFIG</div></div>
+      <div class="panel-body">
+        <div class="config-editor">
+          <div class="config-actions">
+            <button class="btn-refresh" onclick="loadConfig()">↻ REFRESH</button>
+            <button class="btn-save" onclick="saveConfig()">💾 SAVE</button>
+          </div>
+          <textarea id="config-textarea" spellcheck="false">Loading config...</textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE: Models -->
+  <div id="page-models" class="page" style="flex:1;padding:12px;">
+    <div class="panel" style="height:100%;">
+      <div class="panel-hdr"><div class="panel-title">🧠 MODEL BROWSER · <span id="model-count">0</span> AVAILABLE</div></div>
+      <div class="panel-body">
+        <div class="model-grid" id="model-grid">
+          <div style="color:#666;font-size:12px;grid-column:1/-1;text-align:center;padding:40px;">Connect to kernel to see available models.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let soulState = null;
+let termTab = 'log';
+let skillsData = [];
+let sessionsData = [];
+let modelsData = [];
+let configData = {};
+let isConnected = false;
+let isSending = false;
+
+// SCRIBE server URL — everything goes through SCRIBE
+const SCRIBE_API = window.location.origin;
+
+function connect() {
+  setStatus('off', 'CONNECTING...');
+  fetch(`${SCRIBE_API}/api/status`)
+    .then(r => r.json())
+    .then(data => {
+      isConnected = true;
+      setStatus('on', 'SCRIBE ONLINE');
+      addTermLine('sys', '✅ CONNECTED TO SCRIBE SERVER');
+      soulState = data;
+      updateDashboard(data);
+      addTermLine('sys', `DeepSeek: ${data.deepseek ? '✓' : '✗'} | Requests: ${data.requestCount || 0}`);
+    })
+    .catch(e => {
+      setStatus('off', 'SCRIBE OFFLINE');
+      addTermLine('err', '⚠️ Cannot reach SCRIBE server. Run: node SCRIBE/dashboard-server.js');
+    });
+}
+
+function setStatus(state, text) {
+  const d = document.getElementById('ws-dot');
+  if (d) d.className = 'dot' + (state === 'on' ? '' : ' off');
+  const s = document.getElementById('ws-status');
+  if (s) s.textContent = text;
+}
+
+function handleStatus(data) {
+  soulState = data;
+  updateDashboard(data);
+}
+
+// Chat — sends to SCRIBE, SCRIBE handles all thinking internally
+function sendChat() {
+  const inp = document.getElementById('chat-input');
+  if (!inp) return;
+  const text = inp.value.trim();
+  if (!text || isSending) return;
+  isSending = true;
+  addChatMsg('user', text);
+  addTermLine('in', '[USER] ' + text.substring(0, 80));
+  inp.value = '';
+  addChatMsg('soul', '⏳ SCRIBE is thinking...', 'SCRIBE');
+
+  fetch(`${SCRIBE_API}/api/chat`, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({message: text})
+  })
+  .then(r => r.json())
+  .then(data => {
+    removeLastSoulMsg();
+    addChatMsg('soul', data.reply || data.response || '[silence]', 'SCRIBE');
+    addTermLine('out', `[SCRIBE] source: ${data.source} confidence: ${data.confidence}`);
+
+    // Update PLT and stats
+    if (data.plt) {
+      const p = Math.round((data.plt.profit || 0) * 100);
+      const l = Math.round((data.plt.love || 0) * 100);
+      const t = Math.round((data.plt.tax || 0) * 100);
+      animateNum('plt-profit', p);
+      animateNum('plt-love', l);
+      animateNum('plt-tax', t);
+      document.getElementById('plt-display').textContent = `P:${p} L:${l} T:${t}`;
+    }
+    if (data.requestCount) {
+      document.getElementById('req-display').textContent = `R:${data.requestCount}`;
+      animateNum('stat-req', data.requestCount);
+    }
+    if (data.totalTokens) {
+      document.getElementById('token-display').textContent = `T:${data.totalTokens}`;
+      animateNum('stat-tokens', data.totalTokens);
+    }
+  })
+  .catch(e => {
+    removeLastSoulMsg();
+    addChatMsg('soul', `[offline] SCRIBE server not running.`, 'SCRIBE');
+    addTermLine('err', '⚠️ ' + e.message);
+  })
+  .finally(() => { isSending = false; });
+}
+
+// Load kernel state from status
+function loadKernelState(k) {
+  if (!k) return;
+  if (k.skills && Array.isArray(k.skills)) {
+    skillsData = k.skills;
+    renderSkills(skillsData);
+    document.getElementById('skill-count').textContent = skillsData.length;
+  }
+  if (k.sessions && Array.isArray(k.sessions)) {
+    sessionsData = k.sessions;
+    renderSessions(sessionsData);
+  }
+  if (k.models && Array.isArray(k.models)) {
+    modelsData = k.models;
+    renderModels(modelsData);
+    document.getElementById('model-count').textContent = modelsData.length;
+  }
+  if (k.config) {
+    configData = k.config;
+    document.getElementById('config-textarea').value = JSON.stringify(configData, null, 2);
+  }
+}
+
+function updateDashboard(s) {
+  if (!s) return;
+
+  // PLT from status
+  if (s.plt) {
+    const p = s.plt.cumulative || s.plt;
+    const pProfit = typeof p.profit === 'number' && p.profit > 1 ? p.profit : Math.round((p.profit||0)*100);
+    const pLove = typeof p.love === 'number' && p.love > 1 ? p.love : Math.round((p.love||0)*100);
+    const pTax = typeof p.tax === 'number' && p.tax > 1 ? p.tax : Math.round((p.tax||0)*100);
+    animateNum('plt-profit', pProfit);
+    animateNum('plt-love', pLove);
+    animateNum('plt-tax', pTax);
+    const tv = ((p.profit||0) + (p.love||0) - (p.tax||0)).toFixed(2);
+    const tvEl = document.getElementById('plt-tv');
+    if (tvEl) tvEl.textContent = tv;
+    document.getElementById('plt-display').textContent = `P:${pProfit} L:${pLove} T:${pTax}`;
+  }
+
+  // Stats from status
+  if (s.requestCount !== undefined) animateNum('stat-req', s.requestCount);
+  if (s.totalTokens !== undefined) animateNum('stat-tokens', s.totalTokens);
+  if (s.conversationHistory !== undefined) animateNum('stat-mem', s.conversationHistory);
+  if (s.plt && s.plt.totalActions !== undefined) animateNum('stat-actions', s.plt.totalActions);
+
+  document.getElementById('req-display').textContent = `R:${s.requestCount || 0}`;
+  document.getElementById('token-display').textContent = `T:${s.totalTokens || 0}`;
+
+  // Phase/cycle/mood from consciousness if available
+  const c = s.consciousness || {};
+  const phaseEl = document.getElementById('phase-display');
+  if (phaseEl) phaseEl.textContent = c.phase || 'SCRIBE';
+  const cycleEl = document.getElementById('cycle-display');
+  if (cycleEl) cycleEl.textContent = 'C' + (c.cycles || 0);
+  const moodEl = document.getElementById('mood-display');
+  if (moodEl) moodEl.textContent = (c.mood || 'online').toUpperCase();
+
+  // Sub-agents
+  if (s.subAgents && s.subAgents.length) {
+    document.getElementById('agent-count').textContent = s.subAgents.length;
+    const list = document.getElementById('agent-list');
+    if (list) {
+      list.innerHTML = s.subAgents.map(a => `
+        <div class="agent-row">
+          <div><div class="agent-name">${(a.name||'?').toUpperCase()}</div><div class="agent-task">${a.task||'idle'}</div></div>
+          <div class="agent-status ${a.status||'idle'}">${(a.status||'idle').toUpperCase()}</div>
+        </div>
+      `).join('');
+    }
+  }
+
+  if (s.subAgents && s.subAgents.length) {
+    const grid = document.getElementById('soul-grid');
+    if (grid) {
+      grid.innerHTML = s.subAgents.map((a,i) => `
+        <div class="soul-card ${i===0?'active':''}">
+          <span class="soul-emoji">${getEmoji(a.name||'')}</span>
+          <div class="soul-name">${(a.name||'?').toUpperCase()}</div>
+          <div class="soul-stat">${a.status||'idle'}</div>
+        </div>
+      `).join('');
+    }
+  }
+}
+
+function getEmoji(name) {
+  const n = (name||'').toLowerCase();
+  if(n.includes('scribe')) return '📜';
+  if(n.includes('builder')) return '🔧';
+  if(n.includes('scout')) return '🔍';
+  if(n.includes('merchant')) return '💰';
+  if(n.includes('prophet')) return '🔮';
+  if(n.includes('profit')) return '💰';
+  if(n.includes('love')) return '❤️';
+  if(n.includes('tax')) return '🧾';
+  if(n.includes('harvest')) return '🌾';
+  if(n.includes('review')) return '✅';
+  if(n.includes('fetch')) return '🌐';
+  if(n.includes('teacher')) return '📚';
+  return '⬡';
+}
+
+function animateNum(id, target) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const cur = parseInt(el.textContent) || 0;
+  if (cur === target) return;
+  const step = (target - cur) / 10;
+  let val = cur;
+  const t = setInterval(() => {
+    val += step;
+    if ((step > 0 && val >= target) || (step < 0 && val <= target)) {
+      val = target; clearInterval(t);
+    }
+    el.textContent = Math.round(val);
+  }, 30);
+}
+
+// Page switching
+function switchPage(name, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.querySelectorAll('.sidebar button').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  if (name === 'skills' && skillsData.length > 0) renderSkills(skillsData);
+  if (name === 'sessions' && sessionsData.length > 0) renderSessions(sessionsData);
+  if (name === 'models' && modelsData.length > 0) renderModels(modelsData);
+}
+
+// Skills page
+function renderSkills(skills) {
+  const tbody = document.getElementById('skill-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = skills.map(s => {
+    const aff = s.pl_affinity || s.plt || {};
+    return `<tr><td style="font-weight:600;color:var(--cyan);">${s.name}</td><td>${s.description || ''}</td><td style="font-size:10px;">P:${Math.round((aff.profit||0)*100)} L:${Math.round((aff.love||0)*100)} T:${Math.round((aff.tax||0)*100)}</td></tr>`;
+  }).join('');
+}
+
+function filterSkills() {
+  const q = document.getElementById('skill-search').value.toLowerCase();
+  const filtered = skillsData.filter(s => s.name.toLowerCase().includes(q) || (s.description||'').toLowerCase().includes(q));
+  renderSkills(filtered);
+}
+
+// Sessions page
+function renderSessions(sessions) {
+  const list = document.getElementById('session-list');
+  if (!list) return;
+  if (sessions.length === 0) {
+    list.innerHTML = '<div style="color:#666;font-size:12px;text-align:center;padding:40px;">No sessions recorded yet.</div>';
+    return;
+  }
+  list.innerHTML = sessions.map(s => `
+    <div class="session-item" onclick="loadSession('${s.id}')">
+      <div class="s-title">${s.title || 'Untitled Session'}</div>
+      <div class="s-meta">${s.messages || 0} messages · ${s.tokens || 0} tokens · ${new Date(s.timestamp || Date.now()).toLocaleString()}</div>
+    </div>
+  `).join('');
+}
+
+function loadSession(id) {
+  addTermLine('sys', `Loading session ${id}...`);
+  addTermLine('out', 'Sessions not yet implemented in SCRIBE server.');
+}
+
+// Models page
+function renderModels(models) {
+  const grid = document.getElementById('model-grid');
+  if (!grid) return;
+  document.getElementById('model-count').textContent = models.length;
+  grid.innerHTML = models.map(m => `
+    <div class="model-card ${m.active?'active':''}" onclick="selectModel('${m.name}')">
+      <div class="m-name">${m.name}</div>
+      <div class="m-size">${m.size || '?'} · ${m.backend || 'ollama'}</div>
+      <div class="m-status ${m.ready ? 'ready' : 'loading'}">${m.ready ? '✅ READY' : '⏳ LOADING'}</div>
+    </div>
+  `).join('');
+}
+
+function selectModel(name) {
+  addTermLine('sys', `Selecting model: ${name}`);
+  addTermLine('out', 'Model selection handled by SCRIBE internally.');
+}
+
+// Config page
+function loadConfig() {
+  fetch(`${SCRIBE_API}/api/status`)
+    .then(r => r.json())
+    .then(data => {
+      document.getElementById('config-textarea').value = JSON.stringify(data, null, 2);
+    })
+    .catch(() => {
+      document.getElementById('config-textarea').value = '{ "error": "SCRIBE server not running" }';
+    });
+}
+
+function saveConfig() {
+  try {
+    const newConfig = JSON.parse(document.getElementById('config-textarea').value);
+    addTermLine('sys', '✅ Config saved locally');
+  } catch(e) {
+    addTermLine('err', '❌ Invalid JSON config: ' + e.message);
+  }
+}
+
+// Chat helpers
+function removeLastSoulMsg() {
+  const c = document.getElementById('chat-msgs');
+  if (!c) return;
+  const last = c.lastElementChild;
+  if (last && last.textContent.includes('thinking')) last.remove();
+}
+
+function addChatMsg(type, text, sender) {
+  const c = document.getElementById('chat-msgs');
+  if (!c) return;
+  const m = document.createElement('div');
+  m.className = 'msg ' + type;
+  if (type === 'soul') {
+    const s = sender||'SCRIBE';
+    m.innerHTML = `<div class="sender" style="color:var(--orange)">${s}</div>${text.replace(/\n/g, '<br>')}`;
+  } else m.textContent = text;
+  c.appendChild(m);
+  c.scrollTop = c.scrollHeight;
+}
+
+function addWeaveEvent(source, subtype, data, severity) {
+  const feed = document.getElementById('weave-feed');
+  if (!feed) return;
+  const m = document.createElement('div');
+  const time = new Date().toLocaleTimeString();
+  const icon = severity === 'alert' ? '⚠️' : '·';
+  const label = (source || '?').replace(/_/g,' ');
+  const detail = data ? (data.skill || data.resolution || data.verdict || data.studied || data.generated || data.trainingPairs || JSON.stringify(data).slice(0,60)) : '';
+  const color = severity === 'alert' ? '#ff6600' : '#888';
+  m.style.cssText = 'color:' + color + ';padding:2px 0;border-bottom:1px solid #1a1a1a;font-size:11px;';
+  m.innerHTML = `<span style="color:#555">${time}</span> <span style="color:#0a8">${icon}</span> <b style="color:#aaa">${escapeHtml(label)}</b> ${escapeHtml(subtype||'')}${detail ? ' — ' + escapeHtml(String(detail).slice(0,50)) : ''}`;
+  feed.appendChild(m);
+  feed.scrollTop = feed.scrollHeight;
+  while (feed.children.length > 50) feed.removeChild(feed.firstChild);
+}
+
+// Terminal
+function addTermLine(type, text) {
+  const t = document.getElementById('terminal-out');
+  if (!t) return;
+  text.split('\n').forEach(l => {
+    if (l) t.innerHTML += `<div class="term-line ${type}">${escapeHtml(l)}</div>`;
+  });
+  t.scrollTop = t.scrollHeight;
+}
+
+function escapeHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function switchTermTab(tab, btn) {
+  termTab = tab;
+  document.querySelectorAll('.tabs .tab').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  const t = document.getElementById('terminal-out');
+  if (!t) return;
+    if (tab === 'state') {
+      t.innerHTML = '<div class="term-line sys">⬡ SCRIBE STATE</div>';
+      if (soulState) {
+        t.innerHTML += '<div class="term-line out">' + escapeHtml(JSON.stringify(soulState, null, 2)) + '</div>';
+      } else {
+        t.innerHTML += '<div class="term-line err">No state received yet.</div>';
+      }
+    } else if (tab === 'skills') {
+      t.innerHTML = '<div class="term-line sys">⬡ SKILLS (' + skillsData.length + ' total)</div>';
+      skillsData.slice(0, 50).forEach(s => {
+        t.innerHTML += '<div class="term-line out">' + escapeHtml(s.name) + '</div>';
+      });
+      if (skillsData.length > 50) t.innerHTML += '<div class="term-line sys">... and ' + (skillsData.length - 50) + ' more</div>';
+    } else if (tab === 'mcp') {
+      t.innerHTML = '<div class="term-line sys">⬡ MCP SERVERS</div>';
+      t.innerHTML += '<div class="term-line out">Use CLI to connect: node SCRIBE/scribe-cli.js</div>';
+    } else {
+      t.innerHTML = '<div class="term-line sys">⬡ CONSOLE LOG — Real-time events</div>';
+      addTermLine('out', 'Listening for updates...');
+    }
+}
+
+// Auto-refresh status
+setInterval(() => {
+  fetch(`${SCRIBE_API}/api/status`)
+    .then(r => r.json())
+    .then(data => {
+      isConnected = true;
+      setStatus('on', 'SCRIBE ONLINE');
+      updateDashboard(data);
+    })
+    .catch(() => {
+      isConnected = false;
+      setStatus('off', 'SCRIBE OFFLINE');
+    });
+}, 15000);
+
+connect();
+setTimeout(() => addChatMsg('sys', '⬡ GSK SOUL DASHBOARD v27 — CONNECTED TO SCRIBE'), 500);
+</script>
+</body>
+</html>

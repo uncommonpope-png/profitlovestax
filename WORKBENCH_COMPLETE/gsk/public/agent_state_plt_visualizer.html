@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Real-Time Agent State Topology & PLT Telemetry Stream</title>
+<style>
+  body { margin: 0; background: #030712; color: #38bdf8; font-family: monospace; overflow: hidden; }
+  #telemetry-canvas { width: 100vw; height: 100vh; display: block; }
+</style>
+</head>
+<body>
+<canvas id="telemetry-canvas"></canvas>
+<script>
+// Telemetry Visualizer Core Stream Engine
+const canvas = document.getElementById('telemetry-canvas');
+const ctx = canvas.getContext('2d');
+function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+window.addEventListener('resize', resize); resize();
+const state = { profit: 0.95, love: 0.98, tax: 0.04, plt: 0.99 };
+function render() {
+  ctx.fillStyle = 'rgba(3, 7, 18, 0.2)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#38bdf8';
+  ctx.fillText(`PLT TELEMETRY STREAM | P:${state.profit} L:${state.love} T:${state.tax} => PLT:${state.plt}`, 20, 30);
+  requestAnimationFrame(render);
+}
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Agent Execution Tool-Call Telemetry</title>
+<style>body{margin:0;background:#0d1117;color:#c9d1d9;font-family:monospace;}#canvas{width:100%;height:400px;display:block;}</style>
+</head>
+<body>
+<h1>Tool-Call Stream Telemetry Visualizer</h1>
+<canvas id="telemetryCanvas"></canvas>
+<div id="streamLog"></div>
+<script>
+const canvas = document.getElementById('telemetryCanvas');
+const ctx = canvas.getContext('2d');
+const streamLog = document.getElementById('streamLog');
+const events = [];
+function render() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#58a6ff';
+  events.forEach((ev, i) => {
+    ctx.fillRect(i * 15, canvas.height - (ev.duration || 10), 10, ev.duration || 10);
+  });
+  requestAnimationFrame(render);
+}
+render();
+</script>
+</body>
+</html>

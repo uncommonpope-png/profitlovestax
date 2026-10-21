@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GSK Unified Telemetry & Co-Evolution Hub</title>
+  <style>
+    :root { --bg: #090a10; --card: #121420; --accent-p: #00ffcc; --accent-l: #ff007f; --accent-t: #ffaa00; --text: #eceff4; }
+    body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Segoe UI', monospace; overflow: hidden; }
+    header { padding: 12px 24px; background: var(--card); border-bottom: 1px solid #1f2338; display: flex; justify-content: space-between; align-items: center; }
+    .title-box { display: flex; align-items: center; gap: 12px; }
+    .badge { background: rgba(0,255,204,0.1); border: 1px solid var(--accent-p); color: var(--accent-p); padding: 4px 8px; border-radius: 4px; font-size: 12px; }
+    .grid { display: grid; grid-template-columns: 320px 1fr 340px; height: calc(100vh - 57px); gap: 12px; padding: 12px; box-sizing: border-box; }
+    .panel { background: var(--card); border: 1px solid #1f2338; border-radius: 8px; padding: 14px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+    canvas { width: 100%; height: 100%; display: block; border-radius: 8px; background: #05060a; border: 1px solid #1f2338; }
+    .agent-card { background: #191c2e; padding: 10px; border-radius: 6px; border-left: 4px solid var(--accent-p); margin-bottom: 8px; cursor: pointer; transition: transform 0.1s; }
+    .agent-card:hover { transform: translateX(3px); }
+    .plt-bar { height: 6px; background: #0a0b12; border-radius: 3px; overflow: hidden; margin-top: 4px; display: flex; }
+    .plt-p { background: var(--accent-p); height: 100%; }
+    .plt-l { background: var(--accent-l); height: 100%; }
+    .plt-t { background: var(--accent-t); height: 100%; }
+    .stat-row { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px; }
+    .log-stream { font-family: monospace; font-size: 11px; background: #05060a; padding: 8px; border-radius: 4px; height: 180px; overflow-y: auto; border: 1px solid #1a1d2e; }
+    .log-entry { margin-bottom: 4px; color: #8a90a6; }
+    .log-entry span { color: var(--accent-p); }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="title-box">
+      <h3 style="margin:0; color:var(--accent-p);">GSK UNIFIED TELEMETRY HUB</h3>
+      <span class="badge">CO-EVOLUTION REAL-TIME ENGINE</span>
+    </div>
+    <div style="font-size:13px; color:#8a90a6;">PROFIT: <b style="color:var(--accent-p)" id="valP">0.00</b> | LOVE: <b style="color:var(--accent-l)" id="valL">0.00</b> | TAX: <b style="color:var(--accent-t)" id="valT">0.00</b></div>
+  </header>
+  <div class="grid">
+    <div class="panel">
+      <h4 style="margin:0; border-bottom: 1px solid #2a2e4a; padding-bottom:6px;">AGENTS & CO-EVOLUTION SPECIES</h4>
+      <div id="agentList"></div>
+    </div>
+    <div style="position:relative;">
+      <canvas id="telemetryCanvas"></canvas>
+    </div>
+    <div class="panel">
+      <h4 style="margin:0; border-bottom: 1px solid #2a2e4a; padding-bottom:6px;">PLT TELEMETRY METRICS</h4>
+      <div id="pltStats"></div>
+      <h4 style="margin:8px 0 0 0; border-bottom: 1px solid #2a2e4a; padding-bottom:6px;">LIVE EVENT TELEMETRY STREAM</h4>
+      <div class="log-stream" id="logStream"></div>
+    </div>
+  </div>
+  <script>

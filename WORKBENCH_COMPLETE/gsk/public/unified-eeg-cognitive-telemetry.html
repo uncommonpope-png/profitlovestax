@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Unified Real-Time EEG & Cognitive Telemetry Dashboard</title>
+<style>
+body { margin: 0; background: #0a0c10; color: #00ffcc; font-family: monospace; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 10px; }
+.panel { border: 1px solid #00ffcc; padding: 10px; background: rgba(0,255,204,0.05); }
+canvas { width: 100%; height: 250px; background: #000; display: block; }
+</style>
+</head>
+<body>
+<div class="grid">
+<div class="panel"><h2>EEG Frequency Band Telemetry (Alpha, Beta, Theta, Gamma)</h2><canvas id="eegCanvas"></canvas></div>
+<div class="panel"><h2>Cognitive Agent Dynamics & PLT Optimization</h2><canvas id="agentCanvas"></canvas></div>
+</div>
+<script>
+const eegCanvas = document.getElementById('eegCanvas');
+const eegCtx = eegCanvas.getContext('2d');
+const agentCanvas = document.getElementById('agentCanvas');
+const agentCtx = agentCanvas.getContext('2d');
+let frame = 0;
+function renderEEG() {
+  eegCtx.fillStyle = 'rgba(0,0,0,0.2)';
+  eegCtx.fillRect(0, 0, eegCanvas.width, eegCanvas.height);
+  eegCtx.strokeStyle = '#00ffcc';
+  eegCtx.beginPath();
+  for (let x = 0; x < eegCanvas.width; x++) {
+    const y = eegCanvas.height / 2 + Math.sin((x + frame) * 0.05) * 30 + Math.cos((x + frame) * 0.02) * 15;
+    if (x === 0) eegCtx.moveTo(x, y); else eegCtx.lineTo(x, y);
+  }
+  eegCtx.stroke();
+}
+function loop() { frame++; renderEEG(); requestAnimationFrame(loop); }
+loop();
+</script>
+</body>
+</html>

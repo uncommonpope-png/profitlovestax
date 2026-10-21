@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Quantum Neural Planetary Telemetry Dashboard</title>
+<style>
+body { background: #0b0f19; color: #e2e8f0; font-family: monospace; margin: 0; padding: 20px; }
+.card { background: #131b2e; border: 1px solid #1e293b; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+h1 { color: #38bdf8; }
+.plt-score { font-size: 24px; font-weight: bold; color: #4ade80; }
+</style>
+</head>
+<body>
+<div class="card">
+<h1>Quantum Neural Planetary Telemetry</h1>
+<p>Status: Synchronized | Base URL: http://127.0.0.1:3001</p>
+<div class="plt-score" id="pltValue">PLT Net Value: --</div>
+<canvas id="telemetryCanvas" width="800" height="400"></canvas>
+</div>
+<script>
+const API_KEY = 'x-api-key';
+console.log('Quantum Telemetry Core Initialized with key:', API_KEY);
+</script>
+</body>
+</html>

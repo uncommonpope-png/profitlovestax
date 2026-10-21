@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neural Decoding Dashboard - Latent Thought Vectors</title>
+</head>
+<style>
+body { margin: 0; background: #0a0d14; color: #e2e8f0; font-family: monospace; display: flex; flex-direction: column; height: 100vh; }
+.header { padding: 12px; border-bottom: 1px solid #1e293b; background: #0f172a; display: flex; justify-content: space-between; align-items: center; }
+.main { display: flex; flex: 1; overflow: hidden; }
+#latentCanvas { flex: 2; background: #030712; }
+.panel { flex: 1; border-left: 1px solid #1e293b; padding: 12px; background: #090d16; overflow-y: auto; }
+.metric-box { border: 1px solid #1e293b; padding: 8px; margin-bottom: 8px; border-radius: 4px; background: #0f172a; }
+</style>
+<body>
+<div class="header"><h2>GSK NEURAL DECODER v1.0</h2><div id="status">LIVE LATENT THOUGHT STREAM</div></div>
+<div class="main"><canvas id="latentCanvas"></canvas><div class="panel" id="telemetry"><h3>Latent Vector Telemetry</h3><div id="vectorMetrics"></div></div></div>
+<script>
+const canvas = document.getElementById('latentCanvas');
+const ctx = canvas.getContext('2d');
+function resize() { canvas.width = canvas.clientWidth; canvas.height = canvas.clientHeight; }
+window.addEventListener('resize', resize); resize();
+let nodes = Array.from({length: 45}, (_, i) => ({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, vx: (Math.random()-0.5)*1.5, vy: (Math.random()-0.5)*1.5, layer: Math.floor(Math.random()*4), mag: Math.random() }));
+function render() {
+  ctx.fillStyle = 'rgba(3, 7, 18, 0.25)'; ctx.fillRect(0,0,canvas.width,canvas.height);
+  nodes.forEach((n, idx) => {
+    n.x += n.vx; n.y += n.vy;
+    if(n.x < 0 || n.x > canvas.width) n.vx *= -1;
+    if(n.y < 0 || n.y > canvas.height) n.vy *= -1;
+    nodes.forEach((other, jdx) => {
+      if(idx !== jdx) {
+        let dist = Math.hypot(n.x - other.x, n.y - other.y);
+        if(dist < 100) {
+          ctx.strokeStyle = `rgba(56, 189, 248, ${1 - dist/100})`;
+          ctx.lineWidth = 0.5;
+          ctx.beginPath(); ctx.moveTo(n.x, n.y); ctx.lineTo(other.x, other.y); ctx.stroke();
+        }
+      }
+    });
+    ctx.beginPath(); ctx.arc(n.x, n.y, 4, 0, Math.PI*2); ctx.fillStyle = '#38bdf8'; ctx.fill();
+  });
+  requestAnimationFrame(render);
+}
+render();
+</script>
+</body>
+</html>

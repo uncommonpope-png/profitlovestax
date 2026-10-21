@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cross-Substrate Telemetry & PLT Visualizer</title>
+<style>
+body { margin: 0; background: #0a0a10; color: #e0e6ed; font-family: monospace; }
+header { padding: 16px; background: #121420; border-bottom: 1px solid #2a2d3d; display: flex; justify-content: space-between; align-items: center; }
+h1 { font-size: 1.2rem; color: #00f0ff; margin: 0; }
+.grid { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; padding: 16px; }
+.card { background: #16192b; border: 1px solid #2a2d42; border-radius: 8px; padding: 16px; }
+#canvas-container { width: 100%; height: 400px; position: relative; }
+canvas { width: 100%; height: 100%; display: block; }
+</style>
+</head>
+<body>
+<header>
+<h1>Multispecies Cross-Substrate Telemetry & PLT Visualizer</h1>
+<div id="status">LIVE | CO-EVOLUTION ACTIVE</div>
+</header>
+<div class="grid">
+<div class="card">
+<h2>Substrate Telemetry Map</h2>
+<div id="canvas-container"><canvas id="telemetryCanvas"></canvas></div>
+</div>
+<div class="card">
+<h2>PLT Value Optimization</h2>
+<div id="plt-metrics"></div>
+</div>
+</div>
+<script>
+const canvas = document.getElementById('telemetryCanvas');
+const ctx = canvas.getContext('2d');
+function resize() { canvas.width = canvas.parentElement.clientWidth; canvas.height = canvas.parentElement.clientHeight; }
+window.addEventListener('resize', resize); resize();
+
+const species = [
+  { id: 'Prime', color: '#00f0ff', plt: { p: 0.9, l: 0.05, t: 0.05 }, pos: [100, 150] },
+  { id: 'Weaver', color: '#ff00aa', plt: { p: 0.1, l: 0.85, t: 0.05 }, pos: [300, 200] },
+  { id: 'Collector', color: '#ffaa00', plt: { p: 0.05, l: 0.05, t: 0.9 }, pos: [200, 300] }
+];
+
+function draw() {
+  ctx.fillStyle = '#0a0a10'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+  species.forEach(s => {
+    ctx.beginPath(); ctx.arc(s.pos[0], s.pos[1], 15, 0, Math.PI * 2);
+    ctx.fillStyle = s.color; ctx.fill();
+  });
+  requestAnimationFrame(draw);
+}
+draw();
+</script>
+</body>
+</html>

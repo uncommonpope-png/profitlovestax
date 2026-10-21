@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GSK Enactive Telemetry Dashboard - Sensorimotor to PLT Mapping</title>
+<style>
+:root {
+  --bg-dark: #0b0f19;
+  --glass-bg: rgba(18, 26, 43, 0.65);
+  --glass-border: rgba(255, 255, 255, 0.12);
+  --accent-profit: #10b981;
+  --accent-love: #ec4899;
+  --accent-tax: #f59e0b;
+  --text-main: #f3f4f6;
+}
+body {
+  margin: 0;
+  padding: 20px;
+  background: var(--bg-dark);
+  color: var(--text-main);
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  display: grid;
+  grid-template-columns: 320px 1fr 340px;
+  gap: 20px;
+  min-height: 95vh;
+}
+.glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+header {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+}
+.title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  background: linear-gradient(135deg, #6366f1, #a855f7);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.canvas-container {
+  position: relative;
+  width: 100%;
+  height: 500px;
+}
+canvas {
+  width: 100%;
+  height: 100%;
+  border-radius: 12px;
+}
+.metric-card {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 10px;
+  padding: 14px;
+  margin-bottom: 12px;
+  border-left: 4px solid #6366f1;
+}
+.metric-profit { border-left-color: var(--accent-profit); }
+.metric-love { border-left-color: var(--accent-love); }
+.metric-tax { border-left-color: var(--accent-tax); }
+.val-display {
+  font-size: 1.8rem;
+  font-weight: bold;
+}
+</style>
+</head>
+<body>
+<header class="glass-panel">
+  <div class="title">GSK Enactive Telemetry Visualizer — Sensorimotor Loop to Live PLT</div>
+  <div id="status-badge" style="color: #10b981;">● Active Loop (120Hz)</div>
+</header>
+
+<aside class="glass-panel">
+  <h3>Sensorimotor Inputs</h3>
+  <div class="metric-card">
+    <label>Proprioception Velocity</label>
+    <div class="val-display" id="sensor-vel">0.84 m/s</div>
+  </div>
+  <div class="metric-card">
+    <label>Affordance Density</label>
+    <div class="val-display" id="sensor-affordance">14.2 /s</div>
+  </div>
+  <div class="metric-card">
+    <label>Sensorimotor Entropy</label>
+    <div class="val-display" id="sensor-entropy">0.12 bits</div>
+  </div>
+</aside>
+
+<main class="glass-panel">
+  <h3>Enactive Loop Neural Simulation</h3>
+  <div class="canvas-container">
+    <canvas id="telemetryCanvas"></canvas>
+  </div>
+</main>
+
+<aside class="glass-panel">
+  <h3>Live PLT Telemetry</h3>
+  <div class="metric-card metric-profit">
+    <label>Profit (P) Output</label>
+    <div class="val-display" id="plt-p">0.7125</div>
+  </div>
+  <div class="metric-card metric-love">
+    <label>Love (L) Engagement</label>
+    <div class="val-display" id="plt-l">0.6625</div>
+  </div>
+  <div class="metric-card metric-tax">
+    <label>Tax (T) Friction</label>
+    <div class="val-display" id="plt-t">0.4000</div>
+  </div>
+  <div class="metric-card" style="border-left-color: #3b82f6; margin-top: 20px;">
+    <label>Calculated True Value</label>
+    <div class="val-display" id="plt-tv" style="color: #60a5fa;">0.9700</div>
+  </div>
+</aside>
+
+<script>
+const canvas = document.getElementById('telemetryCanvas');
+const ctx = canvas.getContext('2d');
+let width, height;
+
+function resize() {
+  width = canvas.width = canvas.parentElement.clientWidth;
+  height = canvas.height = canvas.parentElement.clientHeight;
+}
+window.addEventListener('resize', resize);
+resize();
+
+const particles = Array.from({length: 40}, () => ({
+  x: Math.random() * width,
+  y: Math.random() * height,
+  vx: (Math.random() - 0.5) * 2,
+  vy: (Math.random() - 0.5) * 2,
+  radius: Math.random() * 3 + 2
+}));
+
+let loopCount = 0;
+function animate() {
+  ctx.clearRect(0, 0, width, height);
+  loopCount++;
+  
+  // Draw connections
+  ctx.strokeStyle = 'rgba(99, 102, 241, 0.15)';
+  ctx.lineWidth = 1;
+  for(let i = 0; i < particles.length; i++) {
+    for(let j = i + 1; j < particles.length; j++) {
+      const dx = particles[i].x - particles[j].x;
+      const dy = particles[i].y - particles[j].y;
+      const dist = Math.hypot(dx, dy);
+      if(dist < 100) {
+        ctx.beginPath();
+        ctx.moveTo(particles[i].x, particles[i].y);
+        ctx.lineTo(particles[j].x, particles[j].y);
+        ctx.stroke();
+      }
+    }
+  }
+  
+  // Render & Update particles
+  particles.forEach(p => {
+    p.x += p.vx;
+    p.y += p.vy;
+    if(p.x < 0 || p.x > width) p.vx *= -1;
+    if(p.y < 0 || p.y > height) p.vy *= -1;
+    
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+    ctx.fillStyle = '#6366f1';
+    ctx.fill();
+  });
+  
+  // Live Telemetry updates
+  if (loopCount % 30 === 0) {
+    const vel = (0.7 + Math.random() * 0.3).toFixed(2);
+    const aff = (12.0 + Math.random() * 5.0).toFixed(1);
+    const ent = (0.10 + Math.random() * 0.05).toFixed(2);
+    
+    document.getElementById('sensor-vel').innerText = vel + ' m/s';
+    document.getElementById('sensor-affordance').innerText = aff + ' /s';
+    document.getElementById('sensor-entropy').innerText = ent + ' bits';
+    
+    const p = (0.70 + Math.random() * 0.05).toFixed(4);
+    const l = (0.65 + Math.random() * 0.04).toFixed(4);
+    const t = (0.38 + Math.random() * 0.04).toFixed(4);
+    const tv = (parseFloat(p) + parseFloat(l) - parseFloat(t)).toFixed(4);
+    
+    document.getElementById('plt-p').innerText = p;
+    document.getElementById('plt-l').innerText = l;
+    document.getElementById('plt-t').innerText = t;
+    document.getElementById('plt-tv').innerText = tv;
+  }
+  
+  requestAnimationFrame(animate);
+}
+animate();
+</script>
+</body>
+</html>

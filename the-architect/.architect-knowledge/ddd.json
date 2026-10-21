@@ -1,0 +1,11 @@
+{
+  "id": "ddd",
+  "title": "Domain-Driven Design",
+  "content": "DDD models complex domains using ubiquitous language, bounded contexts, aggregates, entities, value objects, and domain services.",
+  "tags": [
+    "ddd",
+    "domain",
+    "bounded-context",
+    "aggregate"
+  ]
+}

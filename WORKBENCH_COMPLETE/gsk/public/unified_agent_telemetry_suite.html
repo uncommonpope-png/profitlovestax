@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unified Multi-Agent Telemetry Suite & PLT Value Optimizer</title>
+<style>
+:root { --bg: #090d16; --card-bg: rgba(255, 255, 255, 0.04); --border: rgba(255, 255, 255, 0.1); --accent: #38bdf8; --profit: #10b981; --love: #ec4899; --tax: #f59e0b; }
+body { background-color: var(--bg); color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 24px; }
+.header { margin-bottom: 24px; padding: 24px; background: var(--card-bg); backdrop-filter: blur(16px); border: 1px solid var(--border); border-radius: 16px; }
+h1 { margin: 0 0 8px 0; color: var(--accent); font-size: 24px; font-weight: 700; }
+.subtitle { margin: 0; color: #94a3b8; font-size: 14px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; }
+.card { background: var(--card-bg); backdrop-filter: blur(16px); border: 1px solid var(--border); border-radius: 16px; padding: 20px; }
+.card h2 { margin-top: 0; font-size: 16px; color: #cbd5e1; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+.agent-item { padding: 12px; margin-bottom: 10px; background: rgba(0, 0, 0, 0.2); border-radius: 8px; border-left: 4px solid var(--accent); }
+.agent-name { font-weight: 600; font-size: 15px; display: flex; justify-content: space-between; }
+.agent-stats { font-size: 13px; color: #94a3b8; margin-top: 6px; }
+.metric-row { display: flex; justify-content: space-between; margin-top: 4px; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>Unified Multi-Agent Telemetry Suite</h1>
+  <p class="subtitle">Real-time Cognitive Sheaf Visibility & PLT Value Optimizer (Profit + Love - Tax)</p>
+</div>
+<div class="grid">
+  <div class="card">
+    <h2>Agent Sheaf Dynamics</h2>
+    <div id="agent-list"></div>
+  </div>
+  <div class="card">
+    <h2>PLT Value Stream Optimization</h2>
+    <canvas id="pltChart" width="400" height="240"></canvas>
+  </div>
+</div>
+<script>
+const agents = [
+  { name: 'Profit Prime', archetype: 'Profit Prime', plt: { P: 0.9, L: 0.05, T: 0.05 }, status: 'OPTIMIZING' },
+  { name: 'Love Weaver', archetype: 'Love Weaver', plt: { P: 0.1, L: 0.85, T: 0.05 }, status: 'SYNCHRONIZING' },
+  { name: 'Tax Collector', archetype: 'Tax Collector', plt: { P: 0.05, L: 0.05, T: 0.9 }, status: 'AUDITING' },
+  { name: 'Harvester', archetype: 'Harvester', plt: { P: 0.4, L: 0.3, T: 0.3 }, status: 'EXTRACTING' }
+];
+function render() {
+  const container = document.getElementById('agent-list');
+  if (!container) return;
+  container.innerHTML = agents.map(a => `
+    <div class="agent-item">
+      <div class="agent-name"><span>${a.name}</span><span style="color:var(--accent)">${a.status}</span></div>
+      <div class="agent-stats">
+        <div class="metric-row"><span>Profit Affinity:</span><span style="color:var(--profit)">${(a.plt.P * 100).toFixed(0)}%</span></div>
+        <div class="metric-row"><span>Love Weaver:</span><span style="color:var(--love)">${(a.plt.L * 100).toFixed(0)}%</span></div>
+        <div class="metric-row"><span>Tax Friction:</span><span style="color:var(--tax)">${(a.plt.T * 100).toFixed(0)}%</span></div>
+      </div>
+    </div>
+  `).join('');
+}
+render();
+</script>
+</body>
+</html>

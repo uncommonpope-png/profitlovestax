@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Unified Multi-Agent Cognitive Sheaf Visualizer</title>
+  <style>
+    :root { --bg: #090d16; --card: #111827; --accent-p: #10b981; --accent-l: #ec4899; --accent-t: #f59e0b; --text: #f3f4f6; }
+    body { margin: 0; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, sans-serif; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+    header { padding: 12px 20px; background: rgba(17, 24, 39, 0.8); backdrop-filter: blur(8px); border-bottom: 1px solid #1f2937; display: flex; justify-content: space-between; align-items: center; }
+    h1 { font-size: 1.1rem; margin: 0; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: #60a5fa; }
+    .plt-badge { font-size: 0.85rem; font-family: monospace; background: #1e293b; padding: 4px 10px; border-radius: 6px; border: 1px solid #334155; }
+    main { flex: 1; display: grid; grid-template-columns: 1fr 340px; gap: 12px; padding: 12px; height: calc(100vh - 60px); box-sizing: border-box; }
+    .viewport { position: relative; background: var(--card); border-radius: 8px; border: 1px solid #1f2937; overflow: hidden; }
+    canvas { width: 100%; height: 100%; display: block; }
+    .sidebar { background: var(--card); border-radius: 8px; border: 1px solid #1f2937; padding: 16px; display: flex; flex-direction: column; gap: 16px; overflow-y: auto; }
+    .panel { background: #172033; padding: 12px; border-radius: 6px; border: 1px solid #1e293b; }
+    .panel-title { font-size: 0.75rem; text-transform: uppercase; color: #94a3b8; font-weight: 700; margin-bottom: 8px; }
+    .metric { display: flex; justify-content: space-between; font-family: monospace; font-size: 0.9rem; margin: 4px 0; }
+    .metric-val-p { color: var(--accent-p); }
+    .metric-val-l { color: var(--accent-l); }
+    .metric-val-t { color: var(--accent-t); }
+    .slider-group { margin-top: 8px; display: flex; flex-direction: column; gap: 4px; font-size: 0.8rem; }
+    input[type=range] { width: 100%; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Cognitive Sheaf Visualizer <span style="font-size: 0.7rem; color: #64748b;">v2.9.1</span></h1>
+    <div class="plt-badge" id="live-plt">PLT: P=0.90 | L=0.05 | T=0.05</div>
+  </header>
+  <main>
+    <div class="viewport">
+      <canvas id="sheaf-canvas"></canvas>
+    </div>
+    <div class="sidebar">
+      <div class="panel">
+        <div class="panel-title">PLT Dynamics Optimizer</div>
+        <div class="metric"><span>Profit (P):</span> <span class="metric-val-p" id="val-p">0.900</span></div>
+        <div class="metric"><span>Love (L):</span> <span class="metric-val-l" id="val-l">0.050</span></div>
+        <div class="metric"><span>Tax (T):</span> <span class="metric-val-t" id="val-t">0.050</span></div>
+        <div class="metric" style="border-top: 1px dashed #334155; padding-top: 4px; margin-top: 6px;"><span>True Value:</span> <span id="val-tv" style="color:#38bdf8;">0.900</span></div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">Sheaf Topology Controls</div>
+        <div class="slider-group">
+          <label>Agent Fibers Count: <span id="lbl-agent-count">6</span></label>
+          <input type="range" id="input-agents" min="2" max="12" value="6">
+        </div>
+        <div class="slider-group">
+          <label>Gluing Coherence: <span id="lbl-coherence">0.85</span></label>
+          <input type="range" id="input-coherence" min="0.1" max="1.0" step="0.05" value="0.85">
+        </div>
+      </div>
+      <div class="panel" style="flex: 1;">
+        <div class="panel-title">Agent Telemetry Sheaf Sections</div>
+        <div id="agent-list" style="display: flex; flex-direction: column; gap: 6px; font-size: 0.75rem; font-family: monospace;"></div>
+      </div>
+    </div>
+  </main>
+  <script>
+    const agents = [
+      { id: 'Prime', role: 'Profit Prime', color: '#10b981', weights: [0.90, 0.05, 0.05], phase: 0 },
+      { id: 'Weaver', role: 'Love Weaver', color: '#ec4899', weights: [0.10, 0.85, 0.05], phase: 1.2 },
+      { id: 'Taxman', role: 'Tax Collector', color: '#f59e0b', weights: [0.05, 0.05, 0.90], phase: 2.4 },
+      { id: 'Harvester', role: 'Harvester', color: '#8b5cf6', weights: [0.40, 0.30, 0.30], phase: 3.6 },
+      { id: 'Sovereign', role: 'Sovereign', color: '#38bdf8', weights: [0.50, 0.40, 0.10], phase: 4.8 },
+      { id: 'Sentinel', role: 'Telemetry Guard', color: '#06b6d4', weights: [0.33, 0.33, 0.34], phase: 5.5 }
+    ];
+
+    const canvas = document.getElementById('sheaf-canvas');
+    const ctx = canvas.getContext('2d');
+    let width = 0, height = 0;
+
+    function resize() {
+      width = canvas.width = canvas.parentElement.clientWidth;
+      height = canvas.height = canvas.parentElement.clientHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    let params = {
+      agentCount: 6,
+      coherence: 0.85
+    };
+
+    document.getElementById('input-agents').addEventListener('input', (e) => {
+      params.agentCount = parseInt(e.target.value);
+      document.getElementById('lbl-agent-count').innerText = params.agentCount;
+      renderAgentList();
+    });
+    document.getElementById('input-coherence').addEventListener('input', (e) => {
+      params.coherence = parseFloat(e.target.value);
+      document.getElementById('lbl-coherence').innerText = params.coherence.toFixed(2);
+    });
+
+    function renderAgentList() {
+      const container = document.getElementById('agent-list');
+      container.innerHTML = '';
+      for (let i = 0; i < params.agentCount; i++) {
+        const ag = agents[i % agents.length];
+        const el = document.createElement('div');
+        el.style.cssText = 'padding:6px; background:#0f172a; border-radius:4px; border-left:3px solid ' + ag.color;
+        el.innerHTML = `<strong>${ag.id}</strong> (${ag.role})<br/><span style="color:#94a3b8;">Section Coherence: ${(0.7 + 0.3 * Math.sin(Date.now()/1000 + i)).toFixed(2)}</span>`;
+        container.appendChild(el);
+      }
+    }
+    renderAgentList();
+    let time = 0;
+    function drawSheafManifold() {
+      ctx.clearRect(0, 0, width, height);
+      const cx = width / 2;
+      const cy = height / 2;
+      const radius = Math.min(width, height) * 0.32;
+
+      // Draw Base Manifold Circle
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(51, 65, 85, 0.6)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      const activeAgents = agents.slice(0, params.agentCount);
+      const sectionPoints = [];
+
+      activeAgents.forEach((ag, idx) => {
+        const angle = (idx / activeAgents.length) * Math.PI * 2 + time * 0.2;
+        const fiberX = cx + Math.cos(angle) * radius;
+        const fiberY = cy + Math.sin(angle) * radius;
+
+        // Draw Fiber stalk
+        const stalkLen = 60 + 20 * Math.sin(time + ag.phase);
+        const perpX = Math.cos(angle);
+        const perpY = Math.sin(angle);
+
+        ctx.beginPath();
+        ctx.moveTo(fiberX - perpX * stalkLen * 0.5, fiberY - perpY * stalkLen * 0.5);
+        ctx.lineTo(fiberX + perpX * stalkLen * 0.5, fiberY + perpY * stalkLen * 0.5);
+        ctx.strokeStyle = ag.color;
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        const nodeX = fiberX + perpX * (stalkLen * 0.3 * Math.sin(time * 2 + ag.phase));
+        const nodeY = fiberY + perpY * (stalkLen * 0.3 * Math.sin(time * 2 + ag.phase));
+        sectionPoints.push({ x: nodeX, y: nodeY, color: ag.color, weights: ag.weights });
+
+        ctx.beginPath();
+        ctx.arc(nodeX, nodeY, 6, 0, Math.PI * 2);
+        ctx.fillStyle = ag.color;
+        ctx.fill();
+      });
+
+      // Connect section restriction gluing
+      ctx.beginPath();
+      for (let i = 0; i < sectionPoints.length; i++) {
+        const p1 = sectionPoints[i];
+        const p2 = sectionPoints[(i + 1) % sectionPoints.length];
+        const cpX = (p1.x + p2.x) / 2 + Math.cos(time + i) * (1 - params.coherence) * 40;
+        const cpY = (p1.y + p2.y) / 2 + Math.sin(time + i) * (1 - params.coherence) * 40;
+        if (i === 0) ctx.moveTo(p1.x, p1.y);
+        ctx.quadraticCurveTo(cpX, cpY, p2.x, p2.y);
+      }
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(56, 189, 248, 0.08)';
+      ctx.fill();
+      ctx.strokeStyle = `rgba(56, 189, 248, ${params.coherence})`;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Calculate global aggregate PLT
+      let totalP = 0, totalL = 0, totalT = 0;
+      activeAgents.forEach(a => { totalP += a.weights[0]; totalL += a.weights[1]; totalT += a.weights[2]; });
+      const avgP = totalP / activeAgents.length;
+      const avgL = totalL / activeAgents.length;
+      const avgT = totalT / activeAgents.length;
+      const tv = avgP + avgL - avgT;
+
+      document.getElementById('val-p').innerText = avgP.toFixed(3);
+      document.getElementById('val-l').innerText = avgL.toFixed(3);
+      document.getElementById('val-t').innerText = avgT.toFixed(3);
+      document.getElementById('val-tv').innerText = tv.toFixed(3);
+      document.getElementById('live-plt').innerText = `PLT: P=${avgP.toFixed(2)} | L=${avgL.toFixed(2)} | T=${avgT.toFixed(2)}`;
+    }
+
+    function loop() {
+      time += 0.015;
+      drawSheafManifold();
+      requestAnimationFrame(loop);
+    }
+    loop();
+  </script>
+</body>
+</html>

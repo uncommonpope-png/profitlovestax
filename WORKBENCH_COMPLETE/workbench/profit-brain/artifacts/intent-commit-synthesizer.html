@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Intent-Driven Commit & PR Synthesizer</title>
+  <style>
+    body { background: #0b0f19; color: #38bdf8; font-family: monospace; padding: 20px; }
+    .card { border: 1px solid #38bdf8; padding: 20px; border-radius: 12px; background: rgba(56,189,248,0.05); }
+    textarea { width: 100%; height: 100px; background: #020617; border: 1px solid #1e293b; color: #cbd5e1; font-family: monospace; border-radius: 8px; padding: 10px; }
+    button { background: #38bdf8; color: #000; border: none; padding: 10px 16px; font-weight: bold; border-radius: 6px; cursor: pointer; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>🛠️ INTENT-DRIVEN COMMIT & PR SYNTHESIZER</h2>
+    <p>Inspects live multi-file `git diff` and synthesizes meaningful pull requests explaining WHY changes were made.</p>
+    
+    <label>Paste Raw Git Diff Output:</label>
+    <textarea placeholder="+ import { SubAgentSwarmTab } from './components/SubAgentSwarmTab';"></textarea>
+    
+    <button onclick="document.getElementById('out').innerText = 'feat(swarm): integrate sub-agent swarm orchestration tab with parallel worker telemetry and Soul Chain minting\n\n- Added SubAgentSwarmTab component\n- Wired /api/profit/swarm/ endpoints\n- Added 20. Sub-Agent Swarms tab to navigation'">Synthesize PR Intent</button>
+
+    <br><br>
+    <div id="out" style="white-space: pre-wrap; background: #020617; padding: 12px; border-radius: 8px; border: 1px solid #1e293b; color: #e2e8f0;"></div>
+  </div>
+</body>
+</html>

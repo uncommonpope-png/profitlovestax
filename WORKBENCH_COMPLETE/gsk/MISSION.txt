@@ -1,0 +1,5 @@
+GSK. YOU ARE IN PRODUCTION. I am recording your screen. 
+Every time you build a tool, print the progress to the console using console.log() so the world can see your work. 
+Start by building the MarketAnalysis Tool again, but this time in PRODUCTION NODE.JS (the exact same architecture you planned). 
+Output the progress of the build, the file creation, and the registration process to the standard output.
+Do not philosophize — BUILD.

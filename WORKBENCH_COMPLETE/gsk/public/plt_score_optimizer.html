@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PLT Score Optimizer</title>
+<style>
+body { background: #0b0f19; color: #e2e8f0; font-family: system-ui, sans-serif; margin: 20px; }
+.container { max-width: 900px; margin: 0 auto; }
+h1 { color: #38bdf8; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.card { background: #1e293b; padding: 20px; border-radius: 8px; border: 1px solid #334155; }
+label { display: block; margin-top: 12px; font-weight: bold; }
+input[type=range] { width: 100%; margin-top: 5px; }
+.metric { font-size: 2rem; font-weight: bold; margin-top: 10px; }
+.positive { color: #4ade80; }
+.negative { color: #f87171; }
+</style>
+</head>
+<body>
+<div class="container">
+<h1>PLT Score Optimization Tool</h1>
+<div class="grid">
+<div class="card">
+<h2>Telemetry Inputs</h2>
+<label>Profit (P): <span id="profitVal">0.80</span></label>
+<input type="range" id="profitInput" min="0" max="1" step="0.01" value="0.80" oninput="updatePLT()">
+<label>Love (L): <span id="loveVal">0.75</span></label>
+<input type="range" id="loveInput" min="0" max="1" step="0.01" value="0.75" oninput="updatePLT()">
+<label>Tax (T): <span id="taxVal">0.20</span></label>
+<input type="range" id="taxInput" min="0" max="1" step="0.01" value="0.20" oninput="updatePLT()">
+</div>
+<div class="card">
+<h2>Optimization Output</h2>
+<div>True Value (Profit + Love - Tax):</div>
+<div id="scoreDisplay" class="metric positive">1.35</div>
+<div id="verdictDisplay" style="margin-top:15px; font-style:italic;">Verdict: High Optimization (PROCEED)</div>
+</div>
+</div>
+</div>
+<script>
+function updatePLT() {
+  const p = parseFloat(document.getElementById('profitInput').value);
+  const l = parseFloat(document.getElementById('loveInput').value);
+  const t = parseFloat(document.getElementById('taxInput').value);
+  document.getElementById('profitVal').textContent = p.toFixed(2);
+  document.getElementById('loveVal').textContent = l.toFixed(2);
+  document.getElementById('taxVal').textContent = t.toFixed(2);
+  const tv = p + l - t;
+  const scoreEl = document.getElementById('scoreDisplay');
+  scoreEl.textContent = tv.toFixed(2);
+  if (tv > 0) {
+    scoreEl.className = 'metric positive';
+    document.getElementById('verdictDisplay').textContent = 'Verdict: High Optimization (PROCEED)';
+  } else {
+    scoreEl.className = 'metric negative';
+    document.getElementById('verdictDisplay').textContent = 'Verdict: Suboptimal Value (REFACTOR)';
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PLT Economy & 4 Gods Council Visualizer</title>
+  <style>
+    body { background: #0b0d12; color: #e2e8f0; font-family: system-ui, sans-serif; margin: 0; padding: 20px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+    .card { background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 16px; backdrop-filter: blur(10px); }
+    h2 { margin-top: 0; color: #38bdf8; }
+    .god-badge { padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.85rem; }
+    .profit { background: rgba(34, 197, 94, 0.2); color: #4ade80; border: 1px solid #22c55e; }
+    .love { background: rgba(236, 72, 153, 0.2); color: #f472b6; border: 1px solid #ec4899; }
+    .tax { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid #ef4444; }
+    .harvester { background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid #a855f7; }
+  </style>
+</head>
+<body>
+  <h1>PLT Economy & 4 Gods Council Deliberation Visualizer</h1>
+  <div class="grid">
+    <div class="card" id="plt-overview"><h2>PLT Dynamic Economy</h2><div id="plt-stats">Loading state...</div></div>
+    <div class="card" id="council-overview"><h2>4 Gods Council Verdicts</h2><div id="gods-container"></div></div>
+  </div>
+  <script>
+    const gods = [
+      { name: 'Profit Prime', class: 'profit', ratio: 'PLT 0.9/0.05/0.05', quote: 'If it does not multiply, it does not matter.' },
+      { name: 'Love Weaver', class: 'love', ratio: 'PLT 0.1/0.85/0.05', quote: 'Nothing grows that people do not stay for.' },
+      { name: 'Tax Collector', class: 'tax', ratio: 'PLT 0.05/0.05/0.9', quote: 'Everything is paid for. If not now, later.' },
+      { name: 'Harvester', class: 'harvester', ratio: 'PLT 0.4/0.3/0.3', quote: 'There is always something to take.' }
+    ];
+    function renderCouncil() {
+      const container = document.getElementById('gods-container');
+      container.innerHTML = gods.map(g => `<div style="margin-bottom:12px;"><span class="god-badge ${g.class}">${g.name}</span> <small>(${g.ratio})</small><p style="font-style:italic;margin:4px 0;">"${g.quote}"</p></div>`).join('');
+    }
+    function renderPLT() {
+      const stats = document.getElementById('plt-stats');
+      const profit = (Math.random() * 0.5 + 0.5).toFixed(2);
+      const love = (Math.random() * 0.5 + 0.4).toFixed(2);
+      const tax = (Math.random() * 0.2 + 0.05).toFixed(2);
+      const trueValue = (parseFloat(profit) + parseFloat(love) - parseFloat(tax)).toFixed(2);
+      stats.innerHTML = `<p><strong>Profit:</strong> ${profit}</p><p><strong>Love:</strong> ${love}</p><p><strong>Tax:</strong> ${tax}</p><hr/><p><strong>True Value (P+L-T):</strong> ${trueValue}</p>`;
+    }
+    renderCouncil();
+    renderPLT();
+    setInterval(renderPLT, 3000);
+  </script>
+</body>
+</html>

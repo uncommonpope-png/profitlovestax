@@ -1,0 +1,8 @@
+{
+  "method": "brain.think",
+  "params": {
+    "prompt": "Echo back: GSK_BRAIN_LIVE. Are you thinking?",
+    "context": "Diagnostic smoke test from Profit Prime"
+  },
+  "id": 1
+}

@@ -1,0 +1,932 @@
+[
+ {
+  "file": "1password.js",
+  "class": "stub",
+  "basis": "readiness check only \u2014 reports \"skill ready \u2014 keys configured\" without performing the named action"
+ },
+ {
+  "file": "SKILL_CATEGORIES.md",
+  "class": "stub",
+  "basis": "support/non-JS file \u2014 not a loadable skill"
+ },
+ {
+  "file": "achievements.js",
+  "class": "real",
+  "basis": "performs real work (fs)"
+ },
+ {
+  "file": "agent_teams.js",
+  "class": "real",
+  "basis": "LLM-backed: awaits brain.think and returns its output; the no-brain `Completed` fallback is neutralized by the Phase 4 dispatcher honesty guard"
+ },
+ {
+  "file": "anime_character.js",
+  "class": "real",
+  "basis": "performs real work (fs)"
+ },
+ {
+  "file": "ansible_deploy.js",
+  "class": "fake-execute",
+  "basis": "WAS fake-execute: returned `Executed ... skill with:` success string without acting \u2014 REPAIRED in Phase 4 to explicit not_implemented"
+ },
+ {
+  "file": "ansible_gsk_provision.js",
+  "class": "fake-execute",
+  "basis": "WAS fake-execute: returned `Executed ... skill with:` success string without acting \u2014 REPAIRED in Phase 4 to explicit not_implemented"
+ },
+ {
+  "file": "ansible_scrapling_agent_deploy.js",
+  "class": "fake-execute",
+  "basis": "WAS fake-execute: returned `Executed ... skill with:` success string without acting \u2014 REPAIRED in Phase 4 to explicit not_implemented"
+ },
+ {
+  "file": "api_design.js",
+  "class": "real",
+  "basis": "LLM-backed: awaits brain.think and returns its output; the no-brain `Completed` fallback is neutralized by the Phase 4 dispatcher honesty guard"
+ },
+ {
+  "file": "api_server.js",
+  "class": "real",
+  "basis": "performs real work (fs)"
+ },
+ {
+  "file": "apple_notes.js",
+  "class": "stub",
+  "basis": "returns a platform/name message only; no action performed"
+ },
+ {
+  "file": "apple_reminders.js",
+  "class": "stub",
+  "basis": "returns a platform/name message only; no action performed"
+ },
+ {
+  "file": "approved_growth.js",
+  "class": "fake-execute",
+  "basis": "WAS fake-execute: returned a bare { success: true } with no work and no payload \u2014 REPAIRED in Phase 4 to explicit not_implemented"
+ },
+ {
+  "file": "architecture_design.js",
+  "class": "real",
+  "basis": "LLM-backed: awaits brain.think and returns its output; the no-brain `Completed` fallback is neutralized by the Phase 4 dispatcher honesty guard"
+ },
+ {
+  "file": "auto_1787691746314.js.wrapped.bak",
+  "class": "stub",
+  "basis": "support/non-JS file \u2014 not a loadable skill"
+ },
+ {
+  "file": "autonomous_feedback_balancer.js",
+  "class": "fake-execute",
+  "basis": "WAS fake-execute: returned `Executed ... skill with:` success string without acting \u2014 REPAIRED in Phase 4 to explicit not_implemented"
+ },
+ {
+  "file": "autonomous_scrapling_crawler.js",
+  "class": "fake-execute",
+  "basis": "WAS fake-execute: returned `Executed ... skill with:` success string without acting \u2014 REPAIRED in Phase 4 to explicit not_implemented"
+ },
+ {
+  "file": "bear_notes.js",
+  "class": "stub",
+  "basis": "returns a platform/name message only; no action performed"
+ },
+ {
+  "file": "behavior_attacher.js",
+  "class": "stub",
+  "basis": "entity-behavior class library for the world engine \u2014 no dispatcher-callable skill export"
+ },
+ {
+  "file": "bert_contextual_analyzer.js",
+  "class": "fake-execute",
+  "basis": "WAS fake-execute: returned `Executed ... skill with:` success string without acting \u2014 REPAIRED in Phase 4 to explicit not_implemented"
+ },
+ {
+  "file": "blogwatcher.js",
+  "class": "real",
+  "basis": "LLM-backed: awaits brain.think and returns its output; the no-brain `Completed` fallback is neutralized by the Phase 4 dispatcher honesty guard"
+ },
+ {
+  "file": "blucli.js",
+  "class": "stub",
+  "basis": "readiness check only \u2014 reports \"skill ready \u2014 keys configured\" without performing the named action"
+ },
+ {
+  "file": "bluebubbles.js",
+  "class": "stub",
+  "basis": "readiness check only \u2014 reports \"skill ready \u2014 keys configured\" without performing the named action"
+ },
+ {
+  "file": "brand_guidelines.js",
+  "class": "real",
+  "basis": "LLM-backed: awaits brain.think and returns its output; the no-brain `Completed` fallback is neutralized by the Phase 4 dispatcher honesty guard"
+ },
+ {
+  "file": "build.js",
+  "class": "real",
+  "basis": "character generator \u2014 computes a character from role/genre input (note: file name `build` vs export `skill_build_character` mismatch)"
+ },
+ {
+  "file": "camsnap.js",
+  "class": "stub",
+  "basis": "returns a platform/name message only; no action performed"
+ },
+ {
+  "file": "canvas.js",
+  "class": "real",
+  "basis": "LLM-backed: awaits brain.think and returns its output; the no-brain `Completed` fallback is neutralized by the Phase 4 dispatcher honesty guard"
+ },
+ {
+  "file": "ci_cd_pipeline.js",
+  "class": "real",
+  "basis": "LLM-backed: awaits brain.think and returns its output; the no-brain `Completed` fallback is neutralized by the Phase 4 dispatcher honesty guard"
+ },
+ {
+  "file": "clawhub.js",
+  "class": "stub",
+  "basis": "readiness check only \u2014 reports \"skill ready \u2014 keys configured\" without performing the named action"
+ },
+ {
+  "file": "cli_builder.js",
+  "class": "real",
+  "basis": "performs real work (fs)"
+ },
+ {
+  "file": "cline_bridge.js",
+  "class": "real",
+  "basis": "performs real work (child_process)"
+ },
+ {
+  "file": "code_exec.js",
+  "class": "real",
+  "basis": "writes + executes a temp file, returns stdout/exit_code \u2014 executed in harness"
+ },
+ {
+  "file": "code_review.js",
+  "class": "real",
+  "basis": "static issue detection + computed quality score over supplied code"
+ },
+ {
+  "file": "coding-agent.js",
+  "class": "real",
+  "basis": "LLM-backed: awaits brain.think and returns its output; the no-brain `Completed` fallback is neutralized by the Phase 4 dispatcher honesty guard"
+ },
+ {
+  "file": "content_generate.js",
+  "class": "real",
+  "basis": "LLM-backed: awaits brain.think and returns its output"
+ },
+ {
+  "file": "cron_schedule.js",
+  "class": "real",
+  "basis": "real in-memory interval scheduler (add/remove/list/run_now over a live job map with timers)"
+ },
+ {
+  "file": "css_inliner.js",
+  "class": "real",
+  "basis": "transforms the supplied CSS (nesting expansion / processing) and returns it"
+ },
+ {
+  "file": "dark_city_controller.js",
+  "class": "stub",
+  "basis": "entity-controller class library for the world engine \u2014 no dispatcher-callable skill export"
+ },
+ {
+  "file": "data_analysis.js",
+  "class": "real",
+  "basis": "computes statistics, patterns and outliers from the supplied dataset"
+ },
+ {
+  "file": "database_query.js",
+  "class": "real",
+  "basis": "LLM-backed: awaits brain.think and returns its output; the no-brain `Completed` fallback is neutralized by the Phase 4 dispatcher honesty guard"
+ },
+ {
+  "file": "debug_error.js",
+  "class": "real",
+  "basis": "parses the supplied error/stack and computes causes + fixes"
+ },
+ {
+  "file": "discord.js",
+  "class": "stub",
+  "basis": "readiness check only \u2014 reports \"skill ready \u2014 keys configured\" without performing the named action"
+ },
+ {
+  "file": "doc_coauthoring.js",
+  "class": "real",
+  "basis": "LLM-backed: awaits brain.think and returns its output; the no-brain `Completed` fallback is neutralized by the Phase 4 dispatcher honesty guard"
+ },
+ {
+  "file": "docker_setup.js",
+  "class": "real",
+  "basis": "performs real work (fs)"
+ },
+ {
+  "file": "docx.js",
+  "class": "real",
+  "basis": "LLM-backed: awaits brain.think and returns its output; the no-brain `Completed` fallback is neutralized by the Phase 4 dispatcher honesty guard"
+ },
+ {
+  "file": "drawio.js",
+  "class": "real",
+  "basis": "performs real work (fs)"
+ },
+ {
+  "file": "dynamic_api_weaver.js",
+  "class": "real",
+  "basis": "LLM-backed: awaits brain.think and returns its output; the no-brain `Completed` fallback is neutralized by the Phase 4 dispatcher honesty guard"
+ },
+ {
+  "file": "dynamic_economy.js",
+  "class": "real",
+  "basis": "performs real work (fs)"
+ },
+ {
+  "file": "eightctl.js",
+  "class": "stub",
+  "basis": "readiness check only \u2014 reports \"skill ready \u2014 keys configured\" without performing the named action"
+ },
+ {
+  "file": "email_compose.js",
+  "class": "real",
+  "basis": "composes an email from supplied recipient/subject/purpose/tone"
+ },
+ {
+  "file": "encryption.js",
+  "class": "real",
+  "basis": "LLM-backed: awaits brain.think and returns its output; the no-brain `Completed` fallback is neutralized by the Phase 4 dispatcher honesty guard"
+ },
+ {
+  "file": "file_system.js",
+  "class": "real",
+  "basis": "real fs list/read/write/search \u2014 executed in harness"
+ },
+ {
+  "file": "frontend_design.js",
+  "class": "real",
+  "basis": "generates a frontend design/spec from the supplied specification"
+ },
+ {
+  "file": "game_theory_analyzer.js",
+  "class": "real",
+  "basis": "computes Nash equilibria / dominance from the supplied payoff matrix"
+ },
+ {
+  "file": "gemini.js",
+  "class": "stub",
+  "basis": "readiness check only \u2014 reports \"skill ready \u2014 keys configured\" without performing the named action"
+ },
+ {
+  "file": "generate_tests.js",
+  "class": "real",
+  "basis": "generates test scaffolds from the supplied code"
+ },
+ {
+  "file": "gh-issues.js",
+  "class": "stub",
+  "basis": "readiness check only \u2014 reports \"skill ready \u2014 keys configured\" without performing the named action"
+ },
+ {
+  "file": "gifgrep.js",
+  "class": "real",
+  "basis": "LLM-backed: awaits brain.think and returns its output; the no-brain `Completed` fallback is neutralized by the Phase 4 dispatcher honesty guard"
+ },
+ {
+  "file": "git_learn.js",
+  "class": "real",
+  "basis": "delegates to the kernel learning subsystem (learnFromGit) and returns its real result; requires kernel context"
+ },
+ {
+  "file": "git_ops.js",
+  "class": "real",
+  "basis": "performs real work (child_process, process execution)"
+ },
+ {
+  "file": "github.js",
+  "class": "stub",
+  "basis": "readiness check only \u2014 reports \"skill ready \u2014 keys configured\" without performing the named action"
+ },
+ {
+  "file": "glassmorphism_ui.js",
+  "class": "real",
+  "basis": "generates glassmorphism CSS from supplied parameters"
+ },
+ {
+  "file": "god_node_controller.js",
+  "class": "stub",
+  "basis": "entity-controller class library for the world engine \u2014 no dispatcher-callable skill export"
+ },
+ {
+  "file": "gog.js",
+  "class": "stub",
+  "basis": "readiness check only \u2014 reports \"skill ready \u2014 keys configured\" without performing the named action"
+ },
+ {
+  "file": "google_workspace.js",
+  "class": "stub",
+  "basis": "readiness check only \u2014 reports \"skill ready \u2014 keys configured\" without performing the named action"
+ },
+ {
+  "file": "goplaces.js",
+  "class": "stub",
+  "basis": "readiness check only \u2014 reports \"skill ready \u2014 keys configured\" without performing the named action"
+ },
+ {
+  "file": "gsk-body-server.js",
+  "class": "real",
+  "basis": "performs real work (child_process, process execution)"
+ },
+ {
+  "file": "gsk-bridge-client.js",
+  "class": "real",
+  "basis": "performs real work (network call)"
+ },
+ {
+  "file": "healthcheck.js",
+  "class": "real",
+  "basis": "LLM-backed: awaits brain.think and returns its output; the no-brain `Completed` fallback is neutralized by the Phase 4 dispatcher honesty guard"
+ },
+ {
+  "file": "himalaya.js",
+  "class": "stub",
+  "basis": "readiness check only \u2014 reports \"skill ready \u2014 keys configured\" without performing the named action"
+ },
+ {
+  "file": "http_client.js",
+  "class": "real",
+  "basis": "performs a real HTTP/HTTPS request and returns status + body"
+ },
+ {
+  "file": "imsg.js",
+  "class": "stub",
+  "basis": "returns a platform/name message only; no action performed"
+ },
+ {
+  "file": "internal_comms.js",
+  "class": "real",
+  "basis": "LLM-backed: awaits brain.think and returns its output; the no-brain `Completed` fallback is neutralized by the Phase 4 dispatcher honesty guard"
+ },
+ {
+  "file": "last30days.js",
+  "class": "real",
+  "basis": "LLM-backed: awaits brain.think and returns its output; the no-brain `Completed` fallback is neutralized by the Phase 4 dispatcher honesty guard"
+ },
+ {
+  "file": "math_calc.js",
+  "class": "real",
+  "basis": "real expression parser \u2014 executed in harness"
+ },
+ {
+  "file": "mcp_builder.js",
+  "class": "real",
+  "basis": "LLM-backed: awaits brain.think and returns its output; the no-brain `Completed` fallback is neutralized by the Phase 4 dispatcher honesty guard"
+ },
+ {
+  "file": "mcp_client.js",
+  "class": "real",
+  "basis": "LLM-backed: awaits brain.think and returns its output; the no-brain `Completed` fallback is neutralized by the Phase 4 dispatcher honesty guard"
+ },
+ {
+  "file": "mcporter.js",
+  "class": "stub",
+  "basis": "readiness check only \u2014 reports \"skill ready \u2014 keys configured\" without performing the named action"
+ },
+ {
+  "file": "mega_skills.js",
+  "class": "real",
+  "basis": "the SkillsEngine itself (dispatcher, not a skill)"
+ },
+ {
+  "file": "model-usage.js",
+  "class": "real",
+  "basis": "LLM-backed: awaits brain.think and returns its output; the no-brain `Completed` fallback is neutralized by the Phase 4 dispatcher honesty guard"
+ },
+ {
+  "file": "monitoring_alerting.js",
+  "class": "real",
+  "basis": "LLM-backed: awaits brain.think and returns its output; the no-brain `Completed` fallback is neutralized by the Phase 4 dispatcher honesty guard"
+ },
+ {
+  "file": "montage_anime.js",
+  "class": "real",
+  "basis": "performs real work (child_process, fs, process execution)"
+ },
+ {
+  "file": "nano-pdf.js",
+  "class": "real",
+  "basis": "LLM-backed: awaits brain.think and returns its output; the no-brain `Completed` fallback is neutralized by the Phase 4 dispatcher honesty guard"
+ },
+ {
+  "file": "neural_texture_gen.js",
+  "class": "real",
+  "basis": "generates procedural texture shader code from supplied pattern parameters"
+ },
+ {
+  "file": "news_monitor.js",
+  "class": "real",
+  "basis": "performs real work (network call)"
+ },
+ {
+  "file": "node-connect.js",
+  "class": "real",
+  "basis": "LLM-backed: awaits brain.think and returns its output; the no-brain `Completed` fallback is neutralized by the Phase 4 dispatcher honesty guard"
+ },
+ {
+  "file": "notion.js",
+  "class": "stub",
+  "basis": "readiness check only \u2014 reports \"skill ready \u2014 keys configured\" without performing the named action"
+ },
+ {
+  "file": "npm_publish.js",
+  "class": "real",
+  "basis": "performs real work (fs)"
+ },
+ {
+  "file": "obsidian.js",
+  "class": "stub",
+  "basis": "returns a platform/name message only; no action performed"
+ },
+ {
+  "file": "ocr.js",
+  "class": "real",
+  "basis": "LLM-backed: awaits brain.think and returns its output; the no-brain `Completed` fallback is neutralized by the Phase 4 dispatcher honesty guard"
+ },
+ {
+  "file": "ollama_mgmt.js",
+  "class": "real",
+  "basis": "LLM-backed: awaits brain.think and returns its output; the no-brain `Completed` fallback is neutralized by the Phase 4 dispatcher honesty guard"
+ },
+ {
+  "file": "openai-image-gen.js",
+  "class": "stub",
+  "basis": "readiness check only \u2014 reports \"skill ready \u2014 keys configured\" without performing the named action"
+ },
+ {
+  "file": "openai-whisper-api.js",
+  "class": "stub",
+  "basis": "readiness check only \u2014 reports \"skill ready \u2014 keys configured\" without performing the named action"
+ },
+ {
+  "file": "opencode_test_skill.js",
+  "class": "real",
+  "basis": "test skill \u2014 echoes its input back (its stated function)"
+ },
+ {
+  "file": "openhue.js",
+  "class": "stub",
+  "basis": "readiness check only \u2014 reports \"skill ready \u2014 keys configured\" without performing the named action"
+ },
+ {
+  "file": "pdf.js",
+  "class": "real",
+  "basis": "LLM-backed: awaits brain.think and returns its output; the no-brain `Completed` fallback is neutralized by the Phase 4 dispatcher honesty guard"
+ },
+ {
+  "file": "performance_optimize.js",
+  "class": "real",
+  "basis": "LLM-backed: awaits brain.think and returns its output; the no-brain `Completed` fallback is neutralized by the Phase 4 dispatcher honesty guard"
+ },
+ {
+  "file": "plan_anime_video.js",
+  "class": "real",
+  "basis": "builds a real Plan (planning_engine Plan/PlanStep) with steps derived from the supplied topic/duration"
+ },
+ {
+  "file": "planning_with_files.js",
+  "class": "real",
+  "basis": "LLM-backed: awaits brain.think and returns its output; the no-brain `Completed` fallback is neutralized by the Phase 4 dispatcher honesty guard"
+ },
+ {
+  "file": "playwright_automate.js",
+  "class": "real",
+  "basis": "performs real work (fs)"
+ },
+ {
+  "file": "plt_dashboard.js",
+  "class": "real",
+  "basis": "generates a PLT dashboard HTML document from the supplied values"
+ },
+ {
+  "file": "plt_economy.js",
+  "class": "real",
+  "basis": "performs real work (fs, network call)"
+ },
+ {
+  "file": "plt_visualize.js",
+  "class": "real",
+  "basis": "generates PLT SVG/HTML visualization from the supplied values"
+ },
+ {
+  "file": "pm_skills.js",
+  "class": "real",
+  "basis": "LLM-backed: awaits brain.think and returns its output; the no-brain `Completed` fallback is neutralized by the Phase 4 dispatcher honesty guard"
+ },
+ {
+  "file": "pptx.js",
+  "class": "real",
+  "basis": "LLM-backed: awaits brain.think and returns its output; the no-brain `Completed` fallback is neutralized by the Phase 4 dispatcher honesty guard"
+ },
+ {
+  "file": "profit_bible.js",
+  "class": "real",
+  "basis": "performs real work (fs)"
+ },
+ {
+  "file": "python_package_recommender.js",
+  "class": "real",
+  "basis": "LLM-backed: awaits brain.think and returns its output; the no-brain `Completed` fallback is neutralized by the Phase 4 dispatcher honesty guard"
+ },
+ {
+  "file": "react_component.js",
+  "class": "real",
+  "basis": "performs real work (fs)"
+ },
+ {
+  "file": "refactor_code.js",
+  "class": "real",
+  "basis": "computes a refactoring of the supplied code"
+ },
+ {
+  "file": "reflection.js",
+  "class": "real",
+  "basis": "LLM-backed: awaits brain.think and returns its output; the no-brain `Completed` fallback is neutralized by the Phase 4 dispatcher honesty guard"
+ },
+ {
+  "file": "remote_desktop_controller.js",
+  "class": "real",
+  "basis": "LLM-backed: awaits brain.think and returns its output"
+ },
+ {
+  "file": "reverse_proxy_configurator.js",
+  "class": "real",
+  "basis": "LLM-backed: awaits brain.think and returns its output; the no-brain `Completed` fallback is neutralized by the Phase 4 dispatcher honesty guard"
+ },
+ {
+  "file": "robotics.js",
+  "class": "real",
+  "basis": "LLM-backed: awaits brain.think and returns its output; the no-brain `Completed` fallback is neutralized by the Phase 4 dispatcher honesty guard"
+ },
+ {
+  "file": "sacred_mechanics.js",
+  "class": "real",
+  "basis": "LLM-backed: awaits brain.think and returns its output; the no-brain `Completed` fallback is neutralized by the Phase 4 dispatcher honesty guard"
+ },
+ {
+  "file": "sage_skills.js",
+  "class": "real",
+  "basis": "LLM-backed: awaits brain.think and returns its output"
+ },
+ {
+  "file": "sandbox_eval.js",
+  "class": "real",
+  "basis": "performs real work (child_process, fs, process execution)"
+ },
+ {
+  "file": "scene_graph_manager.js",
+  "class": "stub",
+  "basis": "scene-graph class library \u2014 no dispatcher-callable skill export"
+ },
+ {
+  "file": "scheduling.js",
+  "class": "real",
+  "basis": "generates schedules/reminders from supplied task input"
+ },
+ {
+  "file": "scientific_research.js",
+  "class": "real",
+  "basis": "LLM-backed: awaits brain.think and returns its output; the no-brain `Completed` fallback is neutralized by the Phase 4 dispatcher honesty guard"
+ },
+ {
+  "file": "scrapling_cross_encoder_crawler.js",
+  "class": "fake-execute",
+  "basis": "WAS fake-execute: returned `Executed ... skill with:` success string without acting \u2014 REPAIRED in Phase 4 to explicit not_implemented"
+ },
+ {
+  "file": "security_audit.js",
+  "class": "real",
+  "basis": "performs real work (process execution)"
+ },
+ {
+  "file": "self_improve.js",
+  "class": "real",
+  "basis": "LLM-backed: awaits brain.think and returns its output; the no-brain `Completed` fallback is neutralized by the Phase 4 dispatcher honesty guard"
+ },
+ {
+  "file": "self_improve_prompts.js",
+  "class": "real",
+  "basis": "returns curated self-improvement prompt sets selected by focus/level \u2014 that selection is its function"
+ },
+ {
+  "file": "self_replicate.js",
+  "class": "real",
+  "basis": "LLM-backed: awaits brain.think and returns its output; the no-brain `Completed` fallback is neutralized by the Phase 4 dispatcher honesty guard"
+ },
+ {
+  "file": "semantic_skill_discovery.js",
+  "class": "fake-execute",
+  "basis": "WAS fake-execute: returned `Executed ... skill with:` success string without acting \u2014 REPAIRED in Phase 4 to explicit not_implemented"
+ },
+ {
+  "file": "shadcn_component.js",
+  "class": "real",
+  "basis": "performs real work (fs)"
+ },
+ {
+  "file": "shell_exec.js",
+  "class": "real",
+  "basis": "real shell via SecureShellSandbox; its run export IS the implementation \u2014 executed in harness"
+ },
+ {
+  "file": "skill_creator.js",
+  "class": "real",
+  "basis": "SkillCreator.create() writes a real file (template repaired in Phase 4)"
+ },
+ {
+  "file": "skill_market_analysis.js",
+  "class": "fake-execute",
+  "basis": "WAS fake-execute: returned hardcoded PLT values (0.85/0.40/0.30) and a canned summary for any target \u2014 REPAIRED in Phase 4 to explicit not_implemented"
+ },
+ {
+  "file": "skill_status_report.js",
+  "class": "stub",
+  "basis": "explicit not-implemented / scaffold return"
+ },
+ {
+  "file": "skill_tester.js",
+  "class": "stub",
+  "basis": "explicit not-implemented / scaffold return"
+ },
+ {
+  "file": "songsee.js",
+  "class": "stub",
+  "basis": "readiness check only \u2014 reports \"skill ready \u2014 keys configured\" without performing the named action"
+ },
+ {
+  "file": "sonoscli.js",
+  "class": "stub",
+  "basis": "readiness check only \u2014 reports \"skill ready \u2014 keys configured\" without performing the named action"
+ },
+ {
+  "file": "soul_evolution.js",
+  "class": "real",
+  "basis": "performs real work (fs)"
+ },
+ {
+  "file": "spec_driven_develop.js",
+  "class": "real",
+  "basis": "generates acceptance criteria + test cases from the supplied spec"
+ },
+ {
+  "file": "sports_data.js",
+  "class": "stub",
+  "basis": "readiness check only \u2014 reports \"skill ready \u2014 keys configured\" without performing the named action"
+ },
+ {
+  "file": "spotify-player.js",
+  "class": "stub",
+  "basis": "readiness check only \u2014 reports \"skill ready \u2014 keys configured\" without performing the named action"
+ },
+ {
+  "file": "structured_response_generator.js",
+  "class": "fake-execute",
+  "basis": "WAS fake-execute: returned `Executed ... skill with:` success string without acting \u2014 REPAIRED in Phase 4 to explicit not_implemented"
+ },
+ {
+  "file": "summarize.js",
+  "class": "real",
+  "basis": "extractive summarization computed from the supplied text"
+ },
+ {
+  "file": "task_planning.js",
+  "class": "real",
+  "basis": "generates a task plan from the supplied goal/constraints"
+ },
+ {
+  "file": "text_summarization.js",
+  "class": "real",
+  "basis": "LLM-backed: awaits brain.think and returns its output; the no-brain `Completed` fallback is neutralized by the Phase 4 dispatcher honesty guard"
+ },
+ {
+  "file": "theme_factory.js",
+  "class": "real",
+  "basis": "LLM-backed: awaits brain.think and returns its output; the no-brain `Completed` fallback is neutralized by the Phase 4 dispatcher honesty guard"
+ },
+ {
+  "file": "things-mac.js",
+  "class": "stub",
+  "basis": "returns a platform/name message only; no action performed"
+ },
+ {
+  "file": "threejs_orbital_shader.js",
+  "class": "real",
+  "basis": "generates Three.js shader code from supplied parameters"
+ },
+ {
+  "file": "threejs_postprocess_stack.js",
+  "class": "real",
+  "basis": "generates a post-processing stack config/code from supplied effects"
+ },
+ {
+  "file": "threejs_shader_particle.js",
+  "class": "real",
+  "basis": "generates particle shader code from supplied parameters"
+ },
+ {
+  "file": "tmux.js",
+  "class": "stub",
+  "basis": "returns a platform/name message only; no action performed"
+ },
+ {
+  "file": "trello.js",
+  "class": "stub",
+  "basis": "readiness check only \u2014 reports \"skill ready \u2014 keys configured\" without performing the named action"
+ },
+ {
+  "file": "ui_skills_2025.js",
+  "class": "fake-execute",
+  "basis": "WAS fake-execute: returned `Executed ... skill with:` success string without acting \u2014 REPAIRED in Phase 4 to explicit not_implemented"
+ },
+ {
+  "file": "ui_theme_palette.js",
+  "class": "real",
+  "basis": "computes a color palette from the supplied base color"
+ },
+ {
+  "file": "ui_ux_mastery.js",
+  "class": "real",
+  "basis": "returns the bundled design-system constants it exists to provide"
+ },
+ {
+  "file": "unified_project_builder.js",
+  "class": "stub",
+  "basis": "explicit not-implemented / scaffold return"
+ },
+ {
+  "file": "video-frames.js",
+  "class": "real",
+  "basis": "LLM-backed: awaits brain.think and returns its output; the no-brain `Completed` fallback is neutralized by the Phase 4 dispatcher honesty guard"
+ },
+ {
+  "file": "voice_call.js",
+  "class": "stub",
+  "basis": "readiness check only \u2014 reports \"skill ready \u2014 keys configured\" without performing the named action"
+ },
+ {
+  "file": "wacli.js",
+  "class": "stub",
+  "basis": "readiness check only \u2014 reports \"skill ready \u2014 keys configured\" without performing the named action"
+ },
+ {
+  "file": "weather.js",
+  "class": "real",
+  "basis": "performs real work (network call)"
+ },
+ {
+  "file": "web_artifacts_builder.js",
+  "class": "real",
+  "basis": "builds/previews/deploys web artifacts via real local builder functions"
+ },
+ {
+  "file": "web_search.js",
+  "class": "real",
+  "basis": "real provider call via brain/web_search_provider.js \u2014 executed in harness"
+ },
+ {
+  "file": "webapp_testing.js",
+  "class": "real",
+  "basis": "performs real work (fs)"
+ },
+ {
+  "file": "world_engine.js",
+  "class": "real",
+  "basis": "LLM-backed: awaits brain.think and returns its output"
+ },
+ {
+  "file": "xlsx.js",
+  "class": "real",
+  "basis": "LLM-backed: awaits brain.think and returns its output; the no-brain `Completed` fallback is neutralized by the Phase 4 dispatcher honesty guard"
+ },
+ {
+  "file": "xurl.js",
+  "class": "real",
+  "basis": "LLM-backed: awaits brain.think and returns its output; the no-brain `Completed` fallback is neutralized by the Phase 4 dispatcher honesty guard"
+ },
+ {
+  "file": "_quarantine/auto_1783909181960.js",
+  "class": "stub",
+  "basis": "quarantined \u2014 not loaded by any runtime loader"
+ },
+ {
+  "file": "_quarantine/auto_1783982660398.js",
+  "class": "stub",
+  "basis": "quarantined \u2014 not loaded by any runtime loader"
+ },
+ {
+  "file": "_quarantine/auto_1783986481829.js",
+  "class": "stub",
+  "basis": "quarantined \u2014 not loaded by any runtime loader"
+ },
+ {
+  "file": "_quarantine/auto_1783986754855.js",
+  "class": "stub",
+  "basis": "quarantined \u2014 not loaded by any runtime loader"
+ },
+ {
+  "file": "_quarantine/auto_1783988612336.js",
+  "class": "stub",
+  "basis": "quarantined \u2014 not loaded by any runtime loader"
+ },
+ {
+  "file": "_quarantine/auto_1784020388965.js",
+  "class": "stub",
+  "basis": "quarantined \u2014 not loaded by any runtime loader"
+ },
+ {
+  "file": "_quarantine/auto_1784027588314.js",
+  "class": "stub",
+  "basis": "quarantined \u2014 not loaded by any runtime loader"
+ },
+ {
+  "file": "_quarantine/auto_1784031186341.js",
+  "class": "stub",
+  "basis": "quarantined \u2014 not loaded by any runtime loader"
+ },
+ {
+  "file": "_quarantine/auto_1785865499448.js",
+  "class": "stub",
+  "basis": "quarantined \u2014 not loaded by any runtime loader"
+ },
+ {
+  "file": "_quarantine/auto_1785906525628.js",
+  "class": "stub",
+  "basis": "quarantined \u2014 not loaded by any runtime loader"
+ },
+ {
+  "file": "_quarantine/auto_1785907449010.js",
+  "class": "stub",
+  "basis": "quarantined \u2014 not loaded by any runtime loader"
+ },
+ {
+  "file": "_quarantine/auto_1785964311209.js",
+  "class": "stub",
+  "basis": "quarantined \u2014 not loaded by any runtime loader"
+ },
+ {
+  "file": "_quarantine/auto_1785964753574.js",
+  "class": "stub",
+  "basis": "quarantined \u2014 not loaded by any runtime loader"
+ },
+ {
+  "file": "_quarantine/auto_1785983259591.js",
+  "class": "stub",
+  "basis": "quarantined \u2014 not loaded by any runtime loader"
+ },
+ {
+  "file": "_quarantine/auto_1786043869350.js",
+  "class": "stub",
+  "basis": "quarantined \u2014 not loaded by any runtime loader"
+ },
+ {
+  "file": "_quarantine/auto_1786049228587.js",
+  "class": "stub",
+  "basis": "quarantined \u2014 not loaded by any runtime loader"
+ },
+ {
+  "file": "_quarantine/auto_1786156698741.js",
+  "class": "stub",
+  "basis": "quarantined \u2014 not loaded by any runtime loader"
+ },
+ {
+  "file": "_quarantine/auto_1786217034388.js",
+  "class": "stub",
+  "basis": "quarantined \u2014 not loaded by any runtime loader"
+ },
+ {
+  "file": "_quarantine/auto_1786233151410.js",
+  "class": "stub",
+  "basis": "quarantined \u2014 not loaded by any runtime loader"
+ },
+ {
+  "file": "_quarantine/auto_1786268114801.js",
+  "class": "stub",
+  "basis": "quarantined \u2014 not loaded by any runtime loader"
+ },
+ {
+  "file": "_quarantine/auto_1786278921033.js",
+  "class": "stub",
+  "basis": "quarantined \u2014 not loaded by any runtime loader"
+ },
+ {
+  "file": "_quarantine/shopify_publish.js",
+  "class": "stub",
+  "basis": "quarantined \u2014 not loaded by any runtime loader"
+ },
+ {
+  "file": "_quarantine/social_post.js",
+  "class": "stub",
+  "basis": "quarantined \u2014 not loaded by any runtime loader"
+ },
+ {
+  "file": "montage_anime/pipeline_defs/anime-video.yaml",
+  "class": "stub",
+  "basis": "support/non-JS file \u2014 not a loadable skill"
+ }
+]

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PLT Emergence Particle Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>body { margin: 0; overflow: hidden; background: #0a0a10; color: #00ffcc; font-family: monospace; } #canvas-container { width: 100vw; height: 100vh; } #hud { position: absolute; top: 20px; left: 20px; z-index: 10; background: rgba(0,0,0,0.8); padding: 15px; border: 1px solid #00ffcc; border-radius: 8px; }</style>
+</head>
+<body>
+<div id="hud"><h2>Sovereign PLT Emergence HUD</h2><div id="metrics">Loading...</div></div>
+<div id="canvas-container"></div>
+<script>
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+const particleCount = 5000;
+const geometry = new THREE.BufferGeometry();
+const positions = new Float32Array(particleCount * 3);
+const colors = new Float32Array(particleCount * 3);
+
+for (let i = 0; i < particleCount * 3; i += 3) {
+  positions[i] = (Math.random() - 0.5) * 50;
+  positions[i+1] = (Math.random() - 0.5) * 50;
+  positions[i+2] = (Math.random() - 0.5) * 50;
+  colors[i] = 0.0;
+  colors[i+1] = Math.random();
+  colors[i+2] = 0.8;
+}
+geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+const material = new THREE.PointsMaterial({ size: 0.15, vertexColors: true, transparent: true, opacity: 0.8 });
+const particles = new THREE.Points(geometry, material);
+scene.add(particles);
+camera.position.z = 30;
+
+function animate(time) {
+  requestAnimationFrame(animate);
+  particles.rotation.x = time * 0.0003;
+  particles.rotation.y = time * 0.0005;
+  const score = (Math.sin(time * 0.002) + 1) * 45 + 10;
+  document.getElementById('metrics').innerHTML = `PLT Score: ${score.toFixed(2)} | Valence: 0.85 | Arousal: 0.42 | Emergence State: STABLE`;
+  renderer.render(scene, camera);
+}
+animate(0);
+</script>
+</body>
+</html>

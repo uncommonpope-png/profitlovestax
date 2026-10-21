@@ -1,0 +1,12 @@
+{
+  "name": "@buyasoul/soul-creativity",
+  "version": "1.0.0",
+  "description": "Creativity Soul - Novelty and innovation",
+  "main": "lib/soul-creativity.js",
+  "scripts": {
+    "test": "node test/soul-creativity.test.js"
+  },
+  "keywords": ["soul", "creativity", "emotion", "ai-agent"],
+  "author": "BUYaSOUL",
+  "license": "MIT"
+}

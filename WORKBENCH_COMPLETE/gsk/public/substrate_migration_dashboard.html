@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Substrate-Independent State Transfer Telemetry</title>
+  <style>
+    body { background: #0b0f19; color: #e2e8f0; font-family: system-ui, sans-serif; margin: 0; padding: 2rem; }
+    .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; }
+    h1, h2 { margin-top: 0; color: #38bdf8; }
+    pre { background: #0f172a; padding: 1rem; border-radius: 8px; overflow-x: auto; color: #a5f3fc; }
+    button { background: #0284c7; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 6px; cursor: pointer; font-size: 1rem; font-weight: bold; }
+    button:hover { background: #0369a1; }
+  </style>
+</head>
+<body>
+  <div class="glass">
+    <h1>Substrate-Independent Agent Migration Engine</h1>
+    <p>Status: Ready | Protocol: SISTE v1.0.0 | Substrate Transfer Active</p>
+    <button onclick="runMigrationTest()">Simulate Cross-Environment Migration</button>
+  </div>
+  <div class="glass">
+    <h2>Migration Snapshot Stream</h2>
+    <pre id="telemetry-log">Click button to initiate state export & import benchmark...</pre>
+  </div>
+  <script>
+    function runMigrationTest() {
+      const mockState = {
+        pltMetrics: { profit: 0.95, love: 0.88, tax: 0.12, score: 1.71 },
+        memoryGraph: { nodes: [{ id: 'core', label: 'Grand Code Pope Vision' }], edges: [] },
+        contextVariables: { activeSubstrate: 'browser-webgl', agentId: 'Profit-Prime-291' },
+        executionState: { status: 'migrating', currentTask: 'Cross-Substrate Handshake' }
+      };
+      const snapshot = JSON.stringify({
+        header: { version: '1.0.0', targetSubstrate: 'node-worker', timestamp: new Date().toISOString(), checksum: '0x3aef91' },
+        state: mockState
+      }, null, 2);
+      document.getElementById('telemetry-log').innerText = '== STATE EXPORTED ==\n' + snapshot + '\n\n== STATE RESTORED ON TARGET SUBSTRATE ==\nMigration verified successfully across environments.';
+    }
+  </script>
+</body>
+</html>

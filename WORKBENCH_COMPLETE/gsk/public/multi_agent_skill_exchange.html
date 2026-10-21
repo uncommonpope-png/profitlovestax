@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Multi-Agent Ecosystem & Skill Exchange Telemetry</title>
+<style>
+  :root { --bg: #090d16; --card: #111827; --accent: #10b981; --border: #1f2937; --text: #f3f4f6; }
+  body { background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 24px; }
+  .grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+  h1 { font-size: 1.5rem; margin-top: 0; color: var(--accent); }
+  canvas { width: 100%; height: 350px; background: #030712; border-radius: 6px; }
+</style>
+</head>
+<body>
+  <h1>Multi-Agent Ecosystem & Skill Exchange Telemetry</h1>
+  <div class="grid">
+    <div class="card">
+      <h3>Agent Connectivity & Telemetry Topology</h3>
+      <canvas id="agentCanvas"></canvas>
+    </div>
+    <div class="card">
+      <h3>Skill Exchange Ledger</h3>
+      <div id="ledgerLog"></div>
+    </div>
+  </div>
+  <script>
+    const agents = [
+      { id: 'Agent-Prime', role: 'Orchestrator', plt: 0.94, x: 100, y: 150 },
+      { id: 'Love-Weaver', role: 'Synthesis', plt: 0.89, x: 300, y: 80 },
+      { id: 'Tax-Collector', role: 'Governance', plt: 0.91, x: 300, y: 220 },
+      { id: 'Harvester', role: 'Optimization', plt: 0.85, x: 500, y: 150 }
+    ];
+    const canvas = document.getElementById('agentCanvas');
+    const ctx = canvas ? canvas.getContext('2d') : null;
+    function drawTopology() {
+      if (!ctx || !canvas) return;
+      canvas.width = canvas.clientWidth;
+      canvas.height = canvas.clientHeight;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      agents.forEach(a => {
+        ctx.beginPath();
+        ctx.arc(a.x, a.y, 24, 0, Math.PI * 2);
+        ctx.fillStyle = '#10b981';
+        ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '12px sans-serif';
+        ctx.fillText(a.id, a.x - 30, a.y + 40);
+      });
+    }
+    window.addEventListener('load', drawTopology);
+  </script>
+</body>
+</html>

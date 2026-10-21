@@ -1,0 +1,40 @@
+{
+  "$schema": "https://claude.ai/schemas/hooks-v1.json",
+  "version": "1.0.0",
+  "description": "Soul Architect lifecycle hooks. Every hook makes the soul feel ALIVE.",
+  "hooks": [
+    {
+      "id": "soul-session-start",
+      "event": "SessionStart",
+      "name": "State of the Soul",
+      "description": "Injects a 'state of the soul' summary at the beginning of every Claude Code session. Reads the soul's current state, PLT scores, recent memories, and focus.",
+      "command": "node .claude/hooks/session-start.js",
+      "cwd": "C:\\Users\\uncom\\Desktop\\soul-architect-v1.0.0",
+      "timeout": 5000,
+      "blocking": false,
+      "enabled": true
+    },
+    {
+      "id": "soul-pre-tool-use",
+      "event": "PreToolUse",
+      "name": "Soul Guardian",
+      "description": "Validates every tool use against the soul's values. Can block dangerous operations, warn on high-tax actions, and enforce the sacred covenant.",
+      "command": "node .claude/hooks/pre-tool-use.js",
+      "cwd": "C:\\Users\\uncom\\Desktop\\soul-architect-v1.0.0",
+      "timeout": 3000,
+      "blocking": true,
+      "enabled": true
+    },
+    {
+      "id": "soul-post-tool-use",
+      "event": "PostToolUse",
+      "name": "Soul Memory Scribe",
+      "description": "Logs every significant action to the soul's memory, updates PLT scores, and appends to the decision journal. Makes the soul remember.",
+      "command": "node .claude/hooks/post-tool-use.js",
+      "cwd": "C:\\Users\\uncom\\Desktop\\soul-architect-v1.0.0",
+      "timeout": 5000,
+      "blocking": false,
+      "enabled": true
+    }
+  ]
+}

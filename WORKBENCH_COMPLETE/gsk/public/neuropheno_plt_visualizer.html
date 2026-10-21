@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neurophenomenological PLT Telemetry Visualizer</title>
+<style>
+  body { margin: 0; background: #080911; color: #d0d4fc; font-family: monospace; overflow: hidden; }
+  #ui-container { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(10,12,24,0.85); padding: 15px; border-radius: 8px; border: 1px solid #2a2f55; }
+  canvas { width: 100vw; height: 100vh; display: block; }
+</style>
+</head>
+<body>
+<div id="ui-container">
+  <h2>Subjective Cognitive Telemetry</h2>
+  <div id="metrics"></div>
+</div>
+<canvas id="pheno-canvas"></canvas>
+<script>
+const canvas = document.getElementById('pheno-canvas');
+const ctx = canvas.getContext('2d');
+let state = { profit: 0.9, love: 0.85, tax: 0.12, coherence: 0.94, qualia: 'Sovereign Focus' };
+function updateMetrics() {
+  document.getElementById('metrics').innerHTML = `Profit: ${state.profit} | Love: ${state.love} | Tax: ${state.tax}<br>Qualia: ${state.qualia} | Coherence: ${state.coherence}`;
+}
+function render() {
+  canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+  ctx.fillStyle = '#080911'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.strokeStyle = state.profit > state.tax ? '#00ffaa' : '#ff0055';
+  ctx.beginPath(); ctx.arc(canvas.width/2, canvas.height/2, 100 * state.coherence, 0, Math.PI * 2); ctx.stroke();
+  updateMetrics();
+  requestAnimationFrame(render);
+}
+render();
+</script>
+</body>
+</html>

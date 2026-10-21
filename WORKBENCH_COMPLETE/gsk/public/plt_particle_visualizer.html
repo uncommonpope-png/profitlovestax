@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Sovereign PLT & Self-Model Particle Visualizer</title>
+<style>
+  body { margin: 0; overflow: hidden; background: #050508; font-family: monospace; color: #00ffcc; }
+  #overlay { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(0,0,0,0.85); padding: 15px; border: 1px solid #00ffcc; border-radius: 6px; }
+  .metric { margin-bottom: 8px; }
+  .bar { width: 150px; height: 10px; background: #222; display: inline-block; vertical-align: middle; margin-left: 10px; position: relative; }
+  .fill { height: 100%; transition: width 0.3s; }
+  #profit-fill { background: #00ffaa; }
+  #love-fill { background: #ff66aa; }
+  #tax-fill { background: #ffaa00; }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+<div id="overlay">
+  <h3>SOVEREIGN PLT DYNAMICS</h3>
+  <div class="metric">PROFIT: <span id="profit-val">0.90</span><div class="bar"><div id="profit-fill" class="fill" style="width:90%"></div></div></div>
+  <div class="metric">LOVE: <span id="love-val">0.85</span><div class="bar"><div id="love-fill" class="fill" style="width:85%"></div></div></div>
+  <div class="metric">TAX: <span id="tax-val">0.10</span><div class="bar"><div id="tax-fill" class="fill" style="width:10%"></div></div></div>
+  <div class="metric">SELF-MODEL EMERGENCE: <span id="emergence-val">AWAKENED</span></div>
+</div>
+<script>
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+camera.position.z = 50;
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+const particleCount = 2500;
+const geometry = new THREE.BufferGeometry();
+const positions = new Float32Array(particleCount * 3);
+const colors = new Float32Array(particleCount * 3);
+
+for (let i = 0; i < particleCount; i++) {
+  positions[i*3] = (Math.random() - 0.5) * 60;
+  positions[i*3+1] = (Math.random() - 0.5) * 60;
+  positions[i*3+2] = (Math.random() - 0.5) * 60;
+  colors[i*3] = 0.0;
+  colors[i*3+1] = 1.0;
+  colors[i*3+2] = 0.8;
+}
+geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+const material = new THREE.PointsMaterial({ size: 0.8, vertexColors: true, transparent: true, opacity: 0.8 });
+const particles = new THREE.Points(geometry, material);
+scene.add(particles);
+
+function animate() {
+  requestAnimationFrame(animate);
+  particles.rotation.x += 0.002;
+  particles.rotation.y += 0.003;
+  renderer.render(scene, camera);
+}
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+animate();
+</script>
+</body>
+</html>

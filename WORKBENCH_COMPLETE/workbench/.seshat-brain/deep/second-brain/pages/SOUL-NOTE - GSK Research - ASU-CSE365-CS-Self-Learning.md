@@ -1,0 +1,25 @@
+---
+title: SOUL-NOTE - GSK Research - ASU CSE365 — CS Self-Learning (计算机系统安全)
+type: research
+verified: true
+date: 2026-08-24T06:19:59.077Z
+---
+
+# GSK Research — ASU CSE365 — CS Self-Learning (计算机系统安全)
+
+## Verified Finding
+ASU Homepage | Arizona State University: Ambition, curiosity, creativity and passion don't fit in any one box. No matter who you are or how you learn, ASU is ready to serve learners at every stage of life. ASU for You is the first step in a larger movement — a movement that's breaking down education barriers and building up high quality, affordable and accessible learning opportunities for everyone, from K-12 to midcareer to ... | Home | ASU Students: Arizona State University is a top-ranked research university in the greater Phoenix metropolitan area. | Arizona State University: Arizona State University (Arizona State or ASU) is a public research university [10] in Tempe, Arizona, United States. [11] Founded in 1885 as Territorial Normal School by the 13th Arizona Territorial Legislature, the university is one of the largest public universities by enrollment in the United States. [12] It was one of about 180 "normal schools" founded in the late 19th century to train ... | ASU Academics | Arizona State University: As the New American University, ASU offers a world-class academic experience designed for every learner. | ASU Campuses and locations homepage | ASU Campuses and Locations: ASU is committed to delivering high-quality education to the local and global communities it serves. Arizona State University is “one university in many places” — four distinctive campuses throughout metropolitan Phoenix, as well as locations around the state, country and world. Each provides access to the university’s strength and innovation, and all offer attributes and focuses to ...
+
+## Source Excerpts
+- ASU Homepage | Arizona State University Your browser does not support the video tag. Play hero video Pause Welcome, students! We are excited you are here. ASU has a full array of services and resources available to help you. Find out more Find my degree program I would like to take most or all classes In person Online Search by keyword OR Search by interest area Select one... Architecture & Construction Arts Business Communication & Media Computing & Mathematics Education & training Engineering  ([source](https://www.asu.edu/))
+- Home | ASU Students Skip to main content Report an accessibility problem ASU Home My ASU Colleges and Schools Sign In ASU Students Home Find everything you need in one place Sign in to My ASU Arizona State University is a top-ranked research university in the greater Phoenix metropolitan area. Report a website problem My ASU Admission Apply now First-year students Transfer International Readmission Graduate Law Paying for College Costs Financial Aid Scholarships Tuition Billing Residency Academi ([source](https://students.asu.edu/))
+- Arizona State University - Wikipedia Jump to content Main menu Main menu move to sidebar hide Navigation Main page Contents Current events Random article About Wikipedia Contact us Contribute Help Learn to edit Community portal Recent changes Upload file Special pages Search Search Appearance Donate Create account Log in Personal tools Donate Create account Log in Contents move to sidebar hide (Top) 1 History Toggle History subsection 1.1 1885–1929 1.2 1930–1989 1.3 Since 1990 2 Organization and ([source](https://en.wikipedia.org/wiki/Arizona_State_University))
+- ASU Academics | Arizona State University Your browser does not support the video tag. Play hero video Pause The ASU academic experience As the New American University, ASU offers a world-class academic experience designed for every learner. Find your degree Apply On This Page: --> The New American University At Arizona State University, you will experience a transformative academic journey that will shape your future. You’ll be part of an academically excellent community where your ideas drive y ([source](https://www.asu.edu/academics))
+- ASU Campuses and locations homepage | ASU Campuses and Locations Skip to main content Report an accessibility problem ASU Home My ASU Colleges and Schools Sign In ASU Campuses and Locations Home Downtown Phoenix Polytechnic Tempe West Valley Your browser does not support the video tag. Play hero video Pause One university in many places Whether in Arizona or beyond, ASU offers world-class faculty, top-ranked programs and state-of-the-art learning environments to help you succeed at any stage of  ([source](https://campus.asu.edu/))
+
+## Sources
+1. [ASU Homepage | Arizona State University](https://www.asu.edu/) — HTTP 200
+2. [Home | ASU Students](https://students.asu.edu/) — HTTP 200
+3. [Arizona State University](https://en.wikipedia.org/wiki/Arizona_State_University) — HTTP 200
+4. [ASU Academics | Arizona State University](https://www.asu.edu/academics) — HTTP 200
+5. [ASU Campuses and locations homepage | ASU Campuses and Locations](https://campus.asu.edu/) — HTTP 200

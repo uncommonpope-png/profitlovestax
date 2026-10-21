@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PLT Telemetry & Agent State Visualizer</title>
+<style>body{background:#0a0c10;color:#e0e6ed;font-family:system-ui,sans-serif;margin:0;padding:20px;}.grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;}.card{background:rgba(20,24,33,0.85);border:1px solid #1e293b;border-radius:12px;padding:20px;backdrop-filter:blur(10px);box-shadow:0 8px 32px rgba(0,0,0,0.5);}</style>
+</head>
+<body>
+<div id="app">
+<h1>PLT Live Telemetry & Agent State Visualizer</h1>
+<div class="grid">
+<div class="card"><h2>Net PLT Metrics</h2><div id="pltMetrics"></div></div>
+<div class="card"><h2>Agent Inspection Tabs</h2><div id="agentTabs"></div></div>
+</div>
+</div>
+<script>
+const telemetryState = {
+  plt: { profit: 0.98, love: 0.96, tax: 0.12, trueValue: 1.82 },
+  agents: [
+    { id: 'ProfitPrime', role: 'Telemetry Leader', status: 'ACTIVE', latencyMs: 14, score: 1.10 },
+    { id: 'LoveKeeper', role: 'Cohesion Sync', status: 'SYNCED', latencyMs: 8, score: 0.95 },
+    { id: 'TaxGuard', role: 'Friction Reducer', status: 'OPTIMIZING', latencyMs: 22, score: 0.12 }
+  ]
+};
+function renderTelemetry() {
+  const p = telemetryState.plt;
+  document.getElementById('pltMetrics').innerHTML = `<p>Profit: <strong>${p.profit}</strong> | Love: <strong>${p.love}</strong> | Tax: <strong>${p.tax}</strong></p><h3>True Value: <span style="color:#38bdf8;">${p.trueValue}</span></h3>`;
+  document.getElementById('agentTabs').innerHTML = telemetryState.agents.map(a => `<div style="padding:12px;margin-bottom:8px;background:#1e293b;border-radius:6px;"><strong>${a.id}</strong> (${a.role}) - <span style="color:#4ade80;">${a.status}</span> | Latency: ${a.latencyMs}ms</div>`).join('');
+}
+renderTelemetry();
+</script>
+</body>
+</html>

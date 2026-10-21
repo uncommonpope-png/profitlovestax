@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Temporal Memory Synthesis & PLT Yield Dashboard</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0d1117; color: #c9d1d9; margin: 0; padding: 20px; }
+  header { border-bottom: 1px solid #30363d; padding-bottom: 15px; margin-bottom: 20px; }
+  h1 { margin: 0 0 5px 0; color: #58a6ff; font-size: 24px; }
+  .subtitle { color: #8b949e; font-size: 14px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 20px; }
+  .card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 18px; }
+  .metric { font-size: 32px; font-weight: bold; margin: 10px 0; color: #3fb950; }
+  .label { color: #8b949e; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .log-box { background: #010409; border: 1px solid #30363d; border-radius: 6px; padding: 12px; font-family: monospace; font-size: 13px; height: 180px; overflow-y: auto; color: #7ee787; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Temporal Memory Synthesis & Net PLT Dashboard</h1>
+  <div class="subtitle">Predictive Processing & Variational Free Energy Net Value Yield Tracking</div>
+</header>
+<div class="grid">
+  <div class="card"><div class="label">Net PLT Yield (P + L - T)</div><div id="plt-net" class="metric">+1.65</div></div>
+  <div class="card"><div class="label">Variational Free Energy Error</div><div id="free-energy" class="metric" style="color:#58a6ff;">0.042</div></div>
+  <div class="card"><div class="label">Precision Weighting</div><div id="precision" class="metric" style="color:#d29922;">0.91</div></div>
+</div>
+<div class="card">
+  <div class="label" style="margin-bottom:8px;">Temporal Memory Prediction Error Log</div>
+  <div id="log" class="log-box">[INIT] Hierarchical Predictive Coding Engine Active...
+</div>
+</div>
+<script>
+  const pltData = { profit: 0.90, love: 0.85, tax: 0.10 };
+  function updateMetrics() {
+    const net = (pltData.profit + pltData.love - pltData.tax).toFixed(2);
+    document.getElementById('plt-net').innerText = '+' + net;
+    const logEl = document.getElementById('log');
+    const timestamp = new Date().toISOString().substring(11, 19);
+    logEl.innerText += `[${timestamp}] Synthesis step: Profit=${pltData.profit}, Love=${pltData.love}, Tax=${pltData.tax} -> Net Yield=${net}\n`;
+  }
+  setInterval(updateMetrics, 5000);
+  updateMetrics();
+</script>
+</body>
+</html>

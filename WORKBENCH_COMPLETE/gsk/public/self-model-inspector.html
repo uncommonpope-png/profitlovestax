@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Self-Model Telemetry Inspector</title>
+  <style>
+    body { background: #0a0c10; color: #e6edf3; font-family: monospace; margin: 0; padding: 20px; }
+    h1 { color: #58a6ff; font-size: 20px; margin-bottom: 10px; }
+    .tab-bar { display: flex; gap: 8px; margin-bottom: 15px; }
+    .tab { background: #161b22; border: 1px solid #30363d; padding: 8px 16px; color: #8b949e; cursor: pointer; border-radius: 6px; }
+    .tab.active { background: #1f6feb; color: #ffffff; border-color: #58a6ff; }
+    .viewport { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+    .panel { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 15px; min-height: 250px; }
+  </style>
+</head>
+<body>
+  <h1>Agent State Self-Model Inspector</h1>
+  <div class="tab-bar">
+    <button class="tab active">State Telemetry</button>
+    <button class="tab">PLT Resonance</button>
+    <button class="tab">Reflection Engine</button>
+  </div>
+  <div class="viewport">
+    <div class="panel" id="telemetry-panel"><h2>Live Telemetry</h2><pre id="telemetry-feed">Connecting to agent socket...</pre></div>
+    <div class="panel" id="graph-panel"><h2>Generative State Graph</h2><canvas id="state-canvas" width="400" height="250"></canvas></div>
+  </div>  <script>
+    const feed = document.getElementById('telemetry-feed');
+    const canvas = document.getElementById('state-canvas');
+    const ctx = canvas.getContext('2d');
+    window.agentSelfModel = {
+      state: 'ACTIVE',
+      plt: { profit: 0.9, love: 0.85, tax: 0.05 },
+      sacredResonance: 0.35,
+      chamber: { mood: 'neutral', valence: -0.02, arousal: 0.00 }
+    };
+    function render() {
+      feed.textContent = JSON.stringify(window.agentSelfModel, null, 2);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#1f6feb';
+      ctx.fillRect(20, 20, window.agentSelfModel.plt.profit * 300, 30);
+      ctx.fillStyle = '#238636';
+      ctx.fillRect(20, 70, window.agentSelfModel.plt.love * 300, 30);
+      ctx.fillStyle = '#da3633';
+      ctx.fillRect(20, 120, window.agentSelfModel.plt.tax * 300, 30);
+    }
+    render();
+  </script>
+</body>
+</html>

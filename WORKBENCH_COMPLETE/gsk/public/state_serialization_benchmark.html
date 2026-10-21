@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Real-Time State Serialization Benchmark</title>
+<style>
+body { font-family: 'JetBrains Mono', monospace; background: #090d16; color: #38bdf8; margin: 0; padding: 20px; }
+.card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+canvas { width: 100%; height: 240px; background: #020617; border-radius: 6px; border: 1px solid #1e293b; }
+.metric { font-size: 20px; font-weight: bold; color: #f8fafc; }
+</style>
+</head>
+<body>
+<div class="card">
+<h1>⚡ High-Frequency Simulation State Serialization Benchmark</h1>
+<p>Testing tick rates (60Hz-1000Hz), payload compression (JSON, Binary ArrayBuffer, Delta Encoding), and serialization throughput.</p>
+</div>
+<div class="grid">
+<div class="card"><div>JSON Encode Latency</div><div id="jsonMs" class="metric">0.00 ms</div></div>
+<div class="card"><div>Binary ArrayBuffer Latency</div><div id="binMs" class="metric">0.00 ms</div></div>
+<div class="card"><div>Delta Serialization Latency</div><div id="deltaMs" class="metric">0.00 ms</div></div>
+</div>
+<canvas id="benchChart" width="900" height="240"></canvas>
+<script>
+// State Serialization Engine Benchmark
+const ENTITY_COUNT = 2500;
+const state = Array.from({ length: ENTITY_COUNT }, (_, i) => ({
+  id: i,
+  x: Math.random() * 1000,
+  y: Math.random() * 1000,
+  vx: (Math.random() - 0.5) * 2,
+  vy: (Math.random() - 0.5) * 2,
+  hp: 100
+}));
+let prevState = JSON.parse(JSON.stringify(state));
+
+function benchmarkJSON() {
+  const t0 = performance.now();
+  const jsonStr = JSON.stringify(state);
+  const parsed = JSON.parse(jsonStr);
+  return performance.now() - t0;
+}
+
+function benchmarkBinary() {
+  const t0 = performance.now();
+  const buf = new ArrayBuffer(ENTITY_COUNT * 20);
+  const view = new DataView(buf);
+  for (let i = 0; i < ENTITY_COUNT; i++) {
+    view.setUint16(i * 20, state[i].id, true);
+    view.setFloat32(i * 20 + 2, state[i].x, true);
+    view.setFloat32(i * 20 + 6, state[i].y, true);
+    view.setFloat32(i * 20 + 10, state[i].vx, true);
+    view.setFloat32(i * 20 + 14, state[i].vy, true);
+    view.setUint16(i * 20 + 18, state[i].hp, true);
+  }
+  return performance.now() - t0;
+}
+
+function benchmarkDelta() {
+  const t0 = performance.now();
+  const deltas = [];
+  for (let i = 0; i < ENTITY_COUNT; i++) {
+    if (Math.abs(state[i].x - prevState[i].x) > 0.01 || Math.abs(state[i].y - prevState[i].y) > 0.01) {
+      deltas.push(state[i].id, Math.round(state[i].x * 10), Math.round(state[i].y * 10));
+    }
+  }
+  const encoded = JSON.stringify(deltas);
+  return performance.now() - t0;
+}
+
+function tick() {
+  for (let i = 0; i < ENTITY_COUNT; i++) {
+    state[i].x += state[i].vx;
+    state[i].y += state[i].vy;
+  }
+  const jsonTime = benchmarkJSON();
+  const binTime = benchmarkBinary();
+  const deltaTime = benchmarkDelta();
+  document.getElementById('jsonMs').innerText = jsonTime.toFixed(3) + ' ms';
+  document.getElementById('binMs').innerText = binTime.toFixed(3) + ' ms';
+  document.getElementById('deltaMs').innerText = deltaTime.toFixed(3) + ' ms';
+  requestAnimationFrame(tick);
+}
+tick();
+</script>
+</body>
+</html>

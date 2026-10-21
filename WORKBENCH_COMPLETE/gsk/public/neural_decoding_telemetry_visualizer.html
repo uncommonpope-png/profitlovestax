@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Neural Decoding Telemetry Visualizer</title>
+<style>
+body { background: #0b0f19; color: #00ffcc; font-family: 'Segoe UI', monospace; margin: 0; padding: 20px; }
+.grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+.panel { background: #111827; border: 1px solid #1f2937; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+canvas { width: 100%; height: 300px; background: #050811; border-radius: 4px; display: block; }
+h1, h3 { color: #38bdf8; border-bottom: 1px solid #1e293b; padding-bottom: 8px; }
+.metric { display: flex; justify-content: space-between; margin: 8px 0; border-bottom: 1px dashed #374151; padding-bottom: 4px; }
+</style>
+</head>
+<body>
+<h1>GSK Neural Decoding Telemetry Visualizer</h1>
+<div class="grid">
+  <div class="panel">
+    <h3>Cognitive Brainwave Oscillations (Real-time FFT Synthesis)</h3>
+    <canvas id="waveCanvas" width="800" height="300"></canvas>
+  </div>
+  <div class="panel">
+    <h3>Agent Telemetry & PLT Metrics</h3>
+    <div id="statePanel">Initializing telemetry link...</div>
+  </div>
+</div>
+<script>
+const canvas = document.getElementById('waveCanvas');
+const ctx = canvas.getContext('2d');
+let time = 0;
+function renderWaves() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.lineWidth = 2;
+  const bands = [
+    { name: 'Delta', freq: 0.02, amp: 25, color: '#f43f5e' },
+    { name: 'Theta', freq: 0.05, amp: 20, color: '#fb923c' },
+    { name: 'Alpha', freq: 0.1, amp: 35, color: '#4ade80' },
+    { name: 'Beta', freq: 0.2, amp: 15, color: '#38bdf8' },
+    { name: 'Gamma', freq: 0.4, amp: 10, color: '#c084fc' }
+  ];
+  bands.forEach((b, i) => {
+    ctx.beginPath();
+    ctx.strokeStyle = b.color;
+    const yOffset = 50 + i * 50;
+    for (let x = 0; x < canvas.width; x++) {
+      const y = yOffset + Math.sin(x * b.freq + time * (i + 1)) * b.amp;
+      if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    ctx.fillStyle = b.color;
+    ctx.fillText(b.name, 10, yOffset - 10);
+  });
+  time += 0.03;
+  requestAnimationFrame(renderWaves);
+}
+renderWaves();
+
+setInterval(() => {
+  const delta = (Math.random() * 10 + 2).toFixed(2);
+  const theta = (Math.random() * 15 + 5).toFixed(2);
+  const alpha = (Math.random() * 40 + 20).toFixed(2);
+  const beta = (Math.random() * 30 + 10).toFixed(2);
+  const gamma = (Math.random() * 15 + 1).toFixed(2);
+  const profit = (parseFloat(alpha) * 0.4 + parseFloat(beta) * 0.6).toFixed(2);
+  const love = (parseFloat(alpha) * 0.5 + parseFloat(theta) * 0.3).toFixed(2);
+  const tax = (parseFloat(delta) * 0.8).toFixed(2);
+  const pltScore = (parseFloat(profit) + parseFloat(love) - parseFloat(tax)).toFixed(2);
+  document.getElementById('statePanel').innerHTML = `
+    <div class="metric"><span>Delta (0.5-4Hz):</span> <strong>${delta} uV</strong></div>
+    <div class="metric"><span>Theta (4-8Hz):</span> <strong>${theta} uV</strong></div>
+    <div class="metric"><span>Alpha (8-12Hz):</span> <strong>${alpha} uV</strong></div>
+    <div class="metric"><span>Beta (12-30Hz):</span> <strong>${beta} uV</strong></div>
+    <div class="metric"><span>Gamma (30-100Hz):</span> <strong>${gamma} uV</strong></div>
+    <hr style="border-color: #374151; margin: 15px 0;">
+    <div class="metric"><span>Profit Output:</span> <strong style="color: #4ade80;">${profit}</strong></div>
+    <div class="metric"><span>Love Coherence:</span> <strong style="color: #f472b6;">${love}</strong></div>
+    <div class="metric"><span>Tax Friction:</span> <strong style="color: #fb7185;">${tax}</strong></div>
+    <h3 style="color: #38bdf8; text-align: center;">PLT True Value: ${pltScore}</h3>
+  `;
+}, 1000);
+</script>
+</body>
+</html>

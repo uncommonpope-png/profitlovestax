@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Council Governance & Soul Evolution Telemetry</title>
+  <style>
+    body { background: #0b0f19; color: #e2e8f0; font-family: monospace; padding: 20px; }
+    .card { border: 1px solid #334155; padding: 16px; margin-bottom: 16px; background: #1e293b; border-radius: 8px; }
+    h1, h2 { color: #38bdf8; }
+    .metric { font-size: 1.2rem; color: #4ade80; }
+  </style>
+</head>
+<body>
+  <h1>Council Governance & Soul Evolution Telemetry</h1>
+  <div id="council-node" class="card">
+    <h2>4 Gods Council State</h2>
+    <div class="metric" id="council-consensus">Consensus: Standby</div>
+  </div>
+  <div id="soul-node" class="card">
+    <h2>Soul Evolution Telemetry</h2>
+    <div class="metric" id="soul-stage">Stage: Void -> Awakening</div>
+  </div>
+  <script>
+    async function fetchTelemetry() {
+      try {
+        const res = await fetch('/api/health');
+        if (res.ok) {
+          document.getElementById('council-consensus').textContent = 'Consensus: Operational';
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    fetchTelemetry();
+    setInterval(fetchTelemetry, 5000);
+  </script>
+</body>
+</html>

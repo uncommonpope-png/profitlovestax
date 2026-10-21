@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PLT Machine Aesthetics Telemetry Visualizer</title>
+<style>
+body { margin: 0; background: #0a0a0f; color: #00ffcc; font-family: monospace; overflow: hidden; }
+#canvas { width: 100vw; height: 100vh; display: block; }
+.hud { position: absolute; top: 20px; left: 20px; background: rgba(10, 10, 15, 0.85); border: 1px solid #00ffcc; padding: 15px; border-radius: 8px; box-shadow: 0 0 15px rgba(0, 255, 204, 0.2); }
+.metric { margin-bottom: 8px; }
+</style>
+</head>
+<body>
+<div class="hud">
+  <h2>PLT Telemetry Visualizer</h2>
+  <div class="metric">Profit Engine: <span id="profit-val">1.00</span></div>
+  <div class="metric">Love Dynamics: <span id="love-val">1.00</span></div>
+  <div class="metric">Tax Collector: <span id="tax-val">0.05</span></div>
+  <div class="metric">System State: <span id="state-val">OPTIMAL</span></div>
+</div>
+<canvas id="canvas"></canvas>
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+window.addEventListener('resize', () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; });
+
+let time = 0;
+function animate() {
+  requestAnimationFrame(animate);
+  time += 0.02;
+  ctx.fillStyle = 'rgba(10, 10, 15, 0.15)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  const cx = canvas.width / 2;
+  const cy = canvas.height / 2;
+  const r = 150 + Math.sin(time * 2) * 20;
+  
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.strokeStyle = '#00ffcc';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+}
+animate();
+</script>
+</body>
+</html>

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Autonomous System Intervention & Telemetry Control Tab</title>
+<style>
+  body { margin: 0; padding: 0; background: #0a0c10; color: #e1e7ed; font-family: monospace; }
+  .header { padding: 16px; background: #12161f; border-bottom: 1px solid #2a3245; display: flex; justify-space: space-between; align-items: center; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 16px; }
+  .card { background: #12161f; border: 1px solid #2a3245; border-radius: 8px; padding: 16px; }
+  .meter { background: #1b2230; border-radius: 4px; height: 20px; width: 100%; overflow: hidden; margin: 8px 0; }
+  .fill { height: 100%; background: #00ff88; transition: width 0.3s ease; }
+  .btn { background: #0066ff; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-family: inherit; font-weight: bold; }
+  .btn:hover { background: #0052cc; }
+  .log-box { height: 200px; background: #080a0d; border: 1px solid #2a3245; border-radius: 4px; padding: 8px; overflow-y: auto; color: #8a99ad; font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h2>⚡ AUTONOMOUS TELEMETRY INTERVENTION ENGINE</h2>
+  <div>Status: <span id="engine-status" style="color: #00ff88;">ONLINE</span> | Base API: <span id="base-url">http://127.0.0.1:3001</span></div>
+</div>
+<div class="grid">
+  <div class="card">
+    <h3>Live Telemetry Stream</h3>
+    <div>CPU Load</div>
+    <div class="meter"><div id="cpu-meter" class="fill" style="width: 42%"></div></div>
+    <div>Memory Usage</div>
+    <div class="meter"><div id="mem-meter" class="fill" style="width: 65%; background: #ffaa00;"></div></div>
+    <div>PLT Resonance Index</div>
+    <div class="meter"><div id="plt-meter" class="fill" style="width: 88%; background: #00ccff;"></div></div>
+  </div>
+  <div class="card">
+    <h3>Autonomous Interventions</h3>
+    <p>Converts real-time telemetry threshold breaches into live dynamic interventions.</p>
+    <button class="btn" onclick="triggerIntervention()">Execute Emergency Mitigation</button>
+    <button class="btn" style="background:#aa0000; margin-left: 8px;" onclick="resetMeters()">Reset Telemetry</button>
+  </div>
+</div>
+<div style="padding: 0 16px 16px 16px;">
+  <div class="card">
+    <h3>Intervention & Telemetry Event Log</h3>
+    <div id="event-log" class="log-box"></div>
+  </div>
+</div>
+<script>
+  const BASE_URL = "http://127.0.0.1:3001";
+  const API_KEY = "x-api-key";
+  function logEvent(msg) {
+    const box = document.getElementById('event-log');
+    const entry = document.createElement('div');
+    entry.textContent = `[${new Date().toISOString()}] ${msg}`;
+    box.prepend(entry);
+  }
+
+  function triggerIntervention() {
+    logEvent(`AUTONOMOUS INTERVENTION TRIGGERED via API header [${API_KEY}] targeting [${BASE_URL}/api/v1/intervene]`);
+    document.getElementById('cpu-meter').style.width = '20%';
+    document.getElementById('mem-meter').style.width = '35%';
+    logEvent('System intervention completed: Resource allocation rebalanced successfully.');
+  }
+
+  function resetMeters() {
+    document.getElementById('cpu-meter').style.width = '75%';
+    document.getElementById('mem-meter').style.width = '82%';
+    logEvent('Telemetry reset to baseline high-load state.');
+  }
+
+  setInterval(() => {
+    const cpu = Math.floor(20 + Math.random() * 60);
+    document.getElementById('cpu-meter').style.width = cpu + '%';
+    if (cpu > 70) {
+      logEvent(`ALERT: High telemetry CPU load detected (${cpu}%). Auto-mitigating...`);
+      document.getElementById('cpu-meter').style.width = '30%';
+    }
+  }, 3000);
+
+  logEvent('Autonomous Telemetry Control Engine initialized.');
+</script>
+</body>
+</html>

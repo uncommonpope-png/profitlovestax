@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Embodied Cognition Telemetry Visualizer</title>
+  <style>
+    body { margin: 0; padding: 0; background: #080a0f; color: #e2e8f0; font-family: system-ui, sans-serif; overflow: hidden; }
+    #canvas-container { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
+    #hud { position: absolute; top: 20px; left: 20px; z-index: 10; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); padding: 16px; border-radius: 8px; border: 1px solid #1e293b; width: 320px; }
+    .metric { display: flex; justify-content: space-between; margin-bottom: 8px; }
+    .label { color: #94a3b8; font-size: 0.85rem; }
+    .val { font-weight: bold; font-family: monospace; }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+  <div id="canvas-container"></div>
+  <div id="hud">
+    <h2>Embodied PLT Telemetry</h2>
+    <div class="metric"><span class="label">Physical Interaction:</span><span id="spatial-val" class="val">0.00</span></div>
+    <div class="metric"><span class="label">Profit Flow (P):</span><span id="profit-val" class="val">0.00</span></div>
+    <div class="metric"><span class="label">Love Cohesion (L):</span><span id="love-val" class="val">0.00</span></div>
+    <div class="metric"><span class="label">Tax Drag (T):</span><span id="tax-val" class="val">0.00</span></div>
+    <div class="metric"><span class="label">True Value Score:</span><span id="plt-val" class="val">0.00</span></div>
+  </div>
+  <script>
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+    const geometry = new THREE.SphereGeometry(1, 32, 32);
+    const material = new THREE.MeshBasicMaterial({ color: 0x38bdf8, wireframe: true });
+    const agentNode = new THREE.Mesh(geometry, material);
+    scene.add(agentNode);
+
+    camera.position.z = 5;
+
+    let clock = new THREE.Clock();
+    function animate() {
+      requestAnimationFrame(animate);
+      const t = clock.getElapsedTime();
+      agentNode.rotation.x = t * 0.5;
+      agentNode.rotation.y = t * 0.8;
+      
+      const profit = (Math.sin(t) + 1.2) * 0.4;
+      const love = (Math.cos(t * 0.7) + 1.2) * 0.35;
+      const tax = (Math.sin(t * 1.5) + 1.0) * 0.15;
+      const trueValue = profit + love - tax;
+
+      document.getElementById('spatial-val').innerText = (Math.sin(t * 2) * 10).toFixed(2);
+      document.getElementById('profit-val').innerText = profit.toFixed(3);
+      document.getElementById('love-val').innerText = love.toFixed(3);
+      document.getElementById('tax-val').innerText = tax.toFixed(3);
+      document.getElementById('plt-val').innerText = trueValue.toFixed(3);
+
+      renderer.render(scene, camera);
+    }
+    animate();
+  </script>
+</body>
+</html>

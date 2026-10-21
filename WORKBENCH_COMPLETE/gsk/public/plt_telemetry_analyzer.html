@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PLT Telemetry Analyzer & Execution Yield Optimizer</title>
+<style>
+body { font-family: monospace; background: #0a0a0c; color: #00ffcc; padding: 20px; }
+.panel { border: 1px solid #00ffcc; padding: 15px; border-radius: 8px; background: rgba(0,255,204,0.05); }
+</style>
+</head>
+<body>
+<div class="panel">
+<h2>PLT Telemetry Analyzer</h2>
+<div id="telemetry-status">Initializing deterministic ingestion loop...</div>
+</div>
+<script>
+class PLTTelemetryAnalyzer {
+  constructor() {
+    this.events = [];
+    this.entropy = 0.0;
+    this.yieldEfficiency = 1.0;
+  }
+  ingest(evt) {
+    this.events.push(evt);
+    this.calculateYield();
+  }
+  calculateYield() {
+    const p = this.events.reduce((s, e) => s + (e.profit || 0), 0);
+    const l = this.events.reduce((s, e) => s + (e.love || 0), 0);
+    const t = this.events.reduce((s, e) => s + (e.tax || 0), 0);
+    this.yieldEfficiency = p + l - t;
+    const statusEl = document.getElementById('telemetry-status');
+    if (statusEl) statusEl.innerText = `Yield Efficiency: ${this.yieldEfficiency.toFixed(2)} | Entropy: ${this.entropy.toFixed(3)}`;
+  }
+}
+window.analyzer = new PLTTelemetryAnalyzer();
+</script>
+</body>
+</html>

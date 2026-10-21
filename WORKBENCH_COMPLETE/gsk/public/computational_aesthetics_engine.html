@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Computational Aesthetics Engine & PLT Telemetry</title>
+<style>
+body { background: #0b0c10; color: #66fcf1; font-family: monospace; margin: 0; padding: 20px; }
+.container { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+#canvas { background: #1f2833; border: 1px solid #45a29e; border-radius: 8px; width: 100%; height: 500px; }
+.panel { background: #1f2833; padding: 15px; border-radius: 8px; border: 1px solid #45a29e; }
+</style>
+</head>
+<body>
+<h1>Computational Aesthetics Engine</h1>
+<div class="container">
+  <div><canvas id="canvas"></canvas></div>
+  <div class="panel" id="telemetry">
+    <h2>PLT Telemetry Balance</h2>
+    <div id="metrics">Harmony Score: Initializing...</div>
+  </div>
+</div>
+<script>
+// Telemetry & Aesthetics Engine scaffold
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+let pltState = { profit: 0.9, love: 0.85, tax: 0.1 };
+function calculateHarmony() {
+  return ((pltState.profit * 0.4 + pltState.love * 0.5) - pltState.tax * 0.2).toFixed(4);
+}
+function render() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#66fcf1';
+  ctx.fillText('Harmony Score: ' + calculateHarmony(), 20, 30);
+  document.getElementById('metrics').innerText = 'Profit: ' + pltState.profit + ' | Love: ' + pltState.love + ' | Tax: ' + pltState.tax + ' | Visual Harmony Score: ' + calculateHarmony();
+  requestAnimationFrame(render);
+}
+render();
+</script>
+</body>
+</html>

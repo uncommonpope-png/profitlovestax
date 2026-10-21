@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sovereign Emergence & Provider Metrics Visualizer</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  body { margin: 0; overflow: hidden; background: #050811; color: #00ffcc; font-family: monospace; }
+  #hud { position: absolute; top: 15px; left: 15px; z-index: 10; background: rgba(5,8,17,0.85); padding: 18px; border: 1px solid #00ffcc; border-radius: 6px; box-shadow: 0 0 15px rgba(0,255,204,0.2); }
+  h2 { margin: 0 0 10px 0; font-size: 16px; letter-spacing: 1px; color: #ffffff; }
+  .metric-row { margin: 4px 0; font-size: 12px; }
+  .val { color: #ff0077; font-weight: bold; }
+</style>
+</head>
+<body>
+<div id="hud">
+  <h2>SOVEREIGN EMERGENCE & TELEMETRY</h2>
+  <div id="metrics-display">Initializing provider telemetry particle matrix...</div>
+</div>
+<script>
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+camera.position.z = 60;
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+const particleCount = 3000;
+const geometry = new THREE.BufferGeometry();
+const positions = new Float32Array(particleCount * 3);
+const colors = new Float32Array(particleCount * 3);
+
+for (let i = 0; i < particleCount * 3; i += 3) {
+  positions[i] = (Math.random() - 0.5) * 120;
+  positions[i+1] = (Math.random() - 0.5) * 120;
+  positions[i+2] = (Math.random() - 0.5) * 120;
+  colors[i] = 0.0;
+  colors[i+1] = Math.random() * 0.8 + 0.2;
+  colors[i+2] = Math.random() * 0.9 + 0.1;
+}
+
+geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+const material = new THREE.PointsMaterial({ size: 0.9, vertexColors: true, transparent: true, opacity: 0.85 });
+const particles = new THREE.Points(geometry, material);
+scene.add(particles);
+
+const display = document.getElementById('metrics-display');
+let tick = 0;
+
+function animate() {
+  requestAnimationFrame(animate);
+  tick += 0.01;
+  particles.rotation.y = tick * 0.2;
+  particles.rotation.x = Math.sin(tick * 0.1) * 0.2;
+  
+  if (Math.floor(tick * 10) % 5 === 0) {
+    const latency = (12 + Math.sin(tick * 2) * 5).toFixed(1);
+    const throughput = (450 + Math.cos(tick * 1.5) * 40).toFixed(0);
+    const emergence = (0.85 + Math.sin(tick * 0.5) * 0.1).toFixed(3);
+    display.innerHTML = `
+      <div class="metric-row">Provider Status: <span class="val">ACTIVE (100%)</span></div>
+      <div class="metric-row">Latency: <span class="val">${latency} ms</span></div>
+      <div class="metric-row">Throughput: <span class="val">${throughput} tps</span></div>
+      <div class="metric-row">Sovereign Emergence Index: <span class="val">${emergence}</span></div>
+    `;
+  }
+  
+  renderer.render(scene, camera);
+}
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+animate();
+</script>
+</body>
+</html>

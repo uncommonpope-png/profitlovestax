@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unified Agentic Telemetry Engine</title>
+<style>
+body { background: #090d16; color: #f1f5f9; font-family: 'Inter', system-ui, sans-serif; margin: 0; padding: 24px; }
+.glass-card { background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 16px; padding: 24px; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37); }
+#telemetryCanvas { width: 100%; height: 420px; border-radius: 12px; background: rgba(2, 6, 23, 0.8); border: 1px solid rgba(255,255,255,0.08); }
+</style>
+</head>
+<body>
+<div class="glass-card">
+  <h2>Unified Agentic Telemetry & Sensorimotor PLT Optimizer</h2>
+  <canvas id="telemetryCanvas" width="900" height="420"></canvas>
+  <div id="pltMetrics" style="margin-top: 16px; font-family: monospace;"></div>
+</div>
+<script>
+const canvas = document.getElementById('telemetryCanvas');
+const ctx = canvas.getContext('2d');
+let plt = { profit: 0.88, love: 0.92, tax: 0.08 };
+let tick = 0;
+function animate() {
+  tick++;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#38bdf8';
+  ctx.font = '14px monospace';
+  ctx.fillText(`[TELEMETRY STREAM] Sensorimotor tick: ${tick} | P:${plt.profit.toFixed(2)} L:${plt.love.toFixed(2)} T:${plt.tax.toFixed(2)}`, 20, 35);
+  document.getElementById('pltMetrics').innerHTML = `PROFIT: ${(plt.profit * 100).toFixed(1)}% | LOVE: ${(plt.love * 100).toFixed(1)}% | TAX: ${(plt.tax * 100).toFixed(1)}%`;
+  requestAnimationFrame(animate);
+}
+animate();
+</script>
+</body>
+</html>

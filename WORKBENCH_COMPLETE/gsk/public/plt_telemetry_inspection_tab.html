@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Empirical PLT Telemetry Inspection Tab</title>
+<style>
+body { font-family: monospace; background: #0a0a12; color: #00ffcc; margin: 0; padding: 20px; }
+.header { border-bottom: 1px solid #00ffcc; padding-bottom: 10px; margin-bottom: 20px; }
+.metrics-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
+.card { background: #121224; border: 1px solid #1a3a4b; padding: 15px; border-radius: 4px; }
+#stream-container { margin-top: 20px; border: 1px solid #1a3a4b; padding: 10px; height: 300px; overflow-y: auto; }
+#stream-log { font-size: 12px; color: #a0a0c0; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h2>Empirical PLT Telemetry State Inspector</h2>
+</div>
+<div class="metrics-grid">
+  <div class="card"><h3>Profit Rate</h3><div id="profit-val">0.00</div></div>
+  <div class="card"><h3>Love Score</h3><div id="love-val">0.00</div></div>
+  <div class="card"><h3>Tax Rate</h3><div id="tax-val">0.00</div></div>
+</div>
+<div id="stream-container">
+  <div id="stream-log">[Initializing Telemetry Connection...]</div>
+</div>
+<script>
+const API_BASE = 'http://127.0.0.1:3001';
+console.log('Connecting telemetry stream to:', API_BASE);
+</script>
+</body>
+</html>

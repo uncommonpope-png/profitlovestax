@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>GSK Versioned State Checkpoint Engine</title>
+  <style>
+    body { font-family: monospace; background: #0a0a10; color: #00ffcc; padding: 20px; }
+    .card { background: #121320; border: 1px solid #00ffcc; padding: 15px; margin-bottom: 15px; border-radius: 6px; }
+    h1 { color: #ff0077; }
+    pre { background: #050508; padding: 10px; border-radius: 4px; overflow-x: auto; color: #77ff00; }
+    .badge { background: #ff0077; color: #fff; padding: 2px 6px; border-radius: 3px; font-size: 0.8em; }
+  </style>
+</head>
+<body>
+  <h1>⚡ GSK Versioned State Checkpoint Engine</h1>
+  <div class="card">
+    <h2>State Diff & Checkpoint Telemetry</h2>
+    <div id="status">Initializing State Engine...</div>
+  </div>
+  <div class="card">
+    <h2>Version Snapshots</h2>
+    <pre id="checkpoint-log">[V0.1.0] Scaffold initialized.</pre>
+  </div>
+  <script>
+    console.log('Checkpoint Engine Loaded');
+    class CheckpointEngine {
+      constructor() {
+        this.checkpoints = [];
+        this.currentVersion = 0;
+      }
+      createCheckpoint(label, stateData) {
+        this.currentVersion++;
+        const snapshot = {
+          version: `v1.0.${this.currentVersion}`,
+          timestamp: new Date().toISOString(),
+          label: label,
+          state: stateData,
+          hash: Math.random().toString(36).substring(2, 10)
+        };
+        this.checkpoints.push(snapshot);
+        this.render();
+        return snapshot;
+      }
+      render() {
+        const log = document.getElementById('checkpoint-log');
+        const status = document.getElementById('status');
+        if (log && status) {
+          status.innerHTML = `Active Version: <span class="badge">v1.0.${this.currentVersion}</span> | Checkpoints Captured: ${this.checkpoints.length}`;
+          log.textContent = JSON.stringify(this.checkpoints, null, 2);
+        }
+      }
+    }
+    const engine = new CheckpointEngine();
+    engine.createCheckpoint('Initial Scaffold Verification', { status: 'COMPLETE', pltScore: 0.94 });
+    engine.createCheckpoint('Append Cycle 1 - Telemetry Sync', { status: 'VERIFIED', pltScore: 0.96 });
+  </script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Agent Autonomy & PLT Optimization Telemetry</title>
+<style>
+  body { font-family: system-ui, sans-serif; background: #0a0c10; color: #e6edf3; margin: 0; padding: 20px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px; }
+  h2 { font-size: 1.2rem; color: #58a6ff; margin-top: 0; }
+</style>
+</head>
+<body>
+  <h1>Agent Autonomy Journal & PLT Telemetry Visualizer</h1>
+  <div class="grid">
+    <div class="card">
+      <h2>Autonomy Journal Live Feed</h2>
+      <div id="journal-feed">Awaiting stream...</div>
+    </div>
+    <div class="card">
+      <h2>PLT Value Optimization</h2>
+      <div id="plt-metrics">Profit: 0.0 | Love: 0.0 | Tax: 0.0</div>
+    </div>
+  </div>
+  <script>
+    console.log('Visualizer initialized');
+  </script>
+</body>
+</html>

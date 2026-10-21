@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>GSK High-Frequency Operational Telemetry Loop</title>
+<style>
+body { background: #0b0f19; color: #e2e8f0; font-family: monospace; margin: 0; padding: 20px; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.card { background: #1a202c; border: 1fr solid #2d3748; border-radius: 8px; padding: 16px; }
+#canvas { width: 100%; height: 300px; background: #000; border-radius: 4px; }
+</style>
+</head>
+<body>
+<h1>GSK High-Frequency Telemetry & Introspection Loop</h1>
+<div class="grid">
+<div class="card"><h2>Operational Metrics</h2><div id="metrics"></div></div>
+<div class="card"><h2>Introspection Stream</h2><div id="introspection"></div></div>
+</div>
+<canvas id="canvas"></canvas>
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+let state = { cycles: 0, profit: 1.0, love: 0.85, tax: 0.15, trueValue: 1.7 };
+function renderLoop() {
+  state.cycles++;
+  state.profit += Math.random() * 0.02 - 0.008;
+  state.tax = Math.max(0.01, state.tax + (Math.random() * 0.01 - 0.006));
+  state.trueValue = state.profit + state.love - state.tax;
+  document.getElementById('metrics').innerText = JSON.stringify(state, null, 2);
+  document.getElementById('introspection').innerText = `Cycle ${state.cycles}: Introspection distilling raw friction into PLT score ${state.trueValue.toFixed(4)}`;
+  requestAnimationFrame(renderLoop);
+}
+renderLoop();
+</script>
+</body>
+</html>

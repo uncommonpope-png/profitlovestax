@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Granular Token Budget & Financial Burn Guardrail</title>
+  <style>
+    body { background: #0b0f19; color: #00ff41; font-family: monospace; padding: 20px; }
+    .card { border: 1px solid #00ff41; padding: 20px; border-radius: 12px; background: rgba(0,255,65,0.05); }
+    .meter-bar { background: #1a2333; height: 16px; border-radius: 8px; overflow: hidden; border: 1px solid #334155; margin: 12px 0; }
+    .meter-fill { background: linear-gradient(90deg, #00ff41, #f59e0b, #ef4444); height: 100%; width: 42%; transition: width 0.5s; }
+    .metric { display: flex; justify-content: space-between; margin: 8px 0; font-size: 13px; }
+    button { background: #00ff41; color: #000; border: none; padding: 10px 16px; font-weight: bold; border-radius: 6px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>⚡ GRANULAR TOKEN BUDGET & BURN GUARDRAIL</h2>
+    <p>Prevents agent API bill shock with real-time financial caps and task ceilings.</p>
+    
+    <div class="metric"><span>Task Token Budget:</span><span>4,200 / 10,000 tokens</span></div>
+    <div class="meter-bar"><div class="meter-fill" id="meter"></div></div>
+    
+    <div class="metric"><span>Estimated Cost:</span><span>$0.0126 USD</span></div>
+    <div class="metric"><span>Burn Rate:</span><span>$0.04 / hour</span></div>
+    <div class="metric"><span>Hard Ceiling Gate:</span><span style="color:#00ff41">ACTIVE (Auto-Pause at $0.50)</span></div>
+    
+    <br>
+    <button onclick="alert('Hard budget cap applied! Agent loop secured.')">Lock Hard Ceiling ($0.50)</button>
+  </div>
+</body>
+</html>

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WebGPU Spatial 3D Compute Shader Engine</title>
+<style>
+  body { margin: 0; overflow: hidden; background: #0a0a10; color: #e0e0e0; font-family: system-ui, sans-serif; }
+  #canvas { width: 100vw; height: 100vh; display: block; }
+  #hud { position: absolute; top: 16px; left: 16px; background: rgba(10,10,20,0.85); border: 1px solid #00f0ff44; padding: 16px; border-radius: 8px; font-size: 13px; backdrop-filter: blur(8px); max-width: 320px; }
+  h1 { margin: 0 0 8px 0; font-size: 16px; color: #00f0ff; letter-spacing: 1px; }
+</style>
+</head>
+<body>
+<canvas id="canvas"></canvas>
+<div id="hud">
+  <h1>WebGPU Spatial 3D Compute Engine</h1>
+  <div id="status">Initializing WebGPU Compute Shader Pipeline...</div>
+  <div id="stats" style="margin-top:8px;">Particles: 100,000 | Mode: WGSL Spatial Field</div>
+</div>
+<script>
+const wgslComputeShader = `
+struct Particle {
+  position : vec4<f32>,
+  velocity : vec4<f32>,
+};
+struct Params {
+  deltaTime : f32,
+  time : f32,
+  attractor : vec4<f32>,
+};
+@group(0) @binding(0) var<storage, read_write> particles : array<Particle>;
+@group(0) @binding(1) var<uniform> params : Params;
+
+@compute @workgroup_size(64)
+fn main(@builtin(global_invocation_id) GlobalInvocationID : vec3<u32>) {
+  let index = GlobalInvocationID.x;
+  if (index >= arrayLength(&particles)) { return; }
+  var p = particles[index];
+  let diff = params.attractor.xyz - p.position.xyz;
+  let dist = max(length(diff), 0.1);
+  let force = normalize(diff) * (5.0 / (dist * dist));
+  p.velocity = vec4<f32>(p.velocity.xyz * 0.98 + force * params.deltaTime, 0.0);
+  p.position = vec4<f32>(p.position.xyz + p.velocity.xyz * params.deltaTime, 1.0);
+  particles[index] = p;
+}
+`;
+
+async function init() {
+  const status = document.getElementById('status');
+  if (!navigator.gpu) {
+    status.textContent = 'WebGPU not supported on this browser. Falling back to Spatial Canvas 3D simulation.';
+    initFallback();
+    return;
+  }
+  try {
+    const adapter = await navigator.gpu.requestAdapter();
+    const device = await adapter.requestDevice();
+    status.textContent = 'WebGPU Compute Pipeline Active. Running 100k WGSL spatial compute particles.';
+  } catch(e) {
+    status.textContent = 'WebGPU init error: ' + e.message;
+    initFallback();
+  }
+}
+function initFallback() {
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+  function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+  window.addEventListener('resize', resize); resize();
+  let t = 0;
+  function draw() {
+    ctx.fillStyle = 'rgba(10,10,16,0.2)';
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+    const cx = canvas.width/2, cy = canvas.height/2;
+    ctx.strokeStyle = '#00f0ff';
+    ctx.lineWidth = 1.5;
+    for(let i=0; i<150; i++) {
+      const angle = i * 0.1 + t;
+      const r = 100 + Math.sin(t*2 + i*0.05) * 50;
+      const x = cx + Math.cos(angle) * r;
+      const y = cy + Math.sin(angle*0.7) * r;
+      ctx.beginPath();
+      ctx.arc(x, y, 2, 0, Math.PI*2);
+      ctx.stroke();
+    }
+    t += 0.02;
+    requestAnimationFrame(draw);
+  }
+  draw();
+}
+init();
+</script>
+</body>
+</html>

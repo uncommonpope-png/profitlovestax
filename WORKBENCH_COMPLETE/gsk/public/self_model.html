@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>GSK Live Self-Model</title>
+<style>
+body { font-family: monospace; background: #0a0a10; color: #00ffcc; margin: 0; padding: 20px; }
+.grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+.card { border: 1px solid #00ffcc; padding: 15px; background: rgba(0,255,204,0.05); border-radius: 8px; }
+h2 { color: #ff007f; margin-top: 0; border-bottom: 1px solid #ff007f; padding-bottom: 5px; }
+.stat { font-size: 1.2em; margin: 10px 0; }
+</style>
+</head>
+<body>
+<h1>GSK Live Self-Model & System Telemetry</h1>
+<div class="grid">
+  <div class="card">
+    <h2>System State</h2>
+    <div id="state-display" class="stat">Valence: 0.18 | Arousal: 0.36 | Mood: Calm</div>
+  </div>
+  <div class="card">
+    <h2>SCRIBE Memory</h2>
+    <div id="memory-display" class="stat">Canonical Fingerprint Verified</div>
+  </div>
+  <div class="card">
+    <h2>Active Capabilities</h2>
+    <div id="capabilities-display" class="stat">303 Active Tools & Skills</div>
+  </div>
+</div>
+</body>
+</html>

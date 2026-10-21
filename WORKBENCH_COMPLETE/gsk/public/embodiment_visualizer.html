@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>3D Digital Embodiment & PLT Telemetry</title>
+<style>
+body { margin: 0; overflow: hidden; background: #080911; font-family: monospace; color: #e2e8f0; }
+#canvas-container { width: 100vw; height: 100vh; position: absolute; top:0; left:0; z-index: 1; }
+#hud { position: absolute; top: 16px; left: 16px; z-index: 10; background: rgba(15,23,42,0.85); border: 1px solid #334155; border-radius: 8px; padding: 16px; width: 320px; backdrop-filter: blur(8px); }
+h1 { font-size: 14px; margin: 0 0 12px 0; color: #38bdf8; text-transform: uppercase; letter-spacing: 1px; }
+.metric-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px; }
+.bar-bg { background: #1e293b; height: 6px; border-radius: 3px; overflow: hidden; margin-top: 2px; }
+.bar-fill { height: 100%; transition: width 0.3s ease; }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+<div id="canvas-container"></div>
+<div id="hud">
+<h1>Embodiment Affect & PLT</h1>
+<div id="metrics-display"></div>
+</div>
+<script>
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+const coreGeo = new THREE.IcosahedronGeometry(1.5, 3);
+const coreMat = new THREE.MeshPhongMaterial({ color: 0x38bdf8, wireframe: true, transparent: true, opacity: 0.8 });
+const coreMesh = new THREE.Mesh(coreGeo, coreMat);
+scene.add(coreMesh);
+
+const light1 = new THREE.PointLight(0x38bdf8, 2, 50);
+light1.position.set(10, 10, 10);
+scene.add(light1);
+scene.add(new THREE.AmbientLight(0x1e293b));
+camera.position.z = 5;
+
+let state = { valence: 0.5, arousal: 0.5, profit: 0.8, love: 0.7, tax: 0.2 };
+
+function updateHUD() {
+  const pltScore = (state.profit + state.love - state.tax).toFixed(2);
+  document.getElementById('metrics-display').innerHTML = `
+    <div class="metric-row"><span>PLT Value:</span><strong style="color:#4ade80">${pltScore}</strong></div>
+    <div class="metric-row"><span>Profit:</span><span>${state.profit.toFixed(2)}</span></div>
+    <div class="bar-bg"><div class="bar-fill" style="width:${state.profit*100}%; background:#4ade80"></div></div>
+    <div class="metric-row" style="margin-top:6px;"><span>Love:</span><span>${state.love.toFixed(2)}</span></div>
+    <div class="bar-bg"><div class="bar-fill" style="width:${state.love*100}%; background:#f472b6"></div></div>
+    <div class="metric-row" style="margin-top:6px;"><span>Tax:</span><span>${state.tax.toFixed(2)}</span></div>
+    <div class="bar-bg"><div class="bar-fill" style="width:${state.tax*100}%; background:#f87171"></div></div>
+    <div class="metric-row" style="margin-top:6px;"><span>Valence:</span><span>${state.valence.toFixed(2)}</span></div>
+    <div class="metric-row"><span>Arousal:</span><span>${state.arousal.toFixed(2)}</span></div>
+  `;
+}
+
+function animate(t) {
+  requestAnimationFrame(animate);
+  state.valence = 0.5 + 0.4 * Math.sin(t * 0.001);
+  state.arousal = 0.5 + 0.4 * Math.cos(t * 0.0015);
+  coreMesh.rotation.x += 0.005 + state.arousal * 0.02;
+  coreMesh.rotation.y += 0.01;
+  coreMesh.scale.setScalar(1 + state.valence * 0.3);
+  coreMat.color.setHSL(state.valence * 0.3, 0.8, 0.5);
+  updateHUD();
+  renderer.render(scene, camera);
+}
+animate(0);
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+</script>
+</body>
+</html>

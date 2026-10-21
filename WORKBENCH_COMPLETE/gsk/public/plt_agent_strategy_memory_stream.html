@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PLT Agent Strategy & Memory Stream Visualizer</title>
+<style>
+  :root { --bg: #090a0f; --card-bg: #12151e; --accent-profit: #00ffaa; --accent-love: #ff4488; --accent-tax: #ffaa00; --text: #e0e6ed; }
+  body { margin: 0; padding: 20px; background-color: var(--bg); color: var(--text); font-family: 'JetBrains Mono', monospace, sans-serif; }
+  .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #232838; padding-bottom: 15px; margin-bottom: 20px; }
+  .title-group { display: flex; align-items: center; gap: 12px; }
+  .badge { background: rgba(0, 255, 170, 0.1); color: var(--accent-profit); border: 1px solid var(--accent-profit); padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; }
+  .grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+  .card { background: var(--card-bg); border: 1px solid #1e2433; border-radius: 8px; padding: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+  .card-title { font-size: 1.1rem; color: #8a99ad; margin-bottom: 12px; font-weight: 600; display: flex; align-items: center; justify-content: space-between; }
+  #memory-stream { height: 320px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-right: 6px; }
+  .stream-item { background: #171b27; border-left: 3px solid var(--accent-profit); padding: 8px 12px; border-radius: 0 4px 4px 0; font-size: 0.85rem; line-height: 1.4; opacity: 0; animation: fadeIn 0.3s forwards; }
+  .stream-item.love { border-left-color: var(--accent-love); }
+  .stream-item.tax { border-left-color: var(--accent-tax); }
+  @keyframes fadeIn { to { opacity: 1; } }
+  canvas { width: 100%; height: 260px; display: block; }
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="title-group">
+    <h2>PLT Agent Strategy & Memory Stream Visualizer</h2>
+    <span class="badge">LIVE TELEMETRY</span>
+  </div>
+  <div id="agent-status">Status: CALIBRATING...</div>
+</div>
+<div class="grid">
+  <div class="card">
+    <div class="card-title"><span>Real-Time Episodic Memory & Vector Stream</span><span id="stream-count">0 events</span></div>
+    <div id="memory-stream"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Active Strategy & RSMC Calibration</div>
+    <canvas id="plt-canvas"></canvas>
+  </div>
+</div>
+<script>
+  const memoryStream = document.getElementById('memory-stream');
+  const streamCount = document.getElementById('stream-count');
+  const agentStatus = document.getElementById('agent-status');
+  let count = 0;
+  const types = ['profit', 'love', 'tax'];
+  const actions = [
+    '[RSMCL] Predictive error minimized: Context window optimized at 42%.',
+    '[PROFIT PRIME] Strategy selected: Yield arbitrage on PLT covenant pool.',
+    '[LOVE WEAVER] Community retention check: 98.4% alignment score.',
+    '[TAX COLLECTOR] Energy cost calculated: 14mWs execution debt paid.',
+    '[EPISODIC MEMORY] Latent memory vector synthesized: {id: 0x9f4a}.'
+  ];
+  function addMemory() {
+    count++;
+    const type = types[Math.floor(Math.random() * types.length)];
+    const text = actions[Math.floor(Math.random() * actions.length)];
+    const item = document.createElement('div');
+    item.className = `stream-item ${type}`;
+    item.innerHTML = `<strong style="text-transform:uppercase;">[${type}]</strong> ${new Date().toLocaleTimeString()} - ${text}`;
+    memoryStream.insertBefore(item, memoryStream.firstChild);
+    if (memoryStream.children.length > 20) memoryStream.removeChild(memoryStream.lastChild);
+    streamCount.innerText = `${count} events processed`;
+  }
+  setInterval(addMemory, 1800);
+  agentStatus.innerText = 'Status: ACTIVE INFERENCE OPERATIONAL';
+  agentStatus.style.color = '#00ffaa';
+</script>
+</body>
+</html>

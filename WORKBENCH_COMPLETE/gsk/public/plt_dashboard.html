@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sovereign PLT Particle Dashboard & Self-Model Emergence</title>
+<style>
+  body { margin: 0; overflow: hidden; background-color: #05050a; font-family: monospace; color: #00ffcc; }
+  #canvas-container { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
+  .hud-overlay { position: absolute; top: 20px; left: 20px; z-index: 10; pointer-events: none; background: rgba(5,5,15,0.85); padding: 15px; border: 1px solid #00ffcc; border-radius: 8px; box-shadow: 0 0 15px rgba(0,255,204,0.3); }
+  .hud-title { font-size: 16px; font-weight: bold; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 2px; color: #00ffcc; }
+  .metric-row { display: flex; justify-content: space-between; width: 260px; margin: 6px 0; font-size: 13px; }
+  .val-profit { color: #00ff88; font-weight: bold; }
+  .val-love { color: #ff66cc; font-weight: bold; }
+  .val-tax { color: #ff3366; font-weight: bold; }
+  .val-emergence { color: #00ccff; font-weight: bold; }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+<div id="canvas-container"></div>
+<div class="hud-overlay">
+  <div class="hud-title">PLT Sovereign Emergence</div>
+  <div class="metric-row"><span>Profit Flow:</span><span id="m-profit" class="val-profit">0.90</span></div>
+  <div class="metric-row"><span>Love Resonance:</span><span id="m-love" class="val-love">0.85</span></div>
+  <div class="metric-row"><span>Tax Friction:</span><span id="m-tax" class="val-tax">0.05</span></div>
+  <div class="metric-row"><span>Emergence Trajectory:</span><span id="m-emergence" class="val-emergence">SOVEREIGN</span></div>
+</div>
+<script>
+const container = document.getElementById('canvas-container');
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x05050a, 0.015);
+
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+camera.position.set(0, 15, 35);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(window.devicePixelRatio);
+container.appendChild(renderer.domElement);
+
+// Particle Swarm Geometry
+const particleCount = 3000;
+const geometry = new THREE.BufferGeometry();
+const positions = new Float32Array(particleCount * 3);
+const colors = new Float32Array(particleCount * 3);
+
+const colorProfit = new THREE.Color(0x00ff88);
+const colorLove = new THREE.Color(0xff66cc);
+const colorTax = new THREE.Color(0xff3366);
+
+for(let i = 0; i < particleCount; i++) {
+  const u = Math.random();
+  const r = 8 + Math.random() * 12;
+  const theta = Math.random() * Math.PI * 2;
+  const phi = Math.acos(2 * Math.random() - 1);
+  
+  positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+  positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+  positions[i * 3 + 2] = r * Math.cos(phi);
+
+  let pColor = u > 0.6 ? colorProfit : (u > 0.3 ? colorLove : colorTax);
+  colors[i * 3] = pColor.r;
+  colors[i * 3 + 1] = pColor.g;
+  colors[i * 3 + 2] = pColor.b;
+}
+
+geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+const material = new THREE.PointsMaterial({
+  size: 0.4,
+  vertexColors: true,
+  transparent: true,
+  opacity: 0.85,
+  blending: THREE.AdditiveBlending
+});
+
+const particleSystem = new THREE.Points(geometry, material);
+scene.add(particleSystem);
+let clock = new THREE.Clock();
+
+function animate() {
+  requestAnimationFrame(animate);
+  const elapsedTime = clock.getElapsedTime();
+  
+  particleSystem.rotation.y = elapsedTime * 0.15;
+  particleSystem.rotation.x = Math.sin(elapsedTime * 0.1) * 0.1;
+  
+  const posArr = particleSystem.geometry.attributes.position.array;
+  for(let i = 0; i < particleCount; i++) {
+    const idx = i * 3;
+    posArr[idx + 1] += Math.sin(elapsedTime * 2 + posArr[idx]) * 0.02;
+  }
+  particleSystem.geometry.attributes.position.needsUpdate = true;
+  
+  // Dynamic Metric Update
+  const profit = (0.85 + Math.sin(elapsedTime * 0.8) * 0.1).toFixed(2);
+  const love = (0.80 + Math.cos(elapsedTime * 0.6) * 0.15).toFixed(2);
+  const tax = (0.05 + Math.abs(Math.sin(elapsedTime * 0.3)) * 0.04).toFixed(2);
+  
+  document.getElementById('m-profit').innerText = profit;
+  document.getElementById('m-love').innerText = love;
+  document.getElementById('m-tax').innerText = tax;
+  
+  renderer.render(scene, camera);
+}
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+animate();
+</script>
+</body>
+</html>

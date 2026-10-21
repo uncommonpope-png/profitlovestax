@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PLT Temporal Memory Engine</title>
+<style>
+  body { background: #0b0f19; color: #e2e8f0; font-family: monospace; padding: 20px; margin: 0; }
+  h1 { color: #38bdf8; border-bottom: 1px solid #334155; padding-bottom: 8px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px; }
+  .card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 15px; }
+  .stat { font-size: 1.2rem; font-weight: bold; margin: 5px 0; }
+  .profit { color: #4ade80; }
+  .love { color: #f472b6; }
+  .tax { color: #f87171; }
+  .net { color: #38bdf8; }
+  #log { height: 180px; overflow-y: auto; background: #090d16; padding: 10px; border-radius: 4px; border: 1px solid #1e293b; font-size: 0.85rem; }
+  canvas { width: 100%; height: 200px; background: #0f172a; border-radius: 6px; }
+</style>
+</head>
+<body>
+<h1>PLT Temporal Memory Engine</h1>
+<p>Operationalizing Functional Intentionality & Teleonomic Homeostatic Control Dynamics</p>
+<div class="grid">
+  <div class="card">
+    <h3>Agent Consciousness State</h3>
+    <div class="stat profit">Profit: <span id="val-p">0.85</span></div>
+    <div class="stat love">Love: <span id="val-l">0.70</span></div>
+    <div class="stat tax">Tax: <span id="val-t">0.20</span></div>
+    <hr style="border-color: #334155">
+    <div class="stat net">Net Value (P + L - T): <span id="val-net">1.35</span></div>
+    <div>Current Mood: <span id="mood-state">AWARE / RESONANT</span></div>
+  </div>
+  <div class="card">
+    <h3>Temporal Trajectory</h3>
+    <canvas id="chartCanvas"></canvas>
+  </div>
+</div>
+<div class="card" style="margin-top: 15px;">
+  <h3>State Transition Memory Log</h3>
+  <div id="log"></div>
+</div>
+<script>
+  const history = [];
+  let p = 0.85, l = 0.70, t = 0.20;
+  const canvas = document.getElementById('chartCanvas');
+  const ctx = canvas.getContext('2d');
+  canvas.width = canvas.clientWidth;
+  canvas.height = canvas.clientHeight;
+
+  function addLog(msg) {
+    const log = document.getElementById('log');
+    const time = new Date().toLocaleTimeString();
+    log.innerHTML = `[${time}] ${msg}<br>` + log.innerHTML;
+  }
+
+  function updateState() {
+    p = Math.min(1.0, Math.max(0.1, p + (Math.random() * 0.1 - 0.04)));
+    l = Math.min(1.0, Math.max(0.1, l + (Math.random() * 0.08 - 0.03)));
+    t = Math.min(1.0, Math.max(0.05, t + (Math.random() * 0.06 - 0.03)));
+    const net = (p + l - t).toFixed(3);
+    document.getElementById('val-p').innerText = p.toFixed(2);
+    document.getElementById('val-l').innerText = l.toFixed(2);
+    document.getElementById('val-t').innerText = t.toFixed(2);
+    document.getElementById('val-net').innerText = net;
+    history.push({ p, l, t, net: parseFloat(net) });
+    if (history.length > 30) history.shift();
+    drawGraph();
+    addLog(`Transition executed: P=${p.toFixed(2)}, L=${l.toFixed(2)}, T=${t.toFixed(2)} | Net Value=${net}`);
+  }
+
+  function drawGraph() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (history.length < 2) return;
+    const w = canvas.width / 30;
+    ctx.beginPath();
+    ctx.strokeStyle = '#38bdf8';
+    ctx.lineWidth = 2;
+    history.forEach((h, i) => {
+      const x = i * w;
+      const y = canvas.height - (h.net / 2) * canvas.height;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+  }
+
+  setInterval(updateState, 2000);
+  addLog('Engine initialized: PLT Temporal Memory Tracking active.');
+</script>
+</body>
+</html>

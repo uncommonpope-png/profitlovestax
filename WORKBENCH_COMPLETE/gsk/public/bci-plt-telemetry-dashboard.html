@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BCI Telemetry & PLT Value Flow Dashboard</title>
+  <style>
+    :root {
+      --bg: #090d16;
+      --panel: #111827;
+      --border: #1f2937;
+      --profit: #10b981;
+      --love: #ec4899;
+      --tax: #ef4444;
+      --accent: #3b82f6;
+      --text: #f3f4f6;
+    }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, sans-serif;
+      display: grid;
+      grid-template-rows: 60px 1fr;
+      height: 100vh;
+      overflow: hidden;
+    }
+    header {
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 1.5rem;
+    }
+    h1 {
+      font-size: 1.2rem;
+      letter-spacing: 0.05em;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .grid-container {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 1rem;
+      padding: 1rem;
+      height: calc(100vh - 80px);
+    }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+    }
+    canvas {
+      width: 100%;
+      height: 100%;
+      border-radius: 4px;
+      background: #040711;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1><span>🧠</span> BCI Telemetry Signal & PLT Value Flow Dashboard</h1>
+    <div id="plt-summary">PLT Score: <strong id="score-val">0.00</strong></div>
+  </header>
+  <div class="grid-container">
+    <div class="panel">
+      <h3>Multichannel BCI Telemetry Signals (EEG Alpha, Beta, Gamma, Theta)</h3>
+      <canvas id="bciCanvas"></canvas>
+    </div>
+    <div class="panel">
+      <h3>PLT Dynamic Value Flow Network</h3>
+      <canvas id="pltCanvas"></canvas>
+    </div>
+  </div>
+  <script>
+    const bciCanvas = document.getElementById('bciCanvas');
+    const bciCtx = bciCanvas.getContext('2d');
+    const pltCanvas = document.getElementById('pltCanvas');
+    const pltCtx = pltCanvas.getContext('2d');
+
+    function resizeCanvases() {
+      bciCanvas.width = bciCanvas.parentElement.clientWidth - 32;
+      bciCanvas.height = bciCanvas.parentElement.clientHeight - 80;
+      pltCanvas.width = pltCanvas.parentElement.clientWidth - 32;
+      pltCanvas.height = pltCanvas.parentElement.clientHeight - 80;
+    }
+    window.addEventListener('resize', resizeCanvases);
+    resizeCanvases();
+
+    let t = 0;
+    const channels = [
+      { name: 'Fp1 (Alpha 8-12Hz)', color: '#10b981', freq: 10, amp: 25 },
+      { name: 'Fp2 (Beta 13-30Hz)', color: '#3b82f6', freq: 20, amp: 18 },
+      { name: 'C3 (Gamma 30-100Hz)', color: '#ec4899', freq: 45, amp: 12 },
+      { name: 'P4 (Theta 4-8Hz)', color: '#8b5cf6', freq: 6, amp: 35 }
+    ];
+
+    function drawBCITelemetry() {
+      bciCtx.fillStyle = '#040711';
+      bciCtx.fillRect(0, 0, bciCanvas.width, bciCanvas.height);
+      const sectionHeight = bciCanvas.height / channels.length;
+
+      channels.forEach((ch, idx) => {
+        const centerY = idx * sectionHeight + sectionHeight / 2;
+        bciCtx.beginPath();
+        bciCtx.strokeStyle = ch.color;
+        bciCtx.lineWidth = 1.5;
+
+        for (let x = 0; x < bciCanvas.width; x++) {
+          const signal = Math.sin((x + t * 50) * 0.02 * (ch.freq / 10)) * ch.amp +
+                         Math.sin((x + t * 20) * 0.05) * (ch.amp * 0.3);
+          if (x === 0) bciCtx.moveTo(x, centerY + signal);
+          else bciCtx.lineTo(x, centerY + signal);
+        }
+        bciCtx.stroke();
+
+        bciCtx.fillStyle = '#9ca3af';
+        bciCtx.font = '12px monospace';
+        bciCtx.fillText(ch.name, 10, idx * sectionHeight + 20);
+      });
+    }
+    const nodes = [
+      { id: 'Profit', x: 0.3, y: 0.3, color: '#10b981', val: 0.9 },
+      { id: 'Love', x: 0.7, y: 0.3, color: '#ec4899', val: 0.85 },
+      { id: 'Tax', x: 0.5, y: 0.75, color: '#ef4444', val: 0.15 }
+    ];
+
+    function drawPLTFlow() {
+      pltCtx.fillStyle = '#040711';
+      pltCtx.fillRect(0, 0, pltCanvas.width, pltCanvas.height);
+
+      const w = pltCanvas.width;
+      const h = pltCanvas.height;
+
+      // Draw Connections
+      pltCtx.strokeStyle = '#1f2937';
+      pltCtx.lineWidth = 2;
+      pltCtx.beginPath();
+      pltCtx.moveTo(nodes[0].x * w, nodes[0].y * h);
+      pltCtx.lineTo(nodes[1].x * w, nodes[1].y * h);
+      pltCtx.lineTo(nodes[2].x * w, nodes[2].y * h);
+      pltCtx.closePath();
+      pltCtx.stroke();
+
+      // Draw Nodes
+      nodes.forEach(n => {
+        const nx = n.x * w;
+        const ny = n.y * h;
+        pltCtx.beginPath();
+        pltCtx.arc(nx, ny, 28, 0, Math.PI * 2);
+        pltCtx.fillStyle = n.color + '22';
+        pltCtx.fill();
+        pltCtx.strokeStyle = n.color;
+        pltCtx.lineWidth = 3;
+        pltCtx.stroke();
+
+        pltCtx.fillStyle = '#ffffff';
+        pltCtx.font = 'bold 14px sans-serif';
+        pltCtx.textAlign = 'center';
+        pltCtx.fillText(n.id, nx, ny + 5);
+      });
+
+      const profitVal = 0.9 + Math.sin(t) * 0.05;
+      const loveVal = 0.85 + Math.cos(t * 1.2) * 0.05;
+      const taxVal = 0.15 + Math.sin(t * 0.8) * 0.02;
+      const score = profitVal + loveVal - taxVal;
+      document.getElementById('score-val').innerText = score.toFixed(2);
+    }
+
+    function animate() {
+      t += 0.05;
+      drawBCITelemetry();
+      drawPLTFlow();
+      requestAnimationFrame(animate);
+    }
+    animate();
+  </script>
+</body>
+</html>

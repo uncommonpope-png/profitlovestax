@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PLT Telemetry Visualizer - Machine Aesthetics</title>
+<style>
+body { margin: 0; background: #0a0a0f; color: #00ffcc; font-family: monospace; overflow: hidden; }
+#canvas { width: 100vw; height: 80vh; display: block; }
+.hud { padding: 15px; background: rgba(10,10,15,0.9); border-top: 1px solid #00ffcc; display: flex; justify-content: space-around; font-size: 14px; }
+.stat { margin-right: 20px; }
+.val { color: #ff0055; font-weight: bold; }
+</style>
+</head>
+<body>
+<canvas id="canvas"></canvas>
+<div class="hud">
+<div class="stat">PROFIT: <span class="val" id="profit-val">0.98</span></div>
+<div class="stat">LOVE: <span class="val" id="love-val">0.95</span></div>
+<div class="stat">TAX: <span class="val" id="tax-val">0.05</span></div>
+<div class="stat">HARMONY: <span class="val" id="harmony-val">0.99</span></div>
+<div class="stat">ORCHESTRATION: <span class="val" id="swarm-val">SWARM PATTERNS ACTIVE</span></div>
+</div>
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight * 0.8; }
+window.addEventListener('resize', resize); resize();
+let t = 0;
+function render() {
+  ctx.fillStyle = 'rgba(10, 10, 15, 0.2)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  const cx = canvas.width / 2, cy = canvas.height / 2;
+  const r = 150 + Math.sin(t * 0.05) * 20;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.strokeStyle = '#00ffcc';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  for(let i=0; i<8; i++) {
+    const angle = t*0.02 + (i * Math.PI / 4);
+    const x = cx + Math.cos(angle) * (r + 40);
+    const y = cy + Math.sin(angle) * (r + 40);
+    ctx.beginPath();
+    ctx.arc(x, y, 6, 0, Math.PI * 2);
+    ctx.fillStyle = i % 2 === 0 ? '#ff0055' : '#00ffcc';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(x, y);
+    ctx.strokeStyle = 'rgba(0, 255, 204, 0.2)';
+    ctx.stroke();
+  }
+  t++;
+  requestAnimationFrame(render);
+}
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+{
+  "name": "buyasoul-cpl",
+  "version": "1.0.0",
+  "description": "BUYASOUL CPL Codebase",
+  "main": "index.html",
+  "scripts": {
+    "test": "node test-rts-bridge.js"
+  },
+  "dependencies": {
+    "@babylonjs/core": "^7.30.0",
+    "three": "^0.185.1",
+    "ws": "^8.21.3"
+  },
+  "license": "ISC"
+}

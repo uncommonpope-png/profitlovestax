@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PLT Economy & Yield Simulator</title>
+  <style>
+    body {
+      font-family: 'Courier New', monospace;
+      background-color: #0d0f18;
+      color: #00ffcc;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    .card {
+      background: #141824;
+      border: 1px solid #00ffcc;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 0 15px rgba(0, 255, 204, 0.1);
+    }
+    h1, h2, h3 { color: #ffffff; text-transform: uppercase; margin-top: 0; }
+    .slider-group { margin-bottom: 15px; }
+    label { display: block; margin-bottom: 5px; font-weight: bold; }
+    input[type=range] { width: 100%; cursor: pointer; }
+    .metric-val { color: #ff0055; font-weight: bold; font-size: 1.2em; }
+    #yield-display { font-size: 2em; color: #00ffcc; text-shadow: 0 0 10px #00ffcc; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>PLT Value Yield & Scenario Simulator</h1>
+    <div class="card">
+      <h3>Economic Parameters</h3>
+      <div class="slider-group">
+        <label for="profit-range">Profit Factor (P): <span id="profit-val" class="metric-val">80</span></label>
+        <input type="range" id="profit-range" min="0" max="100" value="80">
+      </div>
+      <div class="slider-group">
+        <label for="love-range">Love / Alignment Factor (L): <span id="love-val" class="metric-val">70</span></label>
+        <input type="range" id="love-range" min="0" max="100" value="70">
+      </div>
+      <div class="slider-group">
+        <label for="tax-range">Tax / Risk Overhead (T): <span id="tax-val" class="metric-val">20</span></label>
+        <input type="range" id="tax-range" min="0" max="100" value="20">
+      </div>
+    </div>
+    <div class="card">
+      <h3>Simulated Outcome</h3>
+      <div>Calculated True Value (P + L - T):</div>
+      <div id="yield-display">130</div>
+    </div>
+  </div>
+  <script>
+    function calculateYield() {
+      const p = parseInt(document.getElementById('profit-range').value);
+      const l = parseInt(document.getElementById('love-range').value);
+      const t = parseInt(document.getElementById('tax-range').value);
+      document.getElementById('profit-val').innerText = p;
+      document.getElementById('love-val').innerText = l;
+      document.getElementById('tax-val').innerText = t;
+      const yieldVal = p + l - t;
+      document.getElementById('yield-display').innerText = yieldVal;
+    }
+    document.getElementById('profit-range').addEventListener('input', calculateYield);
+    document.getElementById('love-range').addEventListener('input', calculateYield);
+    document.getElementById('tax-range').addEventListener('input', calculateYield);
+  </script>
+</body>
+</html>

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Soul Pulse Telemetry</title>
+  <style>
+    body { background: #0a0a0f; color: #00ffcc; font-family: monospace; padding: 20px; }
+    .card { border: 1px solid #00ffcc33; background: #12131c; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
+    canvas { width: 100%; height: 180px; background: #050508; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <h1>Soul Pulse & State Telemetry</h1>
+  <div class="card">
+    <h2>Real-Time Rhythm</h2>
+    <canvas id="pulseCanvas"></canvas>
+  </div>
+  <div id="telemetry-status" class="card">Telemetry Status: Initializing...</div>
+  <script>
+    const canvas = document.getElementById('pulseCanvas');
+    const ctx = canvas.getContext('2d');
+    let points = new Array(100).fill(50);
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.beginPath();
+      ctx.strokeStyle = '#00ffcc';
+      ctx.lineWidth = 2;
+      points.forEach((p, i) => {
+        const x = (i / points.length) * canvas.width;
+        const y = canvas.height - (p / 100) * canvas.height;
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+    }
+    setInterval(() => {
+      points.shift();
+      points.push(40 + Math.random() * 40 + Math.sin(Date.now() / 200) * 15);
+      draw();
+      document.getElementById('telemetry-status').innerText = 'Telemetry Status: Pulse Active | PLT Score: 1.0';
+    }, 100);
+  </script>
+</body>
+</html>

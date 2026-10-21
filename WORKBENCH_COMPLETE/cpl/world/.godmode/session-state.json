@@ -1,0 +1,12 @@
+{
+  "skill": "scout",
+  "round": 1,
+  "baseline": null,
+  "current_best": null,
+  "last_kept_commit": "2b7dd55",
+  "consecutive_discards": 0,
+  "approach_history": ["file_listing", "git_log", "section_markers"],
+  "failure_classes": {},
+  "stop_reason": "target_reached",
+  "timestamp": "2026-06-09T16:00Z"
+}

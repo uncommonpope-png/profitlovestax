@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Real-Time PLT State & Agent Convergence Visualizer</title>
+<style>
+body { background: #0b0f19; color: #e2e8f0; font-family: monospace; margin: 0; padding: 20px; }
+.grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+.card { background: #161e2e; border: 1px solid #2d3748; border-radius: 8px; padding: 16px; }
+h1, h2 { color: #38bdf8; margin-top: 0; }
+canvas { width: 100%; height: 300px; background: #0f172a; border-radius: 4px; }
+.stat-val { font-size: 1.5rem; font-weight: bold; color: #4ade80; }
+</style>
+</head>
+<body>
+<h1>PLT Real-Time Convergence Telemetry</h1>
+<div class="grid">
+  <div class="card">
+    <h2>Agent Convergence Dynamics (Profit / Love / Tax)</h2>
+    <canvas id="pltChart"></canvas>
+  </div>
+  <div class="card">
+    <h2>Current PLT Score</h2>
+    <div>Profit: <span id="pVal" class="stat-val">0.00</span></div>
+    <div>Love: <span id="lVal" class="stat-val">0.00</span></div>
+    <div>Tax: <span id="tVal" class="stat-val">0.00</span></div>
+    <div>True Value: <span id="tvVal" class="stat-val">0.00</span></div>
+    <button onclick="optimizeConvergence()" style="margin-top:20px; padding:10px; background:#0284c7; color:#fff; border:none; border-radius:4px; cursor:pointer;">Optimize Convergence</button>
+  </div>
+</div>
+<script>
+const canvas = document.getElementById('pltChart');
+const ctx = canvas.getContext('2d');
+let history = [];
+function tick() {
+  const p = 0.8 + Math.sin(Date.now()/1000)*0.15;
+  const l = 0.7 + Math.cos(Date.now()/1000)*0.1;
+  const t = 0.15 + Math.sin(Date.now()/2000)*0.05;
+  const tv = p + l - t;
+  document.getElementById('pVal').innerText = p.toFixed(3);
+  document.getElementById('lVal').innerText = l.toFixed(3);
+  document.getElementById('tVal').innerText = t.toFixed(3);
+  document.getElementById('tvVal').innerText = tv.toFixed(3);
+  history.push({p, l, t, tv});
+  if (history.length > 50) history.shift();
+  draw();
+}
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.strokeStyle = '#38bdf8';
+  ctx.beginPath();
+  history.forEach((h, i) => {
+    const x = (i / 50) * canvas.width;
+    const y = canvas.height - (h.tv / 2) * canvas.height;
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+}
+function optimizeConvergence() { alert('PLT convergence optimization routine triggered.'); }
+setInterval(tick, 500);
+</script>
+</body>
+</html>

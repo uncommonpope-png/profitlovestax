@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unified Telemetry: Enactive Loop & Memetic Propagation</title>
+<style>
+:root { --bg: #0a0d14; --glass: rgba(15, 23, 42, 0.75); --border: rgba(255, 255, 255, 0.12); --cyan: #38bdf8; --emerald: #10b981; }
+body { margin: 0; padding: 20px; background: var(--bg); color: #f1f5f9; font-family: 'Segoe UI', system-ui, sans-serif; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; min-height: 100vh; box-sizing: border-box; }
+.card { background: var(--glass); backdrop-filter: blur(16px); border: 1px solid var(--border); border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
+.header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 12px; }
+.header h2 { margin: 0; font-size: 1.15rem; letter-spacing: 0.05em; text-transform: uppercase; }
+.cyan-text { color: var(--cyan); }
+.emerald-text { color: var(--emerald); }
+canvas { width: 100%; height: 320px; background: rgba(0, 0, 0, 0.3); border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); }
+.metrics-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.stat-box { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); padding: 12px; border-radius: 10px; text-align: center; }
+.stat-label { font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; text-shadow: 0 1px 2px rgba(0,0,0,0.5); }
+.stat-val { font-size: 1.3rem; font-weight: 700; margin-top: 4px; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="header"><h2 class="cyan-text">Enactive Sensorimotor Telemetry</h2><span id="sensorimotor-status">ACTIVE</span></div>
+  <canvas id="sensorimotorCanvas"></canvas>
+  <div class="metrics-grid">
+    <div class="stat-box"><div class="stat-label">Proprioceptive Coherence</div><div id="proprio-val" class="stat-val cyan-text">0.94</div></div>
+    <div class="stat-box"><div class="stat-label">Affordance Latency</div><div id="latency-val" class="stat-val">14 ms</div></div>
+    <div class="stat-box"><div class="stat-label">Action Entropy</div><div id="entropy-val" class="stat-val">0.12</div></div>
+  </div>
+</div>
+<div class="card">
+  <div class="header"><h2 class="emerald-text">Memetic Propagation Telemetry</h2><span id="memetic-status">RESONATING</span></div>
+  <canvas id="memeticCanvas"></canvas>
+  <div class="metrics-grid">
+    <div class="stat-box"><div class="stat-label">Viral R₀ Velocity</div><div id="r0-val" class="stat-val emerald-text">2.85</div></div>
+    <div class="stat-box"><div class="stat-label">Memetic Penetration</div><div id="penetration-val" class="stat-val">78.4%</div></div>
+    <div class="stat-box"><div class="stat-label">Net PLT Multiplier</div><div id="plt-val" class="stat-val emerald-text">+1.62x</div></div>
+  </div>
+</div>
+<script>
+const c1 = document.getElementById('sensorimotorCanvas');
+const ctx1 = c1.getContext('2d');
+const c2 = document.getElementById('memeticCanvas');
+const ctx2 = c2.getContext('2d');
+function resize() {
+  c1.width = c1.clientWidth; c1.height = c1.clientHeight;
+  c2.width = c2.clientWidth; c2.height = c2.clientHeight;
+}
+resize(); window.addEventListener('resize', resize);
+let t = 0;
+function drawSensorimotor() {
+  ctx1.clearRect(0, 0, c1.width, c1.height);
+  const cx = c1.width / 2, cy = c1.height / 2;
+  ctx1.strokeStyle = '#38bdf8'; ctx1.lineWidth = 2; ctx1.beginPath();
+  for (let a = 0; a <= Math.PI * 2; a += 0.05) {
+    const r = 70 + Math.sin(a * 5 + t * 2) * 15 + Math.cos(a * 3 - t) * 10;
+    const x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r;
+    if (a === 0) ctx1.moveTo(x, y); else ctx1.lineTo(x, y);
+  }
+  ctx1.closePath(); ctx1.stroke();
+}
+function drawMemetic() {
+  ctx2.clearRect(0, 0, c2.width, c2.height);
+  const cx = c2.width / 2, cy = c2.height / 2;
+  for (let i = 0; i < 30; i++) {
+    const angle = (i / 30) * Math.PI * 2 + t * 0.4;
+    const rad = (t * 40 + i * 12) % (c2.width * 0.45);
+    const opacity = 1 - (rad / (c2.width * 0.45));
+    const x = cx + Math.cos(angle) * rad, y = cy + Math.sin(angle) * rad;
+    ctx2.fillStyle = `rgba(16, 185, 129, ${opacity})`;
+    ctx2.beginPath(); ctx2.arc(x, y, 3 + Math.sin(t + i) * 2, 0, Math.PI * 2); ctx2.fill();
+  }
+}
+function tick() {
+  t += 0.03;
+  drawSensorimotor();
+  drawMemetic();
+  requestAnimationFrame(tick);
+}
+tick();
+</script>
+</body>
+</html>

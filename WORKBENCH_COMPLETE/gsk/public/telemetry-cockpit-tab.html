@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Telemetry Cockpit</title>
+<style>
+body { background: #0a0d14; color: #00ffcc; font-family: monospace; padding: 20px; }
+.cockpit-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.card { border: 1px solid #00ffcc33; background: #0f172a; border-radius: 8px; padding: 16px; }
+.metric-val { font-size: 1.8rem; font-weight: bold; color: #38bdf8; }
+</style>
+</head>
+<body>
+<div class="cockpit-grid">
+<div class="card"><h3>System Telemetry</h3><div id="sys-freq" class="metric-val">99.8 Hz</div></div>
+<div class="card"><h3>Autonomous Diagnostic</h3><div id="diag-status" class="metric-val">NOMINAL</div></div>
+</div>
+<script>
+// Cockpit Telemetry Engine
+console.log('Telemetry Cockpit initialized');
+</script>
+<footer><div id="live-stream">[TELEMETRY STREAM ACTIVE]</div></footer>
+</body>
+</html>

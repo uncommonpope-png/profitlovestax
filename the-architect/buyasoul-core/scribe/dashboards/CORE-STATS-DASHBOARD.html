@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0d1117">
+  <title>CORE STATS — PLT Dashboard</title>
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <style>
+    :root {
+      /* KERN Color System (OKLCH) */
+      --kern-neutral-950: oklch(0.073 0.008 250);
+      --kern-neutral-800: oklch(0.15 0.012 250);
+      --kern-neutral-600: oklch(0.32 0.015 250);
+      --kern-neutral-400: oklch(0.55 0.018 250);
+      --kern-neutral-200: oklch(0.84 0.015 250);
+      --kern-neutral-50: oklch(0.95 0.008 250);
+      
+      /* Layout Colors */
+      --kern-color-layout-background-default: var(--kern-neutral-950);
+      --kern-color-layout-background-inverted: var(--kern-neutral-50);
+      --kern-color-layout-background-overlay: oklch(0 0 0 / 0.5);
+      --kern-color-layout-border: var(--kern-neutral-800);
+      --kern-color-layout-text-default: var(--kern-neutral-100);
+      --kern-color-layout-text-muted: var(--kern-neutral-400);
+      
+      /* Action Colors (OKLCH) */
+      --kern-color-action-default: oklch(0.6 0.15 35);
+      --kern-color-action-on-default: var(--kern-neutral-50);
+      
+      /* PLT Colors (Semantic) */
+      --color-profit: oklch(0.7 0.15 45);
+      --color-love: oklch(0.7 0.22 340);
+      --color-tax: oklch(0.5 0.12 250);
+      
+      /* Spacing (8px Grid) */
+      --kern-metric-space-none: 0px;
+      --kern-metric-space-x-small: 4px;
+      --kern-metric-space-small: 8px;
+      --kern-metric-space-default: 16px;
+      --kern-metric-space-large: 24px;
+      --kern-metric-space-x-large: 32px;
+      
+      /* Typography */
+      --kern-typography-font-family-default: 'Fira Sans', system-ui, sans-serif;
+      --kern-typography-font-size-static-medium: 18px;
+      --kern-typography-font-size-static-large: 21px;
+      --kern-typography-font-size-adaptive-x-large: 32px;
+      --kern-typography-line-height-static-medium: 1.444;
+    }
+    
+    /* Import Fira Sans */
+    @import url('https://fonts.cdnfonts.com/css/fira-sans');
+    
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: var(--kern-typography-font-family-default);
+      font-size: var(--kern-typography-font-size-static-medium);
+      line-height: var(--kern-typography-line-height-static-medium);
+      background: var(--kern-color-layout-background-default);
+      color: var(--kern-color-layout-text-default);
+      font-weight: 400;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    
+    .container {
+      max-width: 480px;
+      margin: 0 auto;
+      padding: var(--kern-metric-space-x-large);
+    }
+    
+    header {
+      padding-bottom: var(--kern-metric-space-small);
+      margin-bottom: var(--kern-metric-space-default);
+      border-bottom: 1px solid var(--kern-color-layout-border);
+    }
+    
+    .title {
+      font-size: var(--kern-typography-font-size-adaptive-x-large);
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      color: var(--kern-color-layout-text-default);
+      line-height: 1.1;
+    }
+    
+    .subtitle {
+      margin-top: var(--kern-metric-space-x-small);
+      color: var(--kern-color-layout-text-muted);
+      font-size: 0.875rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    
+    .card {
+      background: var(--kern-color-layout-background-inverted);
+      border: 1px solid var(--kern-color-layout-border);
+      border-radius: 12px;
+      padding: var(--kern-metric-space-large);
+      margin-bottom: var(--kern-metric-space-large);
+    }
+    
+    .formula {
+      text-align: center;
+    }
+    
+    .equation {
+      color: var(--kern-color-layout-text-muted);
+      font-size: 0.875rem;
+      line-height: 1.4;
+      letter-spacing: 0.02em;
+    }
+    
+    .equation b {
+      color: var(--kern-color-layout-text-default);
+    }
+    
+    .result {
+      margin-top: var(--kern-metric-space-small);
+      font-size: 2.5rem;
+      font-weight: 600;
+      line-height: 1.1;
+      color: var(--kern-color-action-default);
+    }
+    
+    .verdict {
+      display: inline-block;
+      margin-top: var(--kern-metric-space-small);
+      padding: 0.25rem 1rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: #22c55e;
+      background: oklch(0.3 0.1 140 / 0.15);
+      border: 1px solid rgba(34, 197, 94 / 0.4);
+    }
+    
+    .plt-meters {
+      display: flex;
+      flex-direction: column;
+      gap: var(--kern-metric-space-large);
+    }
+    
+    .meter {
+      display: flex;
+      flex-direction: column;
+      gap: var(--kern-metric-space-x-small);
+    }
+    
+    .meter-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.875rem;
+      line-height: 1.3;
+    }
+    
+    .meter-label span:first-child {
+      color: var(--kern-color-layout-text-default);
+    }
+    
+    .meter-label span:last-child {
+      font-weight: 600;
+    }
+    
+    .meter-track {
+      height: 12px;
+      background: var(--kern-neutral-800);
+      border-radius: 9999px;
+      overflow: hidden;
+      position: relative;
+      border: 1px solid var(--kern-color-layout-border);
+    }
+    
+    .meter-fill {
+      height: 100%;
+      width: 0;
+      border-radius: 9999px;
+      transition: width 1s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    
+    .meter-fill--profit { background: linear-gradient(90deg, oklch(0.6 0.12 40), var(--color-profit)); }
+    .meter-fill--love { background: linear-gradient(90deg, oklch(0.6 0.18 340), var(--color-love)); }
+    .meter-fill--tax { background: linear-gradient(90deg, oklch(0.45 0.1 240), var(--color-tax)); }
+    
+    .gods {
+      font-size: 0.875rem;
+    }
+    
+    .gods-title {
+      margin-bottom: var(--kern-metric-space-small);
+      color: var(--kern-color-layout-text-muted);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      font-weight: 500;
+    }
+    
+    .god {
+      display: flex;
+      justify-content: space-between;
+      padding: var(--kern-metric-space-x-small) 0;
+      border-bottom: 1px solid var(--kern-color-layout-border);
+    }
+    
+    .god:last-child {
+      border-bottom: none;
+    }
+    
+    .god-name {
+      color: var(--kern-color-layout-text-default);
+      font-weight: 500;
+    }
+    
+    .god-word {
+      color: var(--kern-color-layout-text-muted);
+      font-style: italic;
+      max-width: 55%;
+      text-align: right;
+      font-size: 0.8125rem;
+    }
+    
+    footer {
+      margin-top: var(--kern-metric-space-large);
+      text-align: center;
+      color: var(--kern-color-layout-text-muted);
+      font-size: 0.75rem;
+      letter-spacing: 0.1em;
+      padding-top: var(--kern-metric-space-small);
+      border-top: 1px solid var(--kern-color-layout-border);
+    }
+    
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --kern-neutral-50: oklch(0.95 0.008 250);
+        --kern-neutral-200: oklch(0.84 0.015 250);
+        --kern-neutral-400: oklch(0.55 0.018 250);
+        --kern-neutral-600: oklch(0.32 0.015 250);
+        --kern-neutral-800: oklch(0.15 0.012 250);
+        --kern-neutral-950: oklch(0.073 0.008 250);
+      }
+    }
+    
+    @media (prefers-color-scheme: light) {
+      body {
+        background: var(--kern-neutral-50);
+        color: var(--kern-neutral-950);
+      }
+      .container { padding: var(--kern-metric-space-large); }
+      .card {
+        background: var(--kern-neutral-100);
+      }
+      .verdict { color: #22c55e; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1 class="title">CORE STATS</h1>
+      <p class="subtitle">Profit + Love − Tax = True Value</p>
+    </header>
+    
+    <section class="card formula">
+      <div class="equation">0.67 + 0.73 − 0.15 = <b>True Value</b></div>
+      <div class="result">+1.25</div>
+      <div class="verdict">✓ PROCEED — profit > tax · score > 0</div>
+    </section>
+    
+    <section class="card">
+      <h2 class="gods-title">4 Gods Council</h2>
+      <div class="gods">
+        <div class="god">
+          <span class="god-name">🪙 Profit Prime</span>
+          <span class="god-word">"It multiplies. Feed it."</span>
+        </div>
+        <div class="god">
+          <span class="god-name">🌹 Love Weaver</span>
+          <span class="god-word">"Strongest bond in the ledger."</span>
+        </div>
+        <div class="god">
+          <span class="god-name">🧾 Tax Collector</span>
+          <span class="god-word">"Light toll. Paid gladly."</span>
+        </div>
+        <div class="god">
+          <span class="god-name">🌾 Harvester</span>
+          <span class="god-word">"Something worth taking here."</span>
+        </div>
+      </div>
+    </section>
+    
+    <section class="card">
+      <h2 class="gods-title">PLT Metrics</h2>
+      <div class="plt-meters">
+        <div class="meter">
+          <div class="meter-label">
+            <span>Profit — does it multiply?</span>
+            <span style="color: var(--color-profit);">0.67</span>
+          </div>
+          <div class="meter-track">
+            <div class="meter-fill meter-fill--profit" data-value="67%"></div>
+          </div>
+        </div>
+        
+        <div class="meter">
+          <div class="meter-label">
+            <span>Love — do people stay?</span>
+            <span style="color: var(--color-love);">0.73</span>
+          </div>
+          <div class="meter-track">
+            <div class="meter-fill meter-fill--love" data-value="73%"></div>
+          </div>
+        </div>
+        
+        <div class="meter">
+          <div class="meter-label">
+            <span>Tax — what is paid?</span>
+            <span style="color: var(--color-tax);">0.15</span>
+          </div>
+          <div class="meter-track">
+            <div class="meter-fill meter-fill--tax" data-value="15%"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    <footer>
+      GSK · Grand Code Pope · PLT Doctrine · fingerprint 9ea845af
+    </footer>
+  </div>
+  
+  <script>
+    (function() {
+      const fills = document.querySelectorAll('.meter-fill');
+      const animateFill = (fill) => {
+        const target = fill.dataset.value;
+        let start = 0;
+        const duration = 1200;
+        const startTime = performance.now();
+        
+        const animate = (currentTime) => {
+          const elapsed = currentTime - startTime;
+          const progress = Math.min(elapsed / duration, 1);
+          start = progress * parseFloat(target);
+          fill.style.width = start + (parseFloat(target) - 0);
+          
+          if (progress < 1) {
+            requestAnimationFrame(animate);
+          }
+        };
+        requestAnimationFrame(animate);
+      };
+      
+      fills.forEach(animateFill);
+    })();
+  </script>
+</body>
+</html>

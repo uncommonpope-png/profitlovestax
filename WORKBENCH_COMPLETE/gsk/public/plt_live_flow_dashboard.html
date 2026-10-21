@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>GSK - Real-Time Multi-Agent PLT Flow Telemetry</title>
+  <style>
+    :root { --bg: #090a0f; --card: #12151e; --text: #e2e8f0; --accent-p: #10b981; --accent-l: #ec4899; --accent-t: #f59e0b; }
+    body { margin: 0; background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; display: flex; flex-direction: column; min-height: 100vh; }
+    header { padding: 1rem 2rem; background: rgba(18,21,30,0.8); border-bottom: 1px solid #1e293b; display: flex; justify-space-between; align-items: center; }
+    h1 { margin: 0; font-size: 1.25rem; letter-spacing: 0.05em; text-transform: uppercase; color: #f8fafc; }
+    .grid { display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; padding: 1.5rem; flex: 1; }
+    .panel { background: var(--card); border: 1px solid #1e293b; border-radius: 8px; padding: 1rem; flex: 1; display: flex; flex-direction: column; }
+    canvas { width: 100%; height: 400px; background: #050608; border-radius: 6px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>GSK Multi-Agent PLT Telemetry Flow Dashboard</h1>
+    <div id="status-badge" style="color:#10b981; font-weight:600;">LIVE AGENTIC FLOW</div>
+  </header>
+  <main class="grid">
+    <section class="panel">
+      <h2>Real-Time Flow Topology (Profit / Love / Tax)</h2>
+      <canvas id="pltCanvas"></canvas>
+    </section>
+    <section class="panel">
+      <h2>Agent State Vector Registry</h2>
+      <div id="agent-registry" style="font-family:monospace; font-size:0.85rem;">Loading agent states...</div>
+    </section>
+  </main>
+  <script>
+    const canvas = document.getElementById('pltCanvas');
+    const ctx = canvas.getContext('2d');
+    function resize() { canvas.width = canvas.clientWidth; canvas.height = canvas.clientHeight; }
+    window.addEventListener('resize', resize); resize();
+
+    const agents = [
+      { name: 'Profit Prime', color: '#10b981', p: 0.90, l: 0.05, t: 0.05, x: 100, y: 150, dx: 1.2, dy: 0.8 },
+      { name: 'Love Weaver', color: '#ec4899', p: 0.10, l: 0.85, t: 0.05, x: 300, y: 250, dx: -0.9, dy: 1.1 },
+      { name: 'Tax Collector', color: '#f59e0b', p: 0.05, l: 0.05, t: 0.90, x: 500, y: 120, dx: 0.8, dy: -0.7 },
+      { name: 'Harvester', color: '#8b5cf6', p: 0.40, l: 0.30, t: 0.30, x: 250, y: 320, dx: -1.0, dy: -0.9 }
+    ];
+
+    function draw() {
+      ctx.fillStyle = 'rgba(5, 6, 8, 0.2)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      agents.forEach((a, idx) => {
+        a.x += a.dx;
+        a.y += a.dy;
+        if (a.x < 30 || a.x > canvas.width - 30) a.dx *= -1;
+        if (a.y < 30 || a.y > canvas.height - 30) a.dy *= -1;
+
+        agents.forEach((b, jdx) => {
+          if (idx < jdx) {
+            ctx.beginPath();
+            ctx.moveTo(a.x, a.y);
+            ctx.lineTo(b.x, b.y);
+            ctx.strokeStyle = `rgba(255, 255, 255, 0.15)`;
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+          }
+        });
+
+        ctx.beginPath();
+        ctx.arc(a.x, a.y, 14, 0, Math.PI * 2);
+        ctx.fillStyle = a.color;
+        ctx.shadowBlur = 12;
+        ctx.shadowColor = a.color;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '12px sans-serif';
+        ctx.fillText(a.name, a.x + 18, a.y + 4);
+      });
+
+      document.getElementById('agent-registry').innerHTML = agents.map(a => `
+        <div style="margin-bottom:0.75rem; padding:0.5rem; background:#0d1117; border-left:3px solid ${a.color}; border-radius:4px;">
+          <strong>${a.name}</strong><br/>
+          P: ${(a.p).toFixed(2)} | L: ${(a.l).toFixed(2)} | T: ${(a.t).toFixed(2)} | TV: ${(a.p + a.l - a.t).toFixed(2)}
+        </div>
+      `).join('');
+
+      requestAnimationFrame(draw);
+    }
+    draw();
+  </script>
+</body>
+</html>

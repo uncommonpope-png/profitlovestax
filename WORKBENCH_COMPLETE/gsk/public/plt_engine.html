@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Sovereign PLT Calculation Engine</title>
+<style>
+body { background: #0a0a10; color: #e0e0e0; font-family: monospace; padding: 20px; }
+.card { border: 1px solid #333; padding: 15px; margin-bottom: 15px; border-radius: 6px; }
+h1 { color: #00ffcc; }
+</style>
+</head>
+<body>
+<h1>Sovereign Real-Time PLT Engine</h1>
+<div id="app"></div>
+<script>
+const calculatePLT = (profit, love, tax) => ({ trueValue: profit + love - tax, score: profit - tax });
+console.log('PLT Engine initialized');
+</script></body></html>

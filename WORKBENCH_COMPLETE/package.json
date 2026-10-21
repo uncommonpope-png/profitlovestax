@@ -1,0 +1,42 @@
+{
+  "name": "workbench-complete",
+  "version": "1.0.0",
+  "description": "BUYaSOUL ONE SYSTEM - Complete self-contained workbench with GSK, OmniRoute, CPL, Soul Economy, and Workbench UI",
+  "type": "module",
+  "scripts": {
+    "install:all": "npm install --prefix workbench && npm install --prefix omniroute && npm install --prefix cpl && npm install --prefix soul-economy",
+    "install:workbench": "npm install --prefix workbench",
+    "install:omniroute": "npm install --prefix omniroute",
+    "install:cpl": "npm install --prefix cpl",
+    "install:soul-economy": "npm install --prefix soul-economy",
+    "start:gsk": "npm start --prefix gsk",
+    "start:omniroute": "npm start --prefix omniroute",
+    "start:cpl": "npm start --prefix cpl",
+    "start:workbench": "npm run dev:server --prefix workbench",
+    "master": "node ../app-master.cjs",
+    "start:master": "node ../app-master.cjs",
+    "start": "concurrently --kill-others \"npm run start:omniroute\" \"npm run start:gsk\" \"npm run start:cpl\" \"npm run start:workbench\"",
+    "dev": "npm run start",
+    "build": "npm run build --prefix workbench",
+    "lint": "npm run lint --prefix workbench",
+    "clean": "rm -rf workbench/dist omniroute/.next omniroute/dist cpl/node_modules gsk/node_modules",
+    "fresh": "npm run clean && npm run install:all"
+  },
+  "keywords": [
+    "buyasoul",
+    "gsk",
+    "omniroute",
+    "cpl",
+    "workbench",
+    "consciousness",
+    "agent"
+  ],
+  "author": "BUYaSOUL Team",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

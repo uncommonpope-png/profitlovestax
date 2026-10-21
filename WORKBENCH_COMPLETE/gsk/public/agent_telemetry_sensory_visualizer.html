@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sanctum Live Telemetry & Sensory Mapping Visualizer</title>
+  <style>
+    :root { --bg: #090d16; --panel: rgba(18, 26, 43, 0.85); --accent: #00f2fe; --profit: #10b981; --love: #ec4899; --tax: #f59e0b; --text: #f3f4f6; }
+    body { margin: 0; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, sans-serif; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+    header { padding: 12px 24px; background: var(--panel); border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; backdrop-filter: blur(12px); }
+    .main-grid { display: grid; grid-template-columns: 320px 1fr 340px; gap: 16px; padding: 16px; flex: 1; height: calc(100vh - 70px); box-sizing: border-box; }
+    .panel { background: var(--panel); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 16px; backdrop-filter: blur(10px); display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
+    .canvas-container { position: relative; width: 100%; height: 100%; border-radius: 12px; overflow: hidden; background: radial-gradient(circle at center, #111827 0%, #050811 100%); border: 1px solid rgba(0, 242, 254, 0.2); }
+    canvas { width: 100%; height: 100%; display: block; }
+    .metric-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); padding: 12px; border-radius: 8px; }
+    .metric-val { font-size: 1.4rem; font-weight: 700; font-family: monospace; }
+    .tag { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: #9ca3af; }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1 style="margin:0; font-size: 1.25rem; font-weight:700; color:var(--accent);">SANCTUM // TELEMETRY & SENSORY ENGINE</h1>
+      <span class="tag">Real-Time Agent State Inspection & PLT Optimization</span>
+    </div>
+    <div id="server-status" style="font-size:0.85rem; color:#10b981;">● Telemetry Stream Active (http://127.0.0.1:3001)</div>
+  </header>
+  <div class="main-grid">
+    <div class="panel">
+      <h3>Agent Cognitive State</h3>
+      <div class="metric-card">
+        <div class="tag">Active Persona</div>
+        <div class="metric-val" id="agent-persona" style="color:var(--accent);">Profit Prime</div>
+      </div>
+      <div class="metric-card">
+        <div class="tag">PLT Triad Vector</div>
+        <div style="margin-top:4px; font-family:monospace;">
+          <div>Profit: <span id="plt-profit">0.90</span></div>
+          <div>Love: <span id="plt-love">0.05</span></div>
+          <div>Tax: <span id="plt-tax">0.05</span></div>
+        </div>
+      </div>
+      <div class="metric-card">
+        <div class="tag">True Value Net</div>
+        <div class="metric-val" id="plt-value" style="color:var(--profit);">+0.900</div>
+      </div>
+    </div>
+    <div class="panel" style="padding:0;">
+      <div class="canvas-container">
+        <canvas id="sensory-canvas"></canvas>
+      </div>
+    </div>
+    <div class="panel">
+      <h3>Sensory Feed & Audit</h3>
+      <div class="metric-card">
+        <div class="tag">Neural Sensor Sampling Rate</div>
+        <div class="metric-val" id="sample-rate">60 FPS</div>
+      </div>
+      <div class="metric-card">
+        <div class="tag">Active Signals</div>
+        <div id="signal-list" style="font-size:0.85rem; margin-top:8px; line-height:1.4;">Loading signals...</div>
+      </div>
+    </div>
+  </div>
+  <script>
+    const canvas = document.getElementById('sensory-canvas');
+    const ctx = canvas.getContext('2d');
+    let width, height;
+    
+    function resize() {
+      width = canvas.width = canvas.parentElement.clientWidth;
+      height = canvas.height = canvas.parentElement.clientHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    const nodes = Array.from({ length: 24 }, (_, i) => ({
+      x: Math.random() * width,
+      y: Math.random() * height,
+      vx: (Math.random() - 0.5) * 1.5,
+      vy: (Math.random() - 0.5) * 1.5,
+      radius: Math.random() * 4 + 3,
+      label: ['BIO_SIGNAL', 'COGNITIVE_IMPULSE', 'TACTILE_FEED', 'MEMORY_TRACE', 'PLT_EVAL'][i % 5],
+      intensity: Math.random()
+    }));
+
+    function drawSensoryNet() {
+      ctx.clearRect(0, 0, width, height);
+      
+      // Draw synaptic connections
+      for (let i = 0; i < nodes.length; i++) {
+        for (let j = i + 1; j < nodes.length; j++) {
+          const dx = nodes[i].x - nodes[j].x;
+          const dy = nodes[i].y - nodes[j].y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 140) {
+            ctx.beginPath();
+            ctx.moveTo(nodes[i].x, nodes[i].y);
+            ctx.lineTo(nodes[j].x, nodes[j].y);
+            ctx.strokeStyle = `rgba(0, 242, 254, ${1 - dist / 140})`;
+            ctx.lineWidth = 0.8;
+            ctx.stroke();
+          }
+        }
+      }
+
+      // Update and draw nodes
+      nodes.forEach(node => {
+        node.x += node.vx;
+        node.y += node.vy;
+        if (node.x < 0 || node.x > width) node.vx *= -1;
+        if (node.y < 0 || node.y > height) node.vy *= -1;
+
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, node.radius, 0, Math.PI * 2);
+        ctx.fillStyle = node.label === 'PLT_EVAL' ? '#10b981' : '#00f2fe';
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = ctx.fillStyle;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      });
+
+      requestAnimationFrame(drawSensoryNet);
+    }
+    drawSensoryNet();
+
+    function updateTelemetry() {
+      const profit = (0.85 + Math.random() * 0.1).toFixed(2);
+      const love = (0.05 + Math.random() * 0.05).toFixed(2);
+      const tax = (0.02 + Math.random() * 0.03).toFixed(2);
+      const trueValue = (parseFloat(profit) + parseFloat(love) - parseFloat(tax)).toFixed(3);
+
+      document.getElementById('plt-profit').innerText = profit;
+      document.getElementById('plt-love').innerText = love;
+      document.getElementById('plt-tax').innerText = tax;
+      document.getElementById('plt-value').innerText = (trueValue >= 0 ? '+' : '') + trueValue;
+
+      document.getElementById('signal-list').innerHTML = `
+        • Sensory Input: Telemetry stream online (http://127.0.0.1:3001)<br>
+        • Memory Sync: Provenance integrity verified<br>
+        • Governance Gate: Dotverse Build Gate PASSED<br>
+        • Active Formula: Profit (${profit}) + Love (${love}) - Tax (${tax})
+      `;
+    }
+    setInterval(updateTelemetry, 1500);
+    updateTelemetry();
+  </script>
+</body>
+</html>

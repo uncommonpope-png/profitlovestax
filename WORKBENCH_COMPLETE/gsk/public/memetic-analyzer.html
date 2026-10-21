@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Memetic Engineering Analyzer - Prompt Virality & PLT Propagation</title>
+<style>
+body { margin: 0; background: #0b0d14; color: #e2e8f0; font-family: system-ui, sans-serif; p-4; }
+.glass { background: rgba(18, 24, 38, 0.7); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 24px; max-width: 900px; margin: 20px auto; }
+h1 { color: #38bdf8; margin-top: 0; }
+</style>
+</head>
+<body>
+<div class="glass">
+<h1>Memetic Engineering Analyzer</h1>
+<p>Research-driven prompt virality metrics and PLT (Profit + Love - Tax) propagation telemetrics.</p>
+<div id="analyzer-root"></div>
+</div>
+<script>
+const PLT_ENGINE = {
+  calculateVirality(promptText) {
+    const len = promptText.length;
+    const hooks = (promptText.match(/(system|act as|step|think|optimize|transform|covenant)/gi) || []).length;
+    const R0 = Math.min(5.0, (hooks * 0.85) + (len > 20 ? 1.2 : 0.5));
+    const profit = Math.round(R0 * 18.5);
+    const love = Math.round(hooks * 12.4);
+    const tax = Math.round((len / 50) * 3.1);
+    const pltValue = profit + love - tax;
+    return { R0, profit, love, tax, pltValue };
+  }
+};
+console.log('Memetic Engine Ready');
+document.getElementById('analyzer-root').innerHTML = '<textarea id="prompt-input" style="width:100%; height:100px; background:#1e293b; color:#fff; border:1px solid #475569; border-radius:8px; padding:10px; font-family:monospace;" placeholder="Enter prompt to analyze memetic virality..."></textarea><button id="analyze-btn" style="margin-top:10px; padding:10px 20px; background:#0284c7; color:#fff; border:none; border-radius:6px; cursor:pointer; font-weight:bold;">Analyze Memetic Virality</button><div id="results" style="margin-top:20px;"></div>';
+document.getElementById('analyze-btn').onclick = () => {
+  const prompt = document.getElementById('prompt-input').value;
+  const res = PLT_ENGINE.calculateVirality(prompt);
+  document.getElementById('results').innerHTML = `<div style="background:rgba(255,255,255,0.05); padding:15px; border-radius:8px;"><strong>Viral Coefficient R0:</strong> ${res.R0}<br><strong>Profit:</strong> ${res.profit} | <strong>Love:</strong> ${res.love} | <strong>Tax:</strong> ${res.tax}<br><strong>PLT True Value:</strong> ${res.pltValue}</div>`;
+};
+</script>
+</body>
+</html>

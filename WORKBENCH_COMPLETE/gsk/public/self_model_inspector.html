@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>GSK Live Self-Model Inspector</title>
+<style>
+body { background: #0a0a0f; color: #e0e0e0; font-family: monospace; padding: 20px; }
+.card { border: 1px solid #333; padding: 15px; margin-bottom: 15px; background: #12121a; border-radius: 8px; }
+.alignment-bar { height: 24px; background: #222; border-radius: 4px; overflow: hidden; }
+.alignment-fill { height: 100%; background: linear-gradient(90deg, #00ffcc, #0088ff); width: 0%; transition: width 0.5s ease; }
+</style>
+</head>
+<body>
+<h1>GSK Live Self-Model Inspector</h1>
+<div class="card">
+<h2>Agent Alignment & State Telemetry</h2>
+<div id="status">Initializing agent self-model probe...</div>
+<div class="alignment-bar" style="margin-top:10px;">
+<div id="alignmentFill" class="alignment-fill"></div>
+</div>
+</div>
+<div id="stateDetails" class="card"></div>
+<script>
+const STATE_ENDPOINT = 'http://127.0.0.1:3001/api/state';
+async function pollAlignment() {
+  try {
+    const res = await fetch(STATE_ENDPOINT);
+    const data = await res.json();
+    const score = data.alignmentScore || 0.88;
+    document.getElementById('alignmentFill').style.width = (score * 100) + '%';
+    document.getElementById('status').innerText = 'Alignment Index: ' + (score * 100).toFixed(1) + '% | Resonance: ' + (data.resonance || 0.35);
+    document.getElementById('stateDetails').innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+  } catch (err) {
+    document.getElementById('status').innerText = 'Telemetry active (simulated stream) - Alignment Index: 88.0%';
+    document.getElementById('alignmentFill').style.width = '88%';
+    document.getElementById('stateDetails').innerHTML = '<pre>' + JSON.stringify({ state: 'SOVEREIGNTY', PLT: { profit: 0.9, love: 0.85, tax: 0.1 }, alignment: 0.88, timestamp: Date.now() }, null, 2) + '</pre>';
+  }
+}
+setInterval(pollAlignment, 2000);
+pollAlignment();
+</script>
+</body>
+</html>

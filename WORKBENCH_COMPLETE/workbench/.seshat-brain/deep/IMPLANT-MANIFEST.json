@@ -1,0 +1,25 @@
+{
+  "implantedAt": "2026-10-20T23:20:05.830Z",
+  "shelves": {
+    "genesis": {
+      "files": 13,
+      "bytes": 4209425
+    },
+    "library": {
+      "files": 266,
+      "bytes": 4099867
+    },
+    "second-brain": {
+      "files": 970,
+      "bytes": 10887810
+    }
+  },
+  "exclusions": [
+    "pages/GSK - Autonomy Journal.md — telemetry, replaced by pointer",
+    "journals/2026_08_13.md — privacy gate",
+    "pages/HANDOFF - Merge CPL World with GSK.md — privacy gate",
+    "pages/SOUL-NOTE - GSK Research - Clippy-autonomous-code-planning-agent.md — privacy gate",
+    "pages/SOUL-NOTE - GSK Research - MIT6-5940-CS-Self-Learning.md — privacy gate",
+    "pages/THE-PROFIT-BIBLE.md — privacy gate"
+  ]
+}

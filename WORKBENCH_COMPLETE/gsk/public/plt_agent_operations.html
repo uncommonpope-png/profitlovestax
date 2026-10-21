@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PLT Autonomous Agent Operations & Task Command Nexus</title>
+  <link rel="stylesheet" href="app.css">
+  <style>
+    body { background: #0a0a0c; color: #e2e8f0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 20px; }
+    .nexus-header { border-bottom: 2px solid #3b82f6; padding-bottom: 15px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+    .nexus-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .card { background: #141419; border: 1px solid #2d3748; border-radius: 8px; padding: 20px; }
+    .btn { background: #3b82f6; color: #fff; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; }
+    .btn:hover { background: #2563eb; }
+  </style>
+</head>
+<body>
+  <div class="nexus-header">
+    <h1>⚡ PLT Autonomous Agent Operations & Task Command Nexus</h1>
+    <nav><a href="index.html" style="color:#60a5fa;">← Return to Dashboard</a></nav>
+  </div>
+  <div class="nexus-grid">
+    <div class="card">
+      <h2>Live Agent Active Dispatcher</h2>
+      <div id="active-dispatcher-stream">[System Ready] Monitoring active loops...</div>
+    </div>
+    <div class="card">
+      <h2>Council Execution Directive Injector</h2>
+      <button class="btn" onclick="injectDirective('PROFIT_PRIME', 'OPTIMIZE_YIELD')">Prime: Maximize Yield</button>
+      <button class="btn" onclick="injectDirective('LOVE_WEAVER', 'BOND_COMMUNITY')">Love Weaver: Strengthen Bonds</button>
+    </div>
+  </div>
+  <script>
+    function injectDirective(council, action) {
+      console.log('Directive Injected:', council, action);
+      const stream = document.getElementById('active-dispatcher-stream');
+      if(stream) stream.innerText = `[DIRECTIVE SENT] ${council}: ${action}`;
+    }
+    window.addEventListener('DOMContentLoaded', () => {
+      console.log('PLT Operations Nexus Initialized.');
+    });
+  </script>
+</body>
+</html>

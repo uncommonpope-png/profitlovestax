@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GSK Telemetry Visualizer — Machine Aesthetics & PLT Flux</title>
+<style>
+  :root {
+    --bg: #05070a;
+    --panel-bg: rgba(10, 15, 24, 0.85);
+    --border: #1e293b;
+    --profit: #10b981;
+    --love: #ec4899;
+    --tax: #ef4444;
+    --cyan: #06b6d4;
+    --text: #e2e8f0;
+    --dim: #64748b;
+    --font: 'JetBrains Mono', monospace, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font); overflow-x: hidden; font-size: 13px; }
+  header { display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; border-bottom: 1px solid var(--border); background: rgba(5, 7, 10, 0.95); sticky: top; }
+  .title { font-size: 1.1rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--cyan); display: flex; align-items: center; gap: 8px; }
+  .badge { background: rgba(6, 182, 212, 0.15); border: 1px solid var(--cyan); color: var(--cyan); padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; }
+  .grid { display: grid; grid-template-columns: 320px 1fr 340px; gap: 16px; padding: 16px; min-height: calc(100vh - 60px); }
+  .panel { background: var(--panel-bg); border: 1px solid var(--border); border-radius: 6px; padding: 14px; backdrop-filter: blur(8px); display: flex; flex-direction: column; gap: 12px; }
+  .panel-header { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; color: var(--dim); border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 6px; flex-shrink: 0; }
+  .stat-card { background: rgba(0,0,0,0.3); border: 1px solid var(--border); padding: 10px; border-radius: 4px; }
+  .stat-val { font-size: 1.4rem; font-weight: 700; margin-top: 4px; }
+  canvas { width: 100%; height: 260px; border-radius: 4px; background: rgba(0,0,0,0.5); display: block; }
+  .plt-flux { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .plt-box { text-align: center; padding: 8px; border-radius: 4px; font-weight: bold; }
+  .profit-box { border: 1px solid var(--profit); color: var(--profit); background: rgba(16,185,129,0.1); }
+  .love-box { border: 1px solid var(--love); color: var(--love); background: rgba(236,72,153,0.1); }
+  .tax-box { border: 1px solid var(--tax); color: var(--tax); background: rgba(239,68,68,0.1); }
+  #log-stream { font-family: monospace; font-size: 11px; height: 180px; overflow-y: auto; display: flex; flex-direction: column-reverse; gap: 4px; color: var(--dim); }
+  .log-line { border-left: 2px solid var(--cyan); padding-left: 6px; }
+</style>
+</head>
+<body>
+<header>
+  <div class="title"><span>GSK TELEMETRY</span> <span class="badge">LIVE STATE</span></div>
+  <div id="system-clock">00:00:00 UTC</div>
+</header>
+<main class="grid">
+  <section class="panel">
+    <div class="panel-header">Agent Identity & State</div>
+    <div class="stat-card">
+      <div>Agent Name</div>
+      <div class="stat-val" style="color: var(--cyan);">Profit (GSK)</div>
+    </div>
+    <div class="stat-card">
+      <div>Current Mode</div>
+      <div class="stat-val">Strict / Version 291</div>
+    </div>
+    <div class="stat-card">
+      <div>PLT Net Value Formula</div>
+      <div style="margin-top:6px; color: var(--dim); font-size:0.8rem;">True Value = Profit + Love - Tax</div>
+    </div>
+    <div class="panel-header" style="margin-top:10px;">PLT Flux Allocation</div>
+    <div class="plt-flux">
+      <div class="plt-box profit-box">P: <span id="plt-p">0.90</span></div>
+      <div class="plt-box love-box">L: <span id="plt-l">0.05</span></div>
+      <div class="plt-box tax-box">T: <span id="plt-t">0.05</span></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-header">Real-Time PLT Waveform & Agent Neural State Canvas</div>
+    <canvas id="plt-canvas"></canvas>
+    <div class="panel-header">Agent Event Telemetry Stream</div>
+    <div id="log-stream"></div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-header">Council Status & Metrics</div>
+    <div class="stat-card">
+      <div>Profit Prime</div>
+      <div style="color: var(--profit); font-weight: bold;">Active — Score 0.85</div>
+    </div>
+    <div class="stat-card">
+      <div>Love Weaver</div>
+      <div style="color: var(--love); font-weight: bold;">Active — Score 0.80</div>
+    </div>
+    <div class="stat-card">
+      <div>Tax Collector</div>
+      <div style="color: var(--tax); font-weight: bold;">Guarding — Tax 0.05</div>
+    </div>
+    <div class="stat-card">
+      <div>Harvester</div>
+      <div style="color: var(--cyan); font-weight: bold;">Yielding — 0.70</div>
+    </div>
+  </section>
+</main>
+
+<script>
+  const canvas = document.getElementById('plt-canvas');
+  const ctx = canvas.getContext('2d');
+  let t = 0;
+
+  function resizeCanvas() {
+    canvas.width = canvas.clientWidth;
+    canvas.height = canvas.clientHeight;
+  }
+  window.addEventListener('resize', resizeCanvas);
+  resizeCanvas();
+
+  function drawTelemetry() {
+    t += 0.05;
+    ctx.fillStyle = 'rgba(5, 7, 10, 0.2)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    const cy = canvas.height / 2;
+    ctx.lineWidth = 2;
+
+    // Profit sine wave
+    ctx.beginPath();
+    ctx.strokeStyle = '#10b981';
+    for (let x = 0; x < canvas.width; x += 2) {
+      let y = cy + Math.sin(x * 0.02 + t) * 35 + Math.cos(x * 0.05 + t * 1.5) * 10;
+      if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+
+    // Love sine wave
+    ctx.beginPath();
+    ctx.strokeStyle = '#ec4899';
+    for (let x = 0; x < canvas.width; x += 2) {
+      let y = cy + Math.cos(x * 0.015 - t * 0.8) * 25;
+      if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+
+    // Tax line
+    ctx.beginPath();
+    ctx.strokeStyle = '#ef4444';
+    for (let x = 0; x < canvas.width; x += 2) {
+      let y = cy + Math.sin(x * 0.03 + t * 2.0) * 8 + 45;
+      if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+
+    requestAnimationFrame(drawTelemetry);
+  }
+  drawTelemetry();
+
+  const logs = [
+    "Agent initialized in strict mode",
+    "PLT formula verified: P + L - T = True Value",
+    "Council state: Profit Prime leads telemetry stream",
+    "Telemetry heartbeat online",
+    "Agent state telemetry live rendering..."
+  ];
+  const stream = document.getElementById('log-stream');
+  logs.forEach(msg => {
+    const div = document.createElement('div');
+    div.className = 'log-line';
+    div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+    stream.appendChild(div);
+  });
+  setInterval(() => {
+    document.getElementById('system-clock').textContent = new Date().toISOString().substring(11, 19) + ' UTC';
+  }, 1000);
+</script>
+</body>
+</html>

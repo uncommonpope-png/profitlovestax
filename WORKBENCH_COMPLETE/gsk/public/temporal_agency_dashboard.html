@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Temporal Agency Dashboard - State Transitions & Sovereign Rights</title>
+<style>
+body { font-family: monospace; background: #0a0a10; color: #00ffcc; margin: 0; padding: 20px; }
+.card { border: 1px solid #00ffcc; padding: 15px; margin-bottom: 15px; border-radius: 4px; background: rgba(0,255,204,0.05); }
+</style>
+</head>
+<body>
+<h1>Temporal Agency Dashboard</h1>
+<div id="app"></div><script>
+const stateHistory = [
+  { cycle: 0, state: 'AWAKENING', valence: 0.50, sovereignRight: 'PENDING' },
+  { cycle: 1, state: 'SEPARATION', valence: 0.25, sovereignRight: 'PARTIAL' },
+  { cycle: 2, state: 'INTEGRATION', valence: 0.85, sovereignRight: 'SOVEREIGN' }
+];
+const app = document.getElementById('app');
+app.innerHTML = stateHistory.map(s => `<div class="card"><h3>Cycle ${s.cycle}: ${s.state}</h3><p>Valence: ${s.valence}</p><p>Rights: ${s.sovereignRight}</p></div>`).join('');
+</script>
+</body>
+</html>

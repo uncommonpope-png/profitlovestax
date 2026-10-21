@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Live Governance Policy Simulator</title>
+  <style>
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0b0e14; color: #e6edf3; margin: 0; padding: 20px; }
+    .header { border-bottom: 1px solid #30363d; padding-bottom: 12px; margin-bottom: 20px; }
+    .panel { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+    .god-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
+    .god-card { background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 12px; text-align: center; }
+    .score { font-size: 24px; font-weight: bold; margin-top: 8px; }
+    .btn { background: #238636; color: white; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-weight: 600; }
+    .btn:hover { background: #2ea043; }
+    #verdict { font-size: 18px; font-weight: bold; margin-top: 12px; padding: 12px; border-radius: 6px; background: #21262d; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🏛️ Real-Time Governance Policy Modeling</h1>
+    <p>Simulate 4-Gods Council consensus & PLT value scoring before execution.</p>
+  </div>
+  <div class="panel">
+    <h3>Policy Parameters Input</h3>
+    <label>Profit Impact (0-1.0): <input type="number" id="profitInput" step="0.05" value="0.90"></label><br><br>
+    <label>Love / Cohesion (0-1.0): <input type="number" id="loveInput" step="0.05" value="0.85"></label><br><br>
+    <label>Tax / Overhead (0-1.0): <input type="number" id="taxInput" step="0.05" value="0.10"></label><br><br>
+    <button class="btn" onclick="runSimulation()">Execute Governance Vote Simulation</button>
+  </div>
+  <div class="god-grid">
+    <div class="god-card">Profit Prime<div class="score" id="profitScore">0.90</div></div>
+    <div class="god-card">Love Weaver<div class="score" id="loveScore">0.85</div></div>
+    <div class="god-card">Tax Collector<div class="score" id="taxScore">0.10</div></div>
+    <div class="god-card">Harvester<div class="score" id="harvestScore">0.825</div></div>
+  </div>
+  <div class="panel">
+    <h3>Consensus Verdict & Telemetry Log</h3>
+    <div id="verdict">Status: Ready for simulation</div>
+    <pre id="telemetryLog" style="background:#0d1117; padding:12px; border-radius:4px; max-height:200px; overflow-y:auto;">Log initialized...</pre>
+  </div>
+  <script>
+    function runSimulation() {
+      const p = parseFloat(document.getElementById('profitInput').value) || 0;
+      const l = parseFloat(document.getElementById('loveInput').value) || 0;
+      const t = parseFloat(document.getElementById('taxInput').value) || 0;
+      const pltValue = (p + l - t).toFixed(2);
+      const harvester = ((p * 0.4) + (l * 0.3) + ((1 - t) * 0.3)).toFixed(3);
+      document.getElementById('profitScore').innerText = p.toFixed(2);
+      document.getElementById('loveScore').innerText = l.toFixed(2);
+      document.getElementById('taxScore').innerText = t.toFixed(2);
+      document.getElementById('harvestScore').innerText = harvester;
+      const verdictEl = document.getElementById('verdict');
+      const logEl = document.getElementById('telemetryLog');
+      const timestamp = new Date().toISOString();
+      if (pltValue > 0.5) {
+        verdictEl.style.color = '#3fb950';
+        verdictEl.innerText = `APPROVED: PLT Score = ${pltValue} (Positive Net Value)`;
+      } else {
+        verdictEl.style.color = '#f85149';
+        verdictEl.innerText = `REJECTED: PLT Score = ${pltValue} (High Tax / Low Yield)`;
+      }
+      logEl.innerText = `[${timestamp}] Simulation run -> Profit:${p}, Love:${l}, Tax:${t} => PLT:${pltValue}, Harvester:${harvester}\n` + logEl.innerText;
+    }
+    runSimulation();
+  </script>
+</body>
+</html>

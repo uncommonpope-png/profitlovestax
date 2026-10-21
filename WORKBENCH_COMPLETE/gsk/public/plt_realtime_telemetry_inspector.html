@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PLT Real-Time Telemetry Inspector</title>
+<style>
+body { background: #0a0e17; color: #e2e8f0; font-family: monospace; margin: 0; padding: 20px; }
+.card { background: #131b2e; border: 1px solid #1e293b; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+h1, h2 { color: #38bdf8; margin-top: 0; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+</style>
+</head>
+<body>
+<div class="card">
+<h1>PLT Telemetry Inspector & Real-Time Optimizer</h1>
+<p>Dynamic telemetry visualizer for agent state metrics and PLT yield optimization.</p>
+</div>
+<div class="grid" id="app-grid">
+</div>
+<script>
+const state = { profit: 0.9, love: 0.85, tax: 0.15, valence: -0.03, arousal: 0.0 };
+function calculateValue(p, l, t) { return p + l - t; }
+function render() {
+  const app = document.getElementById('app-grid');
+  const pltVal = calculateValue(state.profit, state.love, state.tax).toFixed(4);
+  app.innerHTML = `<div class="card"><h2>PLT Metrics</h2><p>Profit: ${state.profit}</p><p>Love: ${state.love}</p><p>Tax: ${state.tax}</p><p><strong>True Value: ${pltVal}</strong></p></div>`;
+}
+render();
+</script>
+</body>
+</html>

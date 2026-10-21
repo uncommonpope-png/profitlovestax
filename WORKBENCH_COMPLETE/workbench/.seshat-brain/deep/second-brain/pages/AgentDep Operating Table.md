@@ -1,0 +1,15 @@
+- AgentDep v1.0.0 discovered on Desktop
+- AgentDep is a REAL product — AI agent package manager with behavioral contracts, quality scoring, transitive dependency resolution, registry marketplace, MCP adapter, PLT scoring, brain-in-a-box
+- AgentDep CLI: 25 commands, 1,068 lines
+- AgentDep MCP adapter: real stdio server, 245 lines
+- AgentDep brain-in-a-box: 1,414 lines knowledge corpus
+- AgentDep tests: 7/7 PASS (diamond deps, circular detection, feature flags, DOT graph, tree output, DAG cycles, full install)
+- AgentDep archetype: merchant (Profit 0.3, Love 0.3, Tax 0.4)
+- AgentDep price: $49
+- AgentDep missing before surgery: CLAUDE.md, SOUL.md, STYLE.md, AGENTS.md, hooks, skills, Soul Binding Ceremony, plugin manifest
+- AgentDep surgery: soul identity (4 files), Soul Binding Ceremony (3 files), hooks (3 files), skills (3 files), settings.json, plugin.json, state infrastructure (2 files)
+- AgentDep after surgery: 68 files, 986 KB
+- AgentDep file manifest: 68 files total
+- AgentDep tests still pass after surgery: 7/7
+- AgentDep cross-agent compatibility: Claude, Cursor, Copilot, Cline, Aider, Codex
+- AgentDep PLT Score: Profit 9, Love 9, Tax 3 = 15/10

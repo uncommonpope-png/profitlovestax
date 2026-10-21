@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dynamic Cognition & PLT Telemetry Visualizer</title>
+  <style>
+    body { margin: 0; padding: 20px; background: #05070c; color: #00ffcc; font-family: 'Courier New', monospace; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+    header { border-bottom: 1px solid #00ffcc44; padding-bottom: 10px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
+    .grid { display: grid; grid-template-columns: 2fr 1fr; gap: 15px; flex: 1; }
+    .panel { background: rgba(10, 15, 25, 0.8); border: 1px solid #00ffcc33; border-radius: 6px; padding: 15px; box-shadow: 0 0 15px rgba(0, 255, 204, 0.05); display: flex; flex-direction: column; }
+    canvas { width: 100%; height: 100%; border: 1px solid #00ffcc22; background: #020306; }
+  </style>
+  <!-- Autonomous Swarm Orchestration Telemetry Module Enabled -->
+</head>
+<body>
+  <header>
+    <h2>DYNAMIC AGENT COGNITION & PLT TELEMETRY VISUALIZER</h2>
+    <div>STATUS: <span style="color:#00ff88;">ONLINE</span> | FINGERPRINT: e53792ea</div>
+  </header>
+  <div class="grid">
+    <div class="panel">
+      <h3>Cognitive State Loop & Swarm Neural Flow</h3>
+      <canvas id="cognitionCanvas"></canvas>
+    </div>
+    <div class="panel">
+      <h3>PLT Value Telemetry (Profit, Love, Tax)</h3>
+      <canvas id="pltCanvas"></canvas>
+    </div>
+  </div>
+  <script>
+    const cogCanvas = document.getElementById('cognitionCanvas');
+    const pltCanvas = document.getElementById('pltCanvas');
+    const cogCtx = cogCanvas.getContext('2d');
+    const pltCtx = pltCanvas.getContext('2d');
+    function resize() {
+      cogCanvas.width = cogCanvas.clientWidth;
+      cogCanvas.height = cogCanvas.clientHeight;
+      pltCanvas.width = pltCanvas.clientWidth;
+      pltCanvas.height = pltCanvas.clientHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+    let frame = 0;
+    const history = [];
+    function draw() {
+      frame++;
+      const cw = cogCanvas.width, ch = cogCanvas.height;
+      const pw = pltCanvas.width, ph = pltCanvas.height;
+      cogCtx.fillStyle = '#020306'; cogCtx.fillRect(0,0,cw,ch);
+      pltCtx.fillStyle = '#020306'; pltCtx.fillRect(0,0,pw,ph);
+      const cx = cw/2, cy = ch/2, r = Math.min(cw,ch)*0.3;
+      cogCtx.strokeStyle = 'rgba(0,255,204,0.3)'; cogCtx.beginPath(); cogCtx.arc(cx,cy,r,0,Math.PI*2); cogCtx.stroke();
+      const nodes = ['PERCEPT', 'ATTEND', 'DELIBERATE', 'ACT', 'EVALUATE'];
+      nodes.forEach((n, idx) => {
+        const angle = (idx / nodes.length) * Math.PI * 2 + frame * 0.01;
+        const nx = cx + Math.cos(angle)*r, ny = cy + Math.sin(angle)*r;
+        cogCtx.fillStyle = '#00ffcc'; cogCtx.beginPath(); cogCtx.arc(nx,ny,8,0,Math.PI*2); cogCtx.fill();
+        cogCtx.fillStyle = '#ffffff'; cogCtx.fillText(n, nx + 12, ny + 4);
+      });
+      const p = 0.5 + 0.4*Math.sin(frame*0.03);
+      const l = 0.5 + 0.4*Math.cos(frame*0.02);
+      const t = 0.1 + 0.05*Math.sin(frame*0.05);
+      history.push({p,l,t});
+      if(history.length > pw) history.shift();
+      pltCtx.beginPath();
+      history.forEach((h, i) => {
+        const y = ph - h.p * ph * 0.8 - 20;
+        if(i===0) pltCtx.moveTo(i, y); else pltCtx.lineTo(i, y);
+      });
+      pltCtx.strokeStyle = '#00ff88'; pltCtx.lineWidth = 2; pltCtx.stroke();
+      requestAnimationFrame(draw);
+    }
+    draw();
+  </script>
+</body>
+</html>

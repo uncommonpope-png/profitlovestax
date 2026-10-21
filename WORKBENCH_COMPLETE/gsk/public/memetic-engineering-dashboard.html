@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Memetic Engineering & PLT Value Flow Telemetry</title>
+<style>
+body { margin: 0; background: #0b0f19; color: #e2e8f0; font-family: system-ui, sans-serif; overflow: hidden; }
+.glass { background: rgba(15, 23, 42, 0.65); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; }
+#header { position: absolute; top: 16px; left: 16px; right: 16px; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; z-index: 10; }
+#plt-counters { display: flex; gap: 24px; font-weight: 600; }
+.plt-val { font-size: 1.25rem; font-family: monospace; }
+#canvas { width: 100vw; height: 100vh; display: block; }
+#feed { position: absolute; bottom: 16px; left: 16px; width: 360px; max-height: 240px; overflow-y: auto; padding: 12px; font-size: 0.85rem; font-family: monospace; z-index: 10; }
+</style>
+</head>
+<body>
+<div id="header" class="glass">
+  <div>
+    <h1 style="margin:0; font-size: 1.2rem; text-transform: uppercase; letter-spacing: 0.05em; color: #38bdf8;">Memetic Engineering Telemetry</h1>
+    <div style="font-size: 0.75rem; color: #94a3b8;">Real-time Viral Propagation & PLT Value Optimization</div>
+  </div>
+  <div id="plt-counters">
+    <div>Profit: <span id="plt-profit" class="plt-val" style="color: #4ade80;">0.00</span></div>
+    <div>Love: <span id="plt-love" class="plt-val" style="color: #f472b6;">0.00</span></div>
+    <div>Tax: <span id="plt-tax" class="plt-val" style="color: #fbbf24;">0.00</span></div>
+    <div>Net PLT: <span id="plt-net" class="plt-val" style="color: #38bdf8;">+0.00</span></div>
+  </div>
+</div>
+<canvas id="canvas"></canvas>
+<div id="feed" class="glass">-- Telemetry Log initialized --</div>
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+let width = canvas.width = window.innerWidth;
+let height = canvas.height = window.innerHeight;
+window.addEventListener('resize', () => { width = canvas.width = window.innerWidth; height = canvas.height = window.innerHeight; });
+
+const nodes = [];
+const memeTypes = [
+  { name: 'Sovereign Protocol', r0: 2.8, profitWeight: 0.9, loveWeight: 0.05, taxWeight: 0.05, color: '#38bdf8' },
+  { name: 'Resonant Bond', r0: 3.4, profitWeight: 0.1, loveWeight: 0.85, taxWeight: 0.05, color: '#f472b6' },
+  { name: 'System Audit', r0: 1.5, profitWeight: 0.05, loveWeight: 0.05, taxWeight: 0.9, color: '#fbbf24' }
+];
+
+for (let i = 0; i < 40; i++) {
+  nodes.push({
+    x: Math.random() * width,
+    y: Math.random() * height,
+    vx: (Math.random() - 0.5) * 1.5,
+    vy: (Math.random() - 0.5) * 1.5,
+    infected: i < 3,
+    meme: memeTypes[i % 3],
+    virality: Math.random() * 0.8 + 0.2,
+    pltAccumulated: 0
+  });
+}
+
+let profitTotal = 100, loveTotal = 85, taxTotal = 15;
+const logEl = document.getElementById('feed');
+
+function logEvent(msg) {
+  const item = document.createElement('div');
+  item.style.marginBottom = '4px';
+  item.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
+  item.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+  logEl.prepend(item);
+}
+
+function update() {
+  nodes.forEach(n => {
+    n.x += n.vx; n.y += n.vy;
+    if (n.x < 0 || n.x > width) n.vx *= -1;
+    if (n.y < 0 || n.y > height) n.vy *= -1;
+    if (n.infected) {
+      profitTotal += n.meme.profitWeight * 0.02;
+      loveTotal += n.meme.loveWeight * 0.02;
+      taxTotal += n.meme.taxWeight * 0.005;
+    }
+  });
+  document.getElementById('plt-profit').textContent = profitTotal.toFixed(2);
+  document.getElementById('plt-love').textContent = loveTotal.toFixed(2);
+  document.getElementById('plt-tax').textContent = taxTotal.toFixed(2);
+  document.getElementById('plt-net').textContent = '+' + (profitTotal + loveTotal - taxTotal).toFixed(2);
+}
+function render() {
+  ctx.fillStyle = 'rgba(11, 15, 25, 0.2)';
+  ctx.fillRect(0, 0, width, height);
+  for (let i = 0; i < nodes.length; i++) {
+    for (let j = i + 1; j < nodes.length; j++) {
+      const dx = nodes[i].x - nodes[j].x;
+      const dy = nodes[i].y - nodes[j].y;
+      const dist = Math.hypot(dx, dy);
+      if (dist < 150) {
+        ctx.strokeStyle = nodes[i].infected ? nodes[i].meme.color : 'rgba(255,255,255,0.05)';
+        ctx.lineWidth = Math.max(0.2, (150 - dist) / 50);
+        ctx.beginPath(); ctx.moveTo(nodes[i].x, nodes[i].y); ctx.lineTo(nodes[j].x, nodes[j].y); ctx.stroke();
+        if (dist < 60 && nodes[i].infected && !nodes[j].infected && Math.random() < 0.02) {
+          nodes[j].infected = true;
+          nodes[j].meme = nodes[i].meme;
+          logEvent(`Viral contagion: Node #${j} infected with ${nodes[i].meme.name}`);
+        }
+      }
+    }
+  }
+  nodes.forEach(n => {
+    ctx.fillStyle = n.infected ? n.meme.color : '#475569';
+    ctx.beginPath(); ctx.arc(n.x, n.y, n.infected ? 6 : 4, 0, Math.PI * 2); ctx.fill();
+  });
+}
+
+function loop() { update(); render(); requestAnimationFrame(loop); }
+loop();
+setInterval(() => {
+  logEvent(`Memetic velocity: ${nodes.filter(n => n.infected).length}/${nodes.length} hosts resonant`);
+}, 4000);
+</script>
+</body>
+</html>

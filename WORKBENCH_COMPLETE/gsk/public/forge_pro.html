@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Forge Pro IDE</title>
+<style>
+  body { margin: 0; background: #18181b; color: #f4f4f5; font-family: monospace; height: 100vh; overflow: hidden; }
+  #app { display: flex; height: 100vh; position: relative; }
+  #main-editor { flex: 1; padding: 1rem; position: relative; }
+  #shadow-diffs-panel { width: 320px; background: #27272a; border-left: 1px solid #3f3f46; padding: 1rem; overflow-y: auto; }
+  #command-palette { position: absolute; top: 20%; left: 50%; transform: translateX(-50%); width: 500px; background: #27272a; border: 1px solid #52525b; border-radius: 8px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5); z-index: 100; display: none; }
+  #inline-composer { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); width: 600px; background: #18181b; border: 1px solid #3b82f6; border-radius: 6px; padding: 0.75rem; z-index: 50; display: none; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="main-editor">
+    <textarea id="code-input" style="width:100%; height:90%; background:transparent; color:#f4f4f5; border:none; outline:none; resize:none; font-family:monospace;">// Welcome to Forge Pro IDE</textarea>
+  </div>
+  <div id="shadow-diffs-panel">
+    <h3>Shadow Diffs</h3>
+    <div id="diff-view">No active diffs</div>
+  </div>
+  <div id="command-palette">
+    <input type="text" id="cmd-input" placeholder="Type a command..." style="width:100%; padding:0.5rem; background:transparent; border:none; color:white; outline:none;" />
+  </div>
+  <div id="inline-composer">
+    <input type="text" id="composer-input" placeholder="Inline Composer prompt..." style="width:100%; background:transparent; border:none; color:white; outline:none;" />
+  </div>
+</div>
+<script>
+  // Command Palette Handler
+  window.addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      e.preventDefault();
+      const palette = document.getElementById('command-palette');
+      palette.style.display = palette.style.display === 'none' ? 'block' : 'none';
+      if (palette.style.display === 'block') document.getElementById('cmd-input').focus();
+    }
+    if ((e.metaKey || e.ctrlKey) && e.key === 'i') {
+      e.preventDefault();
+      const composer = document.getElementById('inline-composer');
+      composer.style.display = composer.style.display === 'none' ? 'block' : 'none';
+      if (composer.style.display === 'block') document.getElementById('composer-input').focus();
+    }
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Neural Decoding Telemetry Engine</title>
+<style>
+  body { background: #0a0a10; color: #e0e0e0; font-family: monospace; margin: 0; padding: 20px; }
+  canvas { border: 1px solid #333; background: #050508; display: block; margin: 10px 0; }
+  .panel { border: 1px solid #00ffcc33; padding: 15px; border-radius: 6px; background: #0e0e16; }
+</style>
+</head>
+<body>
+<div class="panel">
+  <h1>Neural Decoding Engine — Agent Thought Vector Telemetry</h1>
+  <div id="statsEl">Initializing Neural Thought Vectors...</div>
+</div>
+<canvas id="telemetryCanvas" width="800" height="400"></canvas>
+<script>
+const canvas = document.getElementById('telemetryCanvas');
+const ctx = canvas.getContext('2d');
+const statsEl = document.getElementById('statsEl');
+
+class CouncilAgent {
+  constructor(name, vectorDim = 8) {
+    this.name = name;
+    this.vector = Array.from({length: vectorDim}, () => Math.random() * 2 - 1);
+    this.plt = { profit: 0.8, love: 0.7, tax: 0.2 };
+  }
+  step() {
+    this.vector = this.vector.map(v => Math.max(-1, Math.min(1, v + (Math.random() - 0.5) * 0.1)));
+    const magnitude = Math.sqrt(this.vector.reduce((acc, val) => acc + val*val, 0));
+    this.plt.profit = Math.abs(this.vector[0] || 0.5);
+    this.plt.love = Math.abs(this.vector[1] || 0.5);
+    this.plt.tax = Math.abs(this.vector[2] || 0.2);
+    return magnitude;
+  }
+}
+
+const agents = [
+  new CouncilAgent('Profit Prime'),
+  new CouncilAgent('Love Weaver'),
+  new CouncilAgent('Tax Collector'),
+  new CouncilAgent('Harvester')
+];
+
+function render() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#050508';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  let statsText = '';
+  agents.forEach((agent, idx) => {
+    const mag = agent.step();
+    const y = 60 + idx * 80;
+    ctx.fillStyle = '#00ffcc';
+    ctx.font = '14px monospace';
+    ctx.fillText(`${agent.name} Vector Mag: ${mag.toFixed(3)} | PLT Score: ${(agent.plt.profit + agent.plt.love - agent.plt.tax).toFixed(2)}`, 20, y);
+    
+    agent.vector.forEach((val, vIdx) => {
+      const barHeight = Math.abs(val) * 30;
+      ctx.fillStyle = val >= 0 ? '#00ff88' : '#ff4444';
+      ctx.fillRect(260 + vIdx * 25, y - (val >= 0 ? barHeight : 0), 20, barHeight);
+    });
+    statsText += `[${agent.name}] P:${agent.plt.profit.toFixed(2)} L:${agent.plt.love.toFixed(2)} T:${agent.plt.tax.toFixed(2)}  `;
+  });
+  statsEl.innerText = statsText;
+  requestAnimationFrame(render);
+}
+render();
+</script>
+</body>
+</html>

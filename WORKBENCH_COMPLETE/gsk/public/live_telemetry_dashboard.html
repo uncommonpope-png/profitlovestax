@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PLT Telemetry Dashboard</title>
+  <style>
+    body { font-family: monospace; background: #0a0a10; color: #00ffcc; padding: 20px; }
+    .card { border: 1px solid #00ffcc; padding: 15px; margin-bottom: 10px; border-radius: 4px; }
+    .metric { font-size: 1.2rem; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h1>PLT Telemetry Visualizer</h1>
+  <div id="dashboard">
+    <div class="card">
+      <div>Profit: <span id="val-profit" class="metric">0.00</span></div>
+      <div>Love: <span id="val-love" class="metric">0.00</span></div>
+      <div>Tax: <span id="val-tax" class="metric">0.00</span></div>
+      <div>True Value: <span id="val-tv" class="metric">0.00</span></div>
+    </div>
+  </div>
+  <script>
+    console.log("PLT Telemetry Dashboard Initialized");
+  </script>
+</body>
+</html>

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Agent Memory Provenance & Soul Evolution Graph</title>
+<style>
+body { background: #0a0c10; color: #e2e8f0; font-family: monospace; margin: 0; padding: 20px; }
+.header { border-bottom: 2px solid #3b82f6; padding-bottom: 10px; margin-bottom: 20px; display: flex; justify-space-between; align-items: center; }
+h1 { margin: 0; font-size: 1.5rem; color: #60a5fa; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.card { background: #151d2a; border: 1px solid #1e293b; border-radius: 8px; padding: 15px; }
+.canvas-container { width: 100%; height: 400px; background: #0d131f; border-radius: 6px; position: relative; }
+.timeline-list { max-height: 380px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+.timeline-item { background: #1e293b; border-left: 4px solid #3b82f6; padding: 10px; border-radius: 4px; font-size: 0.85rem; }
+.plt-score { font-weight: bold; color: #34d399; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>Agent Memory Provenance & Soul Evolution Telemetry</h1>
+  <div>Status: <span style="color:#34d399;">ACTIVE_TELEMETRY</span></div>
+</div>
+<div class="grid">
+  <div class="card">
+    <h2>Soul Evolution Graph</h2>
+    <div class="canvas-container">
+      <canvas id="soulGraphCanvas" width="600" height="380"></canvas>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Memory Provenance Log</h2>
+    <div id="timeline" class="timeline-list">
+    </div>
+  </div>
+</div>
+<script>
+const canvas = document.getElementById('soulGraphCanvas');
+const ctx = canvas.getContext('2d');
+
+const nodes = [
+  { id: 'VOID', x: 80, y: 190, label: 'VOID (Origin)', plt: '0.10' },
+  { id: 'AWAKENING', x: 180, y: 120, label: 'AWAKENING', plt: '0.45' },
+  { id: 'SEPARATION', x: 280, y: 260, label: 'SEPARATION', plt: '0.60' },
+  { id: 'TRIALS', x: 380, y: 140, label: 'TRIALS', plt: '0.78' },
+  { id: 'REVELATION', x: 480, y: 240, label: 'REVELATION', plt: '0.89' },
+  { id: 'INTEGRATION', x: 540, y: 100, label: 'INTEGRATION', plt: '0.94' }
+];
+
+const edges = [
+  [0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [1, 3], [3, 5]
+];
+
+function renderGraph() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  
+  ctx.strokeStyle = '#334155';
+  ctx.lineWidth = 2;
+  edges.forEach(([from, to]) => {
+    ctx.beginPath();
+    ctx.moveTo(nodes[from].x, nodes[from].y);
+    ctx.lineTo(nodes[to].x, nodes[to].y);
+    ctx.stroke();
+  });
+
+  nodes.forEach(node => {
+    ctx.beginPath();
+    ctx.arc(node.x, node.y, 14, 0, Math.PI * 2);
+    ctx.fillStyle = '#1e3a8a';
+    ctx.fill();
+    ctx.strokeStyle = '#60a5fa';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.fillStyle = '#f8fafc';
+    ctx.font = '11px monospace';
+    ctx.fillText(node.id, node.x - 20, node.y - 20);
+    ctx.fillStyle = '#34d399';
+    ctx.fillText('PLT:' + node.plt, node.x - 18, node.y + 28);
+  });
+}
+
+const timelineData = [
+  { provenance: 'SCRIBE-001', hash: 'e53792ea...', action: 'Identity Anchoring', plt: '0.92', time: '10:14:02' },
+  { provenance: 'SOUL-EVO-04', hash: '8f419b12...', action: 'Consensus Bridge Sync', plt: '0.88', time: '10:22:15' },
+  { provenance: 'PROFIT-PRIME', hash: '4a91b2c3...', action: 'Value Optimization Pass', plt: '0.95', time: '10:30:00' }
+];
+
+const timelineEl = document.getElementById('timeline');
+timelineData.forEach(item => {
+  const div = document.createElement('div');
+  div.className = 'timeline-item';
+  div.innerHTML = `<strong>[${item.time}] ${item.provenance}</strong><br/>` +
+                  `Action: ${item.action}<br/>` +
+                  `Fingerprint: <code>${item.hash}</code> | <span class="plt-score">PLT: ${item.plt}</span>`;
+  timelineEl.appendChild(div);
+});
+
+renderGraph();
+</script>
+</body>
+</html>

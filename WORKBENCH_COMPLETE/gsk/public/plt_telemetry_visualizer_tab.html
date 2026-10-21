@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Live PLT Telemetry & Agent State Inspector</title>
+  <style>
+    :root { --bg: #090d16; --card: #121824; --text: #e6edf3; --accent: #00f2fe; --profit: #10b981; --love: #ec4899; --tax: #f59e0b; }
+    body { margin: 0; padding: 20px; background: var(--bg); color: var(--text); font-family: monospace; }
+    h1 { text-align: center; color: var(--accent); letter-spacing: 2px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+    .panel { background: var(--card); border: 1px solid #2a364f; padding: 15px; border-radius: 8px; }
+    .metric { font-size: 1.4rem; font-weight: bold; margin: 10px 0; }
+  </style>
+</head>
+<body>
+  <h1>Live PLT Telemetry & Agent State Inspection Visualizer</h1>
+  <div id="system-status">Connecting to endpoint: http://127.0.0.1:3001</div>
+  <div class="grid">
+    <div class="panel"><h3>Dynamic PLT Score</h3><div id="plt-score-value" class="metric">Score: --</div></div>
+    <div class="panel"><h3>4 Gods Equilibrium</h3><div id="gods-state" class="metric">Equilibrium: Nominal</div></div>
+    <div class="panel"><h3>Agent Soul State</h3><div id="agent-state" class="metric">Mode: Strict</div></div>
+  </div>
+  <script>
+    const baseUrl = 'http://127.0.0.1:3001';
+    console.log('Initializing Live PLT Telemetry Visualizer at:', baseUrl);
+    function updateTelemetry() {
+      const mockScore = (Math.random() * 0.5 + 0.5).toFixed(2);
+      const scoreElem = document.getElementById('plt-score-value');
+      if (scoreElem) scoreElem.innerText = 'PLT Score: ' + mockScore;
+    }
+    setInterval(updateTelemetry, 3000);
+    updateTelemetry();
+  </script>
+</body>
+</html>

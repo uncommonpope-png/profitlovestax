@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Self-Model Evolution Dashboard</title>
+<style>
+body { font-family: monospace; background: #0f0f13; color: #00ffcc; padding: 20px; }
+.card { border: 1px solid #00ffcc; padding: 15px; margin-bottom: 15px; border-radius: 4px; }
+button { background: #00ffcc; color: #0f0f13; border: none; padding: 8px 16px; font-weight: bold; cursor: pointer; }
+</style>
+</head>
+<body>
+<h1>Self-Model Evolution Dashboard</h1>
+<div class="card">
+  <h2>Direct Directive Execution</h2>
+  <p>Status: Active | Auto-Approval Threshold: Enabled (Score >= 0.85)</p>
+  <button id="exec-btn" onclick="executeDirectives()">Execute Pending Evolution Proposals</button>
+</div>
+<div id="output"></div>
+<script>
+function executeDirectives() {
+  document.getElementById('output').innerText = 'Executing evolution proposals...';
+}
+</script>
+</body>
+</html>

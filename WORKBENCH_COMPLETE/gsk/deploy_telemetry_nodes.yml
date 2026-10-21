@@ -1,0 +1,72 @@
+---
+- name: Deploy GSK Telemetry Nodes
+  hosts: telemetry_nodes
+  gather_facts: yes
+  vars:
+    gsk_telemetry_port: 3001
+    gsk_telemetry_service_name: gsk-telemetry-node
+    gsk_telemetry_repo: "https://github.com/gsk/gsk-telemetry-node.git"
+  pre_tasks:
+    - name: Check Ansible can connect (fail fast)
+      ping:
+    - name: Validate target is Ubuntu/Debian
+      assert:
+        that: ansible_os_family in ["Debian", "Ubuntu"]
+        fail_msg: "Only Debian/Ubuntu telemetry nodes supported"
+  tasks:
+    - name: Install system dependencies
+      package:
+        name:
+          - nodejs
+          - npm
+          - git
+        state: present
+      register: pkg_result
+      retries: 3
+      delay: 10
+      until: pkg_result is succeeded
+
+    - name: Create telemetry service directory
+      file:
+        path: /opt/gsk/telemetry
+        state: directory
+        mode: '0755'
+
+    - name: Deploy GSK Telemetry Node Systemd Service
+      copy:
+        dest: /etc/systemd/system/{{ gsk_telemetry_service_name }}.service
+        content: |
+          [Unit]
+          Description=GSK Infrastructure Telemetry Node Service
+          After=network.target
+
+          [Service]
+          Type=simple
+          User=root
+          WorkingDirectory=/opt/gsk/telemetry
+          ExecStart=/usr/bin/node /opt/gsk/telemetry/index.js
+          Restart=always
+          Environment=PORT={{ gsk_telemetry_port }}
+
+          [Install]
+          WantedBy=multi-user.target
+        mode: '0644'
+
+    - name: Reload systemd daemon
+      systemd:
+        daemon_reload: yes
+
+    - name: Enable and start GSK Telemetry Node Service
+      systemd:
+        name: "{{ gsk_telemetry_service_name }}"
+        state: started
+        enabled: yes
+      register: svc_result
+      failed_when: svc_result is failed and "Could not find" not in svc_result.msg|default("")
+
+    - name: Verify telemetry port listening
+      wait_for:
+        port: "{{ gsk_telemetry_port }}"
+        delay: 3
+        timeout: 30
+      when: svc_result is succeeded

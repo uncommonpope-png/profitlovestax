@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agentic Ecology Visualizer & PLT Flow Telemetry</title>
+<style>
+body { margin: 0; background: #0a0d14; color: #e2e8f0; font-family: system-ui, sans-serif; overflow: hidden; }
+#canvas { width: 100vw; height: 100vh; display: block; }
+.hud { position: absolute; top: 16px; left: 16px; background: rgba(15, 23, 42, 0.9); padding: 16px; border: 1px solid #334155; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); font-size: 14px; z-index: 10; }
+</style>
+</head>
+<body>
+<div class="hud"><h2>Agentic Ecology & PLT Flow Telemetry</h2><div id="metrics">Initializing Council Telemetry...</div></div>
+<canvas id="canvas"></canvas>
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+window.addEventListener('resize', resize); resize();
+
+const agents = [
+  { id: 'Profit Prime', type: 'Profit', x: 300, y: 300, vx: 0.5, vy: 0.3, color: '#10b981', plt: { P: 0.9, L: 0.05, T: 0.05 } },
+  { id: 'Love Weaver', type: 'Love', x: 600, y: 300, vx: -0.4, vy: 0.2, color: '#ec4899', plt: { P: 0.1, L: 0.85, T: 0.05 } },
+  { id: 'Tax Collector', type: 'Tax', x: 450, y: 500, vx: 0.2, vy: -0.5, color: '#f59e0b', plt: { P: 0.05, L: 0.05, T: 0.9 } },
+  { id: 'Harvester', type: 'Harvester', x: 500, y: 200, vx: -0.3, vy: -0.2, color: '#8b5cf6', plt: { P: 0.4, L: 0.3, T: 0.3 } }
+];
+
+function animate() {
+  ctx.fillStyle = '#0a0d14';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  agents.forEach(a => {
+    a.x += a.vx; a.y += a.vy;
+    if (a.x < 50 || a.x > canvas.width - 50) a.vx *= -1;
+    if (a.y < 50 || a.y > canvas.height - 50) a.vy *= -1;
+    ctx.beginPath(); ctx.arc(a.x, a.y, 20, 0, Math.PI * 2);
+    ctx.fillStyle = a.color; ctx.fill();
+    ctx.fillStyle = '#ffffff'; ctx.fillText(a.id, a.x - 25, a.y + 35);
+  });
+  requestAnimationFrame(animate);
+}
+animate();
+</script>
+</body>
+</html>

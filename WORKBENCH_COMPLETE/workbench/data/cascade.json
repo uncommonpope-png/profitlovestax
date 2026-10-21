@@ -1,0 +1,12 @@
+{
+  "pins": [
+    {
+      "id": "pin_1788819961531",
+      "title": "test-pin",
+      "createdAt": 1788819961531
+    }
+  ],
+  "board": {
+    "columns": []
+  }
+}

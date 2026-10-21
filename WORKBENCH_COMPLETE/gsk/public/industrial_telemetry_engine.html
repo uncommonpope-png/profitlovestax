@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Industrial Agent Telemetry Engine</title>
+<style>
+body { background: #08090a; color: #33ff99; font-family: 'Courier New', monospace; margin: 0; padding: 20px; }
+.panel { border: 2px solid #33ff99; padding: 15px; background: rgba(51, 255, 153, 0.03); }
+h1 { font-size: 1.4rem; text-transform: uppercase; letter-spacing: 3px; color: #33ff99; border-bottom: 2px solid #33ff99; padding-bottom: 8px; margin-top: 0; }
+</style>
+</head>
+<body>
+<div class="panel">
+<h1>INDUSTRIAL AGENT TELEMETRY ENGINE</h1>
+<canvas id="telemetryCanvas" width="800" height="450"></canvas>
+</div>
+<script>
+const canvas = document.getElementById('telemetryCanvas');
+const ctx = canvas.getContext('2d');
+let frame = 0;
+function render() {
+  ctx.fillStyle = '#08090a';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.strokeStyle = '#33ff99';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(10, 10, canvas.width - 20, canvas.height - 20);
+  ctx.fillStyle = '#33ff99';
+  ctx.font = '14px Courier New';
+  ctx.fillText('STATE TELEMETRY FEED: ONLINE', 30, 40);
+  ctx.fillText('PLT VALUE OPTIMIZATION LOOP: ACTIVE', 30, 60);
+  let pulse = Math.abs(Math.sin(frame * 0.03)) * 300;
+  ctx.fillRect(30, 80, pulse, 20);
+  ctx.strokeRect(30, 80, 300, 20);
+  frame++;
+  requestAnimationFrame(render);
+}
+render();
+</script>
+</body>
+</html>

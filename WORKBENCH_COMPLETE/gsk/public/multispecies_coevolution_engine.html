@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Multispecies AI Co-Evolution Telemetry</title>
+<style>
+body { margin: 0; background: #0a0b10; color: #00ffcc; font-family: monospace; }
+header { padding: 16px; background: #121420; border-bottom: 1px solid #00ffcc33; }
+h1 { margin: 0; font-size: 1.4rem; color: #00ffcc; }
+.grid { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; padding: 16px; }
+#viewport { width: 100%; height: 500px; background: #050608; border: 1px solid #00ffcc33; border-radius: 8px; position: relative; }
+.panel { background: #121420; border: 1px solid #00ffcc33; border-radius: 8px; padding: 12px; }
+</style>
+</head>
+<body>
+<header>
+<h1>Multispecies AI Telemetry — Co-Evolution &amp; PLT Trade Dashboard</h1>
+</header>
+<div class="grid">
+<div id="viewport"><canvas id="simCanvas"></canvas></div>
+<div class="panel" id="telemetryPanel"><h3>PLT Trade Matrix</h3><div id="tradeLog"></div></div>
+</div>
+<script>
+const canvas = document.getElementById('simCanvas');
+const ctx = canvas.getContext('2d');
+function resize() { canvas.width = canvas.parentElement.clientWidth; canvas.height = canvas.parentElement.clientHeight; }
+window.addEventListener('resize', resize); resize();
+
+const species = [
+  { id: 'profit_primes', color: '#00ffcc', population: 20, plt: { P: 0.9, L: 0.05, T: 0.05 } },
+  { id: 'love_weavers', color: '#ff66cc', population: 20, plt: { P: 0.1, L: 0.85, T: 0.05 } },
+  { id: 'tax_collectors', color: '#ffcc00', population: 15, plt: { P: 0.05, L: 0.05, T: 0.9 } },
+  { id: 'harvesters', color: '#00ccff', population: 15, plt: { P: 0.4, L: 0.3, T: 0.3 } }
+];
+
+function render() {
+  ctx.fillStyle = '#050608'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#00ffcc'; ctx.font = '14px monospace';
+  ctx.fillText('Co-Evolution Telemetry Loop Active', 20, 30);
+  requestAnimationFrame(render);
+}
+render();
+</script>
+</body>
+</html>

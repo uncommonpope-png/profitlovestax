@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Council Telemetry Visualizer - Profit Prime & Tax Collector Balance</title>
+<style>
+  body { font-family: monospace; background-color: #0b0e14; color: #e6edf3; margin: 20px; }
+  .card { border: 1px solid #30363d; border-radius: 6px; padding: 16px; margin-bottom: 16px; background: #161b22; }
+  .bar-container { background: #21262d; border-radius: 4px; height: 24px; width: 100%; overflow: hidden; margin-top: 8px; }
+  .bar-profit { background: #238636; height: 100%; display: inline-block; transition: width 0.3s; }
+  .bar-tax { background: #da3633; height: 100%; display: inline-block; transition: width 0.3s; }
+  h1, h2 { color: #58a6ff; }
+</style>
+</head>
+<body>
+<h1>Council Telemetry Visualizer</h1>
+<div class="card">
+  <h2>Gods Council Weight Allocation</h2>
+  <div>Profit Prime Weight: <span id="profit-val">0.50</span> | Tax Collector Weight: <span id="tax-val">0.50</span></div>
+  <div class="bar-container">
+    <div id="profit-bar" class="bar-profit" style="width: 50%;"></div>
+    <div id="tax-bar" class="bar-tax" style="width: 50%;"></div>
+  </div>
+</div>
+<div class="card">
+  <h2>Live Telemetry Feed</h2>
+  <pre id="telemetry-log">[INIT] Telemetry visualizer running. Monitoring council equilibrium...</pre>
+</div>
+</body>
+</html>

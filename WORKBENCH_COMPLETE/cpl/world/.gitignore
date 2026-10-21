@@ -1,0 +1,10 @@
+# Heavy media excluded from the foundation sandbox publish.
+# The Genesis modularization (kernel/registry/scheduler) ships as code only.
+# Full asset library lives in the production cosmic-pyramid-library repo.
+assets/
+covers/
+*.mp4
+
+# 1.4GB runtime-generated void assets - never commit
+void-assets/
+node_modules/

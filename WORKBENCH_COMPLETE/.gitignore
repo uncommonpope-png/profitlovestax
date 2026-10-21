@@ -1,0 +1,84 @@
+# BUYaSOUL ONE SYSTEM - .gitignore
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build outputs (root-level artifacts only — never exclude source dirs
+# like omniroute/scripts/build/, which broke the ONE SYSTEM before)
+/dist/
+/build/
+/.next/
+!**/scripts/build/
+*.download
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Runtime
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage
+coverage/
+
+# Temporary
+tmp/
+temp/
+*.tmp
+
+# Large data files (keep catalog.json, journal-entries.json)
+# soul-economy/data/*.backup.json
+# gsk/data/*.backup.*
+
+# Test outputs
+*.test.ts
+*.test.tsx
+*.test.js
+*.spec.ts
+*.spec.tsx
+**/__tests__/
+
+# Native binaries
+*.node
+*.dll
+*.so
+*.dylib
+
+# Docker
+.docker/
+
+# Vercel/Netlify
+.vercel
+.netlify
+
+# PyPI
+*.egg-info/
+*.whl
+*.tar.gz
+
+.fleet/
+
+# Private: Pope's personal conversation history never ships with the product
+workbench/data/chat-sessions/
+
+/gsk-pkg/

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dynamic Scripting & Sandbox Execution Telemetry</title>
+<style>
+body { margin: 0; background: #0b0f19; color: #e2e8f0; font-family: monospace; padding: 20px; }
+.card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+textarea { width: 100%; height: 160px; background: #0f172a; color: #38bdf8; border: 1px solid #334155; border-radius: 4px; padding: 8px; font-family: monospace; box-sizing: border-box; }
+button { background: #3b82f6; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold; margin-top: 8px; }
+button:hover { background: #2563eb; }
+pre { background: #020617; padding: 12px; border-radius: 4px; border: 1px solid #1e293b; overflow-x: auto; color: #a7f3d0; }
+</style>
+</head>
+<body>
+<h1>⚡ Dynamic Scripting & Sandbox Telemetry</h1>
+<div class="grid">
+<div class="card">
+<h3>Interactive Sandbox Console</h3>
+<textarea id="codeEditor">// Live Telemetry Sandbox Script
+const metrics = { cpu: Math.random() * 100, memory: Math.random() * 512, status: 'OPTIMAL' };
+console.log('[SANDBOX EVAL]', metrics);
+return metrics;</textarea>
+<br>
+<button id="execBtn" onclick="runSandbox()">Execute Script</button>
+</div>
+<div class="card">
+<h3>Execution Telemetry & Trace</h3>
+<pre id="output">[Telemetry Idle] Awaiting execution...</pre>
+</div>
+</div>
+<script>
+function runSandbox() {
+  const editor = document.getElementById('codeEditor');
+  const output = document.getElementById('output');
+  const startTime = performance.now();
+  try {
+    const scriptFunc = new Function(editor.value);
+    const result = scriptFunc();
+    const duration = (performance.now() - startTime).toFixed(3);
+    output.innerText = `[SUCCESS] Execution completed in ${duration}ms\n\n[RESULT]:\n` + JSON.stringify(result, null, 2);
+  } catch (err) {
+    output.innerText = `[ERROR] Execution Failed:\n${err.stack || err.message}`;
+  }
+}
+</script>
+</body>
+</html>

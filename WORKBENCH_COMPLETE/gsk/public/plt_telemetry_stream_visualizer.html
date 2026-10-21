@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PLT Telemetry Stream Visualizer</title>
+<style>
+body { margin: 0; background: #0b0d13; color: #00ffcc; font-family: monospace; padding: 20px; }
+</style>
+</head>
+<body>
+<div id="telemetry-root"><h1>PLT Real-Time Telemetry Stream</h1><canvas id="streamCanvas"></canvas></div>
+<script>
+const canvas = document.getElementById('streamCanvas');
+const ctx = canvas ? canvas.getContext('2d') : null;
+console.log('Telemetry visualizer loaded.');
+</script>
+</body>
+</html>

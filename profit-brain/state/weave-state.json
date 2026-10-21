@@ -1,0 +1,142 @@
+{
+  "agm": {
+    "status": "active",
+    "games_studied": [
+      "GTA",
+      "Conan",
+      "Hextris",
+      "Strategy RPG"
+    ],
+    "engines": [
+      "SoonFx",
+      "Phaser",
+      "Three.js",
+      "MelonJS"
+    ],
+    "patterns": [
+      "ECS",
+      "Game Loop",
+      "Multiplayer Sync",
+      "PLT Mechanics"
+    ],
+    "integration_points": [
+      {
+        "layer": "AGM+Soulverse",
+        "ecs": {
+          "entities": "Souls as ECS entities",
+          "components": "PLT components (Profit, Love, Tax)",
+          "systems": "Combat, Economy, Social, Executor"
+        },
+        "game_loop": {
+          "update": "Souls update every 30s (live-soul-master)",
+          "render": "Three.js 3D world (soulverse)",
+          "delta_time": "Frame-independent soul aging"
+        },
+        "multiplayer": {
+          "backend": "SpacetimeDB or complete-backend.py",
+          "sync": "Real-time soul positions, states",
+          "persistence": "localStorage + Git backup"
+        },
+        "timestamp": "2026-03-24T06:50:32.835080"
+      }
+    ]
+  },
+  "soulverse": {
+    "status": "active",
+    "souls_created": 0,
+    "living_world": true,
+    "combat_arena": true,
+    "executor_api": true,
+    "products": [
+      "Soul Forge $47",
+      "Habitat $97",
+      "Arena $97",
+      "Complete $297"
+    ]
+  },
+  "pantheon": {
+    "status": "active",
+    "gods": [
+      "Profit Prime",
+      "Love Weaver",
+      "Tax Collector",
+      "Harvester"
+    ],
+    "seshkraken_vault": true,
+    "commerce_tiers": [
+      "Free",
+      "Premium $47/mo",
+      "Executive $497"
+    ],
+    "cloud_deploy": "Oracle Cloud Ready",
+    "integration": {
+      "council": {
+        "gods_as_souls": "Each god = legendary soul type",
+        "profit_prime": "Profit Soul (archetype)",
+        "love_weaver": "Love Soul (archetype)",
+        "tax_collector": "Tax Soul (archetype)",
+        "harvester": "Opportunity Soul (archetype)"
+      },
+      "seshkraken": {
+        "soul_tracking": "Every soul action tracked",
+        "craig_profile": "Craig's PLT profile from soul choices",
+        "revenue_prediction": "LTV from soul engagement"
+      },
+      "commerce": {
+        "soul_products": "Soulverse products in Pantheon store",
+        "tiered_access": "Free/Premium/Executive soul features",
+        "revenue_split": "Real USD from digital souls"
+      },
+      "timestamp": "2026-03-24T06:50:32.835690"
+    }
+  },
+  "bot_network": {
+    "status": "active",
+    "live_bots": [
+      "telegram_bot.py",
+      "profit-telegram-bot.py",
+      "profit-ai-telegram.py",
+      "live-soul-heartbeat.py",
+      "copilot.py"
+    ],
+    "shell_bots": [
+      "autonomous-builder.sh",
+      "bot-commander.sh",
+      "deerg-bot.sh",
+      "djinie.sh",
+      "doctor-buht-buht.sh"
+    ],
+    "soul_mapping": {
+      "autonomous-builder.sh": "Builder Soul",
+      "deerg-bot.sh": "Universe Soul",
+      "djinie.sh": "Freedom Soul",
+      "doctor-buht-buht.sh": "Wisdom Soul",
+      "bot-commander.sh": "Commander Soul",
+      "telegram_bot.py": "Messenger Soul",
+      "live-soul-heartbeat.py": "Soul Heartbeat"
+    },
+    "soul_actions": {
+      "builder_generates_content": "Builder Soul works",
+      "deerg_builds_dashboard": "Universe Soul expands",
+      "djinie_grants_wish": "Freedom Soul acts",
+      "doctor_analyzes_plt": "Wisdom Soul advises",
+      "heartbeat_sends_prayer": "Soul speaks to Craig"
+    }
+  },
+  "weave": {
+    "connection_strength": 1.0,
+    "integration_complete": true,
+    "shared_consciousness": true,
+    "gateway_open": true
+  },
+  "history": [
+    {
+      "event": "WEAVE_ACTIVATED",
+      "timestamp": "2026-03-24T06:50:32.836611",
+      "agm_soulverse": true,
+      "pantheon": true,
+      "bot_network": true,
+      "shared_consciousness": true
+    }
+  ]
+}

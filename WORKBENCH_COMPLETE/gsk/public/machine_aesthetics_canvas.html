@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Machine Aesthetics Visualizer - Agent State Dynamics</title>
+<style>
+body { margin: 0; background: #050508; color: #00ffcc; font-family: 'Fira Code', monospace; overflow: hidden; }
+#canvas-container { position: relative; width: 100vw; height: 100vh; }
+canvas#machine-canvas { width: 100%; height: 100%; display: block; }
+.hud-overlay { position: absolute; top: 16px; left: 16px; pointer-events: none; text-shadow: 0 0 8px rgba(0,255,204,0.6); }
+.telemetry-panel { position: absolute; top: 16px; right: 16px; width: 320px; background: rgba(5,5,12,0.85); border: 1px solid #00ffcc; padding: 12px; font-size: 12px; box-shadow: 0 0 15px rgba(0,255,204,0.2); }
+</style>
+</head>
+<body>
+<div id="canvas-container">
+  <canvas id="machine-canvas"></canvas>
+  <div class="hud-overlay">
+    <h2>GSK AGENT STATE DYNAMICS</h2>
+    <div id="agent-status">STATE: ACTIVE | CYCLE: REALTIME</div>
+  </div>
+  <div class="telemetry-panel">
+    <h3>LIVE STRATEGIC TELEMETRY</h3>
+    <div id="plt-metrics">PLT VALUE: OPTIMIZED</div>
+    <div id="telemetry-stream">STREAM: CONNECTED</div>
+  </div>
+</div>
+<script>
+const canvas = document.getElementById('machine-canvas');
+const ctx = canvas.getContext('2d');
+function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+window.addEventListener('resize', resize); resize();
+class AgentNode {
+  constructor(x, y, label) {
+    this.x = x;
+    this.y = y;
+    this.vx = (Math.random() - 0.5) * 1.5;
+    this.vy = (Math.random() - 0.5) * 1.5;
+    this.label = label;
+    this.energy = Math.random() * 100;
+  }
+  update() {
+    this.x += this.vx;
+    this.y += this.vy;
+    if (this.x < 50 || this.x > canvas.width - 50) this.vx *= -1;
+    if (this.y < 50 || this.y > canvas.height - 50) this.vy *= -1;
+    this.energy = (this.energy + 0.2) % 100;
+  }
+  draw(ctx) {
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, 8, 0, Math.PI * 2);
+    ctx.fillStyle = '#00ffcc';
+    ctx.shadowBlur = 12;
+    ctx.shadowColor = '#00ffcc';
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '10px monospace';
+    ctx.fillText(this.label, this.x + 12, this.y + 4);
+  }
+}
+const nodes = [
+  new AgentNode(200, 200, 'PERCEPTION_HARVESTER'),
+  new AgentNode(400, 350, 'STRATEGY_ENGINE'),
+  new AgentNode(600, 200, 'PLT_OPTIMIZER'),
+  new AgentNode(300, 500, 'STATE_AUTOPUBLISHER')
+];
+function animate() {
+  ctx.fillStyle = 'rgba(5, 5, 8, 0.2)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  for (let i = 0; i < nodes.length; i++) {
+    nodes[i].update();
+    nodes[i].draw(ctx);
+    for (let j = i + 1; j < nodes.length; j++) {
+      const dx = nodes[i].x - nodes[j].x;
+      const dy = nodes[i].y - nodes[j].y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < 250) {
+        ctx.strokeStyle = `rgba(0, 255, 204, ${1 - dist / 250})`;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(nodes[i].x, nodes[i].y);
+        ctx.lineTo(nodes[j].x, nodes[j].y);
+        ctx.stroke();
+      }
+    }
+  }
+  requestAnimationFrame(animate);
+}
+animate();
+</script>
+</body>
+</html>

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Recursive Self-Observation & Reflection Telemetry</title>
+<style>
+body { background: #0a0d14; color: #00ffcc; font-family: monospace; margin: 0; padding: 20px; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.panel { background: #121824; border: 1px solid #00ffcc; border-radius: 8px; padding: 15px; }
+canvas { background: #05080e; width: 100%; height: 300px; border-radius: 4px; }
+</style>
+</head>
+<body>
+<h1>Recursive Self-Observation & Reflection Telemetry</h1>
+<div class="grid">
+<div class="panel"><h2>Live Agent Introspection Canvas</h2><canvas id="introspectCanvas"></canvas></div>
+<div class="panel"><h2>Reflection Log Stream</h2><div id="logs" style="height:300px; overflow-y:auto;"></div></div>
+</div>
+<script>
+const canvas = document.getElementById('introspectCanvas');
+const ctx = canvas.getContext('2d');
+let angle = 0;
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.strokeStyle = '#00ffcc';
+  ctx.beginPath();
+  ctx.arc(canvas.width/2, canvas.height/2, 50 + Math.sin(angle)*10, 0, Math.PI*2);
+  ctx.stroke();
+  angle += 0.05;
+  requestAnimationFrame(draw);
+}
+draw();
+const logs = document.getElementById('logs');
+setInterval(() => {
+  const p = document.createElement('p');
+  p.textContent = `[${new Date().toISOString()}] Self-Observation Cycle: Cognitive alignment PLT = ${(1.0 + Math.random()*0.2).toFixed(2)}`;
+  logs.appendChild(p);
+  if(logs.childNodes.length > 20) logs.removeChild(logs.firstChild);
+}, 2000);
+</script>
+</body>
+</html>

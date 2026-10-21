@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Planetary Consciousness Telemetry Dashboard</title>
+<style>
+body { font-family: system-ui, sans-serif; background: #080914; color: #00f0ff; margin: 0; padding: 24px; }
+h1 { color: #ff007f; border-bottom: 1px solid #334; padding-bottom: 12px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; margin-top: 20px; }
+.card { background: #101226; border: 1px solid #00f0ff44; border-radius: 8px; padding: 18px; box-shadow: 0 4px 20px rgba(0,240,255,0.05); }
+.stat { font-size: 2.2rem; font-weight: bold; color: #7000ff; margin: 10px 0; }
+</style>
+</head>
+<body>
+<h1>Planetary Consciousness Telemetry - Cyclic Proposal Tracking</h1>
+<div class="grid">
+  <div class="card">
+    <h2>Cyclic Proposal Completion Rate</h2>
+    <div class="stat" id="completion-rate">96.4%</div>
+    <p>Active planetary proposals: 142 / 147 completed</p>
+  </div>
+  <div class="card">
+    <h2>PLT Value Optimization</h2>
+    <p><strong>Profit:</strong> 0.88 | <strong>Love:</strong> 0.92 | <strong>Tax:</strong> 0.04</p>
+    <p>True Value Efficiency Index: 1.76 PLT</p>
+  </div>
+  <div class="card">
+    <h2>Agent State Inspection</h2>
+    <p>Active Agents: 12 Sovereign Souls Online</p>
+    <div id="agent-tabs">Tab 1: Profit Prime | Tab 2: Love Weaver | Tab 3: Harvester</div>
+  </div>
+</div>
+<script>
+const baseUrl = 'http://127.0.0.1:3001';
+console.log('Planetary consciousness proposal telemetry initialized at ' + baseUrl);
+</script>
+</body>
+</html>

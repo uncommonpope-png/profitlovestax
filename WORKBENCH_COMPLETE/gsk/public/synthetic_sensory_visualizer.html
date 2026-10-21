@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Synthetic Sensory Stream Visualizer</title>
+<style>
+body { margin: 0; background: #080911; color: #00ffcc; font-family: monospace; overflow: hidden; }
+#canvas-container { width: 100vw; height: 100vh; position: absolute; top:0; left:0; z-index: 1; }
+#hud { position: absolute; top: 20px; left: 20px; z-index: 10; background: rgba(10,15,30,0.85); padding: 15px; border: 1px solid #00ffcc; border-radius: 8px; font-size: 13px; min-width: 280px; box-shadow: 0 0 15px rgba(0,255,204,0.2); }
+.metric { margin-bottom: 6px; display: flex; justify-content: space-between; }
+.val { color: #fff; font-weight: bold; }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+<div id="canvas-container"></div>
+<div id="hud">
+  <h3>Sensory Telemetry HUD</h3>
+  <div class="metric"><span>Agent State:</span><span id="agent-state" class="val">SYNCHRONIZING</span></div>
+  <div class="metric"><span>Sensory Stream Hz:</span><span id="stream-hz" class="val">60.0</span></div>
+  <div class="metric"><span>Spatial Perception Rays:</span><span id="ray-count" class="val">128</span></div>
+  <div class="metric"><span>PLT Value Score:</span><span id="plt-score" class="val">0.960</span></div>
+</div>
+<script>
+// Telemetry Visualizer Initialized
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x080911, 0.03);
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+camera.position.set(0, 5, 12);
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+const grid = new THREE.GridHelper(40, 40, 0x00ffcc, 0x112233);
+scene.add(grid);
+
+const avatarGroup = new THREE.Group();
+const avatarGeo = new THREE.IcosahedronGeometry(1.2, 2);
+const avatarMat = new THREE.MeshBasicMaterial({ color: 0x00ffcc, wireframe: true });
+const avatar = new THREE.Mesh(avatarGeo, avatarMat);
+avatarGroup.add(avatar);
+scene.add(avatarGroup);
+
+const raysGroup = new THREE.Group();
+const rayLines = [];
+for(let i=0; i<64; i++){
+  const geo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0), new THREE.Vector3((Math.random()-0.5)*10, (Math.random()-0.5)*6, (Math.random()-0.5)*10)]);
+  const mat = new THREE.LineBasicMaterial({ color: 0xff00ff, transparent: true, opacity: 0.6 });
+  const line = new THREE.Line(geo, mat);
+  raysGroup.add(line);
+  rayLines.push(line);
+}
+avatarGroup.add(raysGroup);
+
+let frame = 0;
+function animate() {
+  requestAnimationFrame(animate);
+  frame++;
+  avatar.rotation.y += 0.01;
+  avatar.rotation.x += 0.005;
+  avatarGroup.position.y = Math.sin(frame * 0.03) * 0.5 + 1.5;
+  
+  rayLines.forEach((line, idx) => {
+    line.rotation.y = Math.cos(frame * 0.02 + idx) * 0.2;
+  });
+  
+  if (frame % 30 === 0) {
+    document.getElementById('plt-score').innerText = (0.92 + Math.random() * 0.07).toFixed(3);
+    document.getElementById('stream-hz').innerText = (58.5 + Math.random() * 3.0).toFixed(1);
+  }
+  renderer.render(scene, camera);
+}
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+animate();
+</script>
+</body>
+</html>

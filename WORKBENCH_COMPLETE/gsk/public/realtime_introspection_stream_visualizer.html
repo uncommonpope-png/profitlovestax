@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Real-Time Introspection Stream Visualizer</title>
+<style>
+body { background: #0a0a12; color: #00ffcc; font-family: monospace; margin: 0; padding: 20px; }
+#canvas { border: 1px solid #00ffcc; width: 100%; height: 400px; }
+.log { background: #121220; padding: 10px; border-radius: 4px; height: 200px; overflow-y: auto; color: #a0a0ff; }
+</style>
+</head>
+<body>
+<h1>Introspection Telemetry Stream Visualizer</h1>
+<canvas id="canvas"></canvas>
+<div id="log" class="log"></div>
+<script>
+const log = document.getElementById('log');
+function appendLog(msg) {
+  const el = document.createElement('div');
+  el.textContent = `[${new Date().toISOString()}] ${msg}`;
+  log.appendChild(el);
+  log.scrollTop = log.scrollHeight;
+}
+appendLog('Introspection stream initialized.');
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+let points = [];
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.strokeStyle = '#00ffcc';
+  ctx.beginPath();
+  points.forEach((p, i) => {
+    const x = (i / 100) * canvas.width;
+    const y = canvas.height - (p * canvas.height);
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+}
+setInterval(() => {
+  const val = Math.random();
+  points.push(val);
+  if (points.length > 100) points.shift();
+  draw();
+  appendLog(`Telemetry pulse: PLT metric ${val.toFixed(4)}`);
+}, 1000);
+</script>
+</body>
+</html>

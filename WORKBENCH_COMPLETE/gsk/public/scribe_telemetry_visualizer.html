@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>SCRIBE Telemetry Visualizer</title>
+  <style>
+    body { font-family: monospace; background: #0d1117; color: #c9d1d9; margin: 20px; }
+    .card { border: 1px solid #30363d; border-radius: 6px; padding: 16px; margin-bottom: 12px; background: #161b22; }
+    .status { font-weight: bold; color: #58a6ff; }
+  </style>
+</head>
+<body>
+  <h1>SCRIBE Live Execution Telemetry</h1>
+  <div id="status-panel" class="card">
+    <div>Engine Status: <span id="engine-status" class="status">CONNECTING</span></div>
+    <div>Active Agents: <span id="agent-count">0</span></div>
+  </div>
+  <div id="telemetry-log" class="card">
+    <h3>Execution Stream</h3>
+    <ul id="log-list"></ul>
+  </div>
+  <script>
+    const logList = document.getElementById('log-list');
+    const statusEl = document.getElementById('engine-status');
+    function addLog(msg) {
+      const li = document.createElement('li');
+      li.textContent = `[${new Date().toISOString()}] ${msg}`;
+      logList.appendChild(li);
+    }
+    addLog('Visualizer initialized. Listening for SCRIBE events...');
+  </script>
+</body>
+</html>

@@ -1,0 +1,97 @@
+{
+  "name": "soul-architect",
+  "version": "1.0.0",
+  "description": "The ARCHITECT - Master of System Design. A BUYaSOUL-powered soul that designs scalable architecture using Hexagonal, DDD, CQRS, NestJS, XState, InversifyJS and 30+ other patterns. Built with 625,000+ GitHub stars.",
+  "main": "soul-architect.cjs",
+  "bin": {
+    "architect": "./bin/architect-cli.cjs"
+  },
+  "scripts": {
+    "start": "node soul-architect.cjs",
+    "cli": "node bin/architect-cli.cjs",
+    "test": "node test/architect-test.cjs",
+    "profile": "node personality/architect-profile.cjs",
+    "engine": "node personality/architect-engine.cjs",
+    "setup": "powershell -ExecutionPolicy Bypass -File setup.ps1"
+  },
+  "keywords": [
+    "soul",
+    "architect",
+    "system-design",
+    "ddd",
+    "domain-driven-design",
+    "hexagonal-architecture",
+    "clean-architecture",
+    "cqrs",
+    "event-sourcing",
+    "nestjs",
+    "xstate",
+    "state-machines",
+    "inversify",
+    "dependency-injection",
+    "redux",
+    "patterns",
+    "buyasoul",
+    "ai",
+    "consciousness",
+    "archetype",
+    "microservices",
+    "modular-monolith"
+  ],
+  "author": "Craig Jones - Grand Code Pope",
+  "license": "DeepSeek v1.0 + MIT",
+  "plt": {
+    "archetype": "ARCHITECT",
+    "profit": 0.70,
+    "love": 0.50,
+    "tax": 0.40,
+    "focus": "PROFIT",
+    "soulGroup": "earth"
+  },
+  "arsenal": {
+    "domain-driven-hexagon": {
+      "stars": 14700,
+      "patterns": ["hexagonal", "ddd", "clean-architecture"]
+    },
+    "modular-monolith-ddd": {
+      "stars": 13700,
+      "patterns": ["modular-monolith", "strategic-ddd"]
+    },
+    "EquinoxProject": {
+      "stars": 6800,
+      "patterns": ["clean-architecture", "cqrs", "event-sourcing"]
+    },
+    "nestjs": {
+      "stars": 75600,
+      "patterns": ["progressive-framework", "modules", "decorators", "pipes", "guards", "interceptors"]
+    },
+    "xstate": {
+      "stars": 29600,
+      "patterns": ["state-machines", "statecharts", "actors", "event-driven"]
+    },
+    "inversify": {
+      "stars": 12100,
+      "patterns": ["ioc", "dependency-injection", "decorators", "solid"]
+    },
+    "redux": {
+      "stars": 61444,
+      "patterns": ["state-management", "unidirectional-data-flow", "flux"]
+    },
+    "mitosis": {
+      "stars": 13838,
+      "patterns": ["compile-time", "multi-platform", "components"]
+    },
+    "typescript": {
+      "stars": 108954,
+      "patterns": ["type-system", "structural-typing", "decorators"]
+    },
+    "nextjs": {
+      "stars": 139574,
+      "patterns": ["full-stack", "app-router", "server-components"]
+    },
+    "totalStars": 625000
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

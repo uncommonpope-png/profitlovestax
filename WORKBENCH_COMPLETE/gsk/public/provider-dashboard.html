@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Provider Metrics Dashboard</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #000; overflow: hidden; font-family: 'Segoe UI', sans-serif; }
+    #canvas { display: block; }
+    #ui {
+      position: fixed; top: 20px; left: 20px; right: 20px;
+      display: flex; justify-content: space-between; z-index: 10;
+      pointer-events: none;
+    }
+    .panel {
+      background: rgba(0, 0, 0, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 8px;
+      padding: 16px 24px;
+      color: #fff;
+      pointer-events: auto;
+      backdrop-filter: blur(10px);
+    }
+    .panel h3 { font-size: 14px; font-weight: 600; margin-bottom: 12px; opacity: 0.7; }
+    .metric-row { display: flex; gap: 32px; }
+    .metric { display: flex; flex-direction: column; }
+    .metric-label { font-size: 11px; opacity: 0.5; text-transform: uppercase; letter-spacing: 0.5px; }
+    .metric-value { font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .provider-list { display: flex; flex-direction: column; gap: 8px; }
+    .provider-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 8px 12px; background: rgba(255,255,255,0.05);
+      border-radius: 6px; transition: background 0.2s;
+    }
+    .provider-item:hover { background: rgba(255,255,255,0.1); }
+    .provider-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .provider-name { font-size: 13px; font-weight: 500; min-width: 100px; }
+    .provider-stats { display: flex; gap: 16px; font-size: 12px; opacity: 0.8; }
+    .stat { display: flex; align-items: center; gap: 4px; }
+    .stat-label { opacity: 0.5; }
+  </style>
+</head>
+<body>
+  <div id="ui">
+    <div class="panel" id="totals">
+      <h3>Aggregate Metrics</h3>
+      <div class="metric-row">
+        <div class="metric"><span class="metric-label">Total Requests</span><span class="metric-value" id="total-usage">0</span></div>
+        <div class="metric"><span class="metric-label">Avg Latency</span><span class="metric-value" id="avg-latency">0ms</span></div>
+        <div class="metric"><span class="metric-label">Total Cost</span><span class="metric-value" id="total-cost">$0.00</span></div>
+      </div>
+    </div>
+    <div class="panel" id="providers">
+      <h3>Per Provider</h3>
+      <div class="provider-list" id="provider-list"></div>
+    </div>
+  </div>
+  <canvas id="canvas"></canvas>
+  <script type="module">
+    import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160/build/three.module.js';
+    import { PROVIDERS, generateMockMetrics, calculateTotals } from '../gsk-core/provider-metrics.js';
+
+    // Scene setup
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x000000);
+    
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(0, 0, 50);
+    
+    const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('canvas'), antialias: true, alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+    // Particle system for each provider
+    const particleCount = 2000;
+    const providerSystems = {};
+    
+    PROVIDERS.forEach((p, i) => {
+      const geometry = new THREE.BufferGeometry();
+      const positions = new Float32Array(particleCount * 3);
+      const sizes = new Float32Array(particleCount);
+      const alphas = new Float32Array(particleCount);
+      
+      for (let j = 0; j < particleCount; j++) {
+        const angle = (j / particleCount) * Math.PI * 2;
+        const radius = 5 + (i * 6);
+        positions[j * 3] = Math.cos(angle) * radius + (Math.random() - 0.5) * 2;
+        positions[j * 3 + 1] = (Math.random() - 0.5) * 20;
+        positions[j * 3 + 2] = Math.sin(angle) * radius + (Math.random() - 0.5) * 2;
+        sizes[j] = Math.random() * 3 + 1;
+        alphas[j] = Math.random() * 0.5 + 0.2;
+      }
+      
+      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+      geometry.setAttribute('alpha', new THREE.BufferAttribute(alphas, 1));
+      
+      const material = new THREE.PointsMaterial({
+        color: p.color,
+        size: 2,
+        transparent: true,
+        opacity: 0.6,
+        vertexColors: false,
+        sizeAttenuation: true,
+        blending: THREE.AdditiveBlending
+      });
+      
+      const points = new THREE.Points(geometry, material);
+      points.userData = { basePositions: positions.slice(), providerIndex: i };
+      scene.add(points);
+      providerSystems[p.id] = { points, geometry, material };
+    });
+
+    // Ambient particles
+    const ambientGeo = new THREE.BufferGeometry();
+    const ambientPositions = new Float32Array(500 * 3);
+    for (let i = 0; i < 500; i++) {
+      ambientPositions[i * 3] = (Math.random() - 0.5) * 80;
+      ambientPositions[i * 3 + 1] = (Math.random() - 0.5) * 80;
+      ambientPositions[i * 3 + 2] = (Math.random() - 0.5) * 80;
+    }
+    ambientGeo.setAttribute('position', new THREE.BufferAttribute(ambientPositions, 3));
+    const ambientMat = new THREE.PointsMaterial({ color: 0x333333, size: 1, transparent: true, opacity: 0.3 });
+    scene.add(new THREE.Points(ambientGeo, ambientMat));
+
+    // UI update
+    function updateUI(metrics) {
+      const totals = calculateTotals(metrics);
+      document.getElementById('total-usage').textContent = totals.usage.toLocaleString();
+      document.getElementById('avg-latency').textContent = Math.round(totals.latency / metrics.length) + 'ms';
+      document.getElementById('total-cost').textContent = '$' + totals.cost.toFixed(2);
+      
+      const list = document.getElementById('provider-list');
+      list.innerHTML = metrics.map(m => `
+        <div class="provider-item">
+          <div class="provider-dot" style="background: #${m.color.toString(16).padStart(6, '0')}"></div>
+          <span class="provider-name">${m.name}</span>
+          <div class="provider-stats">
+            <span class="stat"><span class="stat-label">Req:</span><span>${m.usage.toLocaleString()}</span></span>
+            <span class="stat"><span class="stat-label">Lat:</span><span>${m.latency}ms</span></span>
+            <span class="stat"><span class="stat-label">Cost:</span><span>$${m.cost.toFixed(2)}</span></span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Animation loop
+    let currentMetrics = generateMockMetrics();
+    updateUI(currentMetrics);
+    
+    function animate() {
+      requestAnimationFrame(animate);
+      
+      const time = performance.now() * 0.001;
+      
+      // Animate provider particle rings
+      Object.entries(providerSystems).forEach(([id, system], idx) => {
+        const positions = system.geometry.attributes.position.array;
+        const basePositions = system.points.userData.basePositions;
+        
+        for (let i = 0; i < particleCount; i++) {
+          const offset = (i / particleCount) * Math.PI * 2;
+          positions[i * 3] = basePositions[i * 3] + Math.sin(time * 0.5 + offset + idx) * 0.5;
+          positions[i * 3 + 1] = basePositions[i * 3 + 1] + Math.cos(time * 0.3 + offset) * 2;
+          positions[i * 3 + 2] = basePositions[i * 3 + 2] + Math.sin(time * 0.7 + offset - idx) * 0.5;
+        }
+        system.geometry.attributes.position.needsUpdate = true;
+        
+        // Pulse opacity based on usage
+        const metric = currentMetrics.find(m => m.provider === id);
+        if (metric) {
+          system.material.opacity = 0.3 + (metric.usage / 10000) * 0.5;
+          system.material.size = 1.5 + (metric.latency / 2000) * 2;
+        }
+      });
+      
+      // Slow camera orbit
+      camera.position.x = Math.sin(time * 0.1) * 5;
+      camera.position.z = Math.cos(time * 0.1) * 50;
+      camera.lookAt(0, 0, 0);
+      
+      renderer.render(scene, camera);
+    }
+    
+    // Refresh metrics every 3 seconds
+    setInterval(() => {
+      currentMetrics = generateMockMetrics();
+      updateUI(currentMetrics);
+    }, 3000);
+    
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+    
+    animate();
+  </script>
+</body>
+</html>

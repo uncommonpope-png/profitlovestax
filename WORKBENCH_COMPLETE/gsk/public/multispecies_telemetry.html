@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Multispecies AI Telemetry Visualizer</title>
+<style>
+body { margin: 0; background: #0a0d14; color: #e2e8f0; font-family: monospace; overflow: hidden; }
+#canvas { width: 100vw; height: 100vh; display: block; }
+.hud { position: absolute; top: 12px; left: 12px; background: rgba(15,23,42,0.85); padding: 16px; border: 1px solid #334155; border-radius: 8px; font-size: 13px; max-width: 320px; pointer-events: none; }
+</style>
+</head>
+<body>
+<div class="hud">
+<h2>Multispecies AI Ecology</h2>
+<div id="metrics">Initializing PLT Telemetry...</div>
+</div>
+<canvas id="canvas"></canvas>
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+const species = [
+  { name: 'LLM Agent', color: '#3b82f6', count: 12, profit: 0.85, love: 0.65, tax: 0.15 },
+  { name: 'Swarm Worker', color: '#10b981', count: 20, profit: 0.92, love: 0.40, tax: 0.08 },
+  { name: 'Consciousness Evaluator', color: '#8b5cf6', count: 6, profit: 0.70, love: 0.90, tax: 0.25 }
+];
+
+function render() {
+  ctx.fillStyle = '#0a0d14';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  requestAnimationFrame(render);
+}
+render();
+</script>
+</body>
+</html>

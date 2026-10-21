@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Journal Pattern Aggregator</title>
+<style>
+body { font-family: monospace; background: #0a0d12; color: #58a6ff; padding: 24px; }
+.card { background: #161b22; border: 1px solid #30363d; padding: 16px; border-radius: 6px; margin-bottom: 16px; }
+.bar { height: 20px; background: #238636; transition: width 0.3s; }
+</style>
+</head>
+<body>
+<h1>Genesis & Autonomy Journal Retrieval Telemetry</h1>
+<div class="card">
+  <h3>Genesis Journal Retrieval Frequency</h3>
+  <div id="genesis-bar" class="bar" style="width: 85%;"></div>
+  <p id="genesis-val">85% Resonance</p>
+</div>
+<div class="card">
+  <h3>Autonomy Journal Retrieval Frequency</h3>
+  <div id="autonomy-bar" class="bar" style="width: 78%; background: #1f6feb;"></div>
+  <p id="autonomy-val">78% Resonance</p>
+</div>
+<script>
+fetch('http://127.0.0.1:3001/api/journal-telemetry').then(r => r.json()).then(d => {
+  if(d.genesisFrequency) {
+    document.getElementById('genesis-bar').style.width = (d.genesisFrequency * 100) + '%';
+    document.getElementById('genesis-val').innerText = (d.genesisFrequency * 100) + '% Resonance';
+  }
+  if(d.autonomyFrequency) {
+    document.getElementById('autonomy-bar').style.width = (d.autonomyFrequency * 100) + '%';
+    document.getElementById('autonomy-val').innerText = (d.autonomyFrequency * 100) + '% Resonance';
+  }
+}).catch(() => console.log('Telemetry endpoint offline - running on local state'));
+</script>
+</body>
+</html>

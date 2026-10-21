@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Live Agent Telemetry Stream Visualizer</title>
+<style>
+body { background: #0b0f19; color: #e2e8f0; font-family: monospace; padding: 20px; }
+.card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 15px; margin-bottom: 15px; }
+.slider-group { margin: 10px 0; }
+label { display: inline-block; width: 120px; }
+</style>
+</head>
+<body>
+<h1>Live Agent Telemetry Stream Visualizer</h1>
+<div class="card">
+<h2>PLT Value Controls</h2>
+<div class="slider-group"><label>Profit:</label><input type="range" id="profit" min="0" max="1" step="0.05" value="0.8"><span id="profit-val">0.8</span></div>
+<div class="slider-group"><label>Love:</label><input type="range" id="love" min="0" max="1" step="0.05" value="0.7"><span id="love-val">0.7</span></div>
+<div class="slider-group"><label>Tax:</label><input type="range" id="tax" min="0" max="1" step="0.05" value="0.2"><span id="tax-val">0.2</span></div>
+<div><strong>Net PLT Value: <span id="plt-score">1.30</span></strong></div>
+</div>
+<div class="card">
+<h2>Telemetry Stream</h2>
+<canvas id="streamCanvas" width="800" height="200" style="background:#0f172a; width:100%; border-radius:4px;"></canvas>
+<ul id="eventLog" style="max-height:150px; overflow-y:auto;"></ul>
+</div>
+<script>
+const profitInput = document.getElementById('profit');
+const loveInput = document.getElementById('love');
+const taxInput = document.getElementById('tax');
+const profitVal = document.getElementById('profit-val');
+const loveVal = document.getElementById('love-val');
+const taxVal = document.getElementById('tax-val');
+const pltScore = document.getElementById('plt-score');
+const canvas = document.getElementById('streamCanvas');
+const ctx = canvas.getContext('2d');
+const eventLog = document.getElementById('eventLog');
+let history = [];
+function update() {
+  const p = parseFloat(profitInput.value);
+  const l = parseFloat(loveInput.value);
+  const t = parseFloat(taxInput.value);
+  profitVal.textContent = p;
+  loveVal.textContent = l;
+  taxVal.textContent = t;
+  const score = (p + l - t).toFixed(2);
+  pltScore.textContent = score;
+  return { p, l, t, score };
+}
+[profitInput, loveInput, taxInput].forEach(i => i.addEventListener('input', update));
+setInterval(() => {
+  const state = update();
+  history.push(parseFloat(state.score));
+  if (history.length > 50) history.shift();
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.strokeStyle = '#38bdf8';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  history.forEach((val, index) => {
+    const x = (index / 50) * canvas.width;
+    const y = canvas.height - (val / 2.0) * canvas.height;
+    if (index === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+  const item = document.createElement('li');
+  item.textContent = `[${new Date().toLocaleTimeString()}] Telemetry Tick - PLT: ${state.score} (P:${state.p} L:${state.l} T:${state.t})`;
+  eventLog.prepend(item);
+  if (eventLog.children.length > 20) eventLog.removeChild(eventLog.lastChild);
+}, 1000);
+</script>
+</body>
+</html>

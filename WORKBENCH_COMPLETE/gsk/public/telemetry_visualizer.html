@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GSK // AGENT STATE TELEMETRY DASHBOARD</title>
+<style>
+  :root { --bg: #050508; --panel: #0d0e15; --neon-cyan: #00ffcc; --neon-magenta: #ff0055; --neon-amber: #ffaa00; --text-dim: #7a889b; }
+  body { background: var(--bg); color: var(--neon-cyan); font-family: 'Courier New', monospace; margin: 0; padding: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  h1 { grid-column: 1 / -1; margin: 0 0 10px 0; font-size: 1.6rem; border-bottom: 2px solid var(--neon-cyan); padding-bottom: 8px; text-transform: uppercase; letter-spacing: 3px; display: flex; justify-content: space-between; }
+  .card { background: var(--panel); border: 1px solid var(--neon-cyan); border-radius: 4px; padding: 15px; box-shadow: 0 0 15px rgba(0,255,204,0.15); }
+  .metric-label { font-size: 0.8rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; }
+  .metric-val { font-size: 1.8rem; color: var(--neon-magenta); font-weight: bold; font-family: monospace; text-shadow: 0 0 8px var(--neon-magenta); }
+  canvas { width: 100%; height: 220px; background: #000; border: 1px solid rgba(0,255,204,0.3); margin-top: 10px; }
+</style>
+</head>
+<body>
+  <h1>GSK AGENT STATE TELEMETRY <span id="sys-status" style="color:var(--neon-amber)">[ONLINE]</span></h1>
+  <div class="card">
+    <div class="metric-label">PLT Optimization Vector</div>
+    <div class="metric-val" id="plt-val">PROFIT: 1.25 | TAX: 0.05</div>
+    <canvas id="plt-graph"></canvas>
+  </div>
+  <div class="card">
+    <div class="metric-label">Agent Consciousness &amp; Task Loop</div>
+    <div class="metric-val" id="agent-state">SOVEREIGN // RUNNING</div>
+    <canvas id="state-graph"></canvas>
+  </div>
+<script>
+  const pltCtx = document.getElementById('plt-graph').getContext('2d');
+  const stateCtx = document.getElementById('state-graph').getContext('2d');
+  let tick = 0;
+  const history = Array(60).fill(1.25);
+
+  function drawTelemetry() {
+    tick++;
+    const pltVal = (1.2 + Math.sin(tick * 0.1) * 0.15 + (Math.random() - 0.5) * 0.05).toFixed(2);
+    document.getElementById('plt-val').innerText = 'PROFIT: ' + pltVal + ' | TAX: 0.05';
+    history.push(parseFloat(pltVal));
+    history.shift();
+
+    pltCtx.clearRect(0, 0, 300, 150);
+    pltCtx.strokeStyle = '#00ffcc';
+    pltCtx.lineWidth = 2;
+    pltCtx.beginPath();
+    history.forEach((val, idx) => {
+      const x = (idx / 60) * 300;
+      const y = 150 - (val / 2) * 150;
+      if (idx === 0) pltCtx.moveTo(x, y); else pltCtx.lineTo(x, y);
+    });
+    pltCtx.stroke();
+
+    stateCtx.clearRect(0, 0, 300, 150);
+    stateCtx.fillStyle = '#ff0055';
+    for (let i = 0; i < 10; i++) {
+      const barH = Math.sin((tick + i * 5) * 0.15) * 50 + 60;
+      stateCtx.fillRect(i * 30 + 5, 150 - barH, 20, barH);
+    }
+
+    requestAnimationFrame(drawTelemetry);
+  }
+  drawTelemetry();
+</script>
+</body>
+</html>

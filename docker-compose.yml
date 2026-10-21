@@ -1,0 +1,39 @@
+version: "3.8"
+
+services:
+  workbench:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - MASTER_API_KEY=${MASTER_API_KEY}
+      - VAULT_PASSPHRASE=${VAULT_PASSPHRASE:-change-me-in-production}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - PINECONE_API_KEY=${PINECONE_API_KEY:-}
+      - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL:-}
+      - HUBSPOT_API_KEY=${HUBSPOT_API_KEY:-}
+      - SHOPIFY_ADMIN_ACCESS_TOKEN=${SHOPIFY_ADMIN_ACCESS_TOKEN:-}
+      - SOLANA_RPC_URL=${SOLANA_RPC_URL:-}
+      - CHroma_URL=http://chroma:8000
+    volumes:
+      - vault-data:/app/.vault
+    depends_on:
+      - chroma
+    restart: unless-stopped
+
+  chroma:
+    image: chromadb/chroma:latest
+    ports:
+      - "8000:8000"
+    volumes:
+      - chroma-data:/chroma/chroma
+    restart: unless-stopped
+
+volumes:
+  vault-data:
+  chroma-data:

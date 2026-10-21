@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Memetic Propagation & PLT Telemetry Dashboard</title>
+<style>
+  body { background-color: #0b0f19; color: #e2e8f0; font-family: monospace; margin: 0; padding: 20px; }
+  h1 { color: #38bdf8; text-shadow: 0 0 10px rgba(56,189,248,0.3); }
+  .grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+  .card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.5); }
+  canvas { background: #020617; border: 1px solid #1e293b; border-radius: 4px; display: block; width: 100%; height: 320px; }
+  .stat-val { font-size: 1.5rem; font-weight: bold; font-family: sans-serif; margin-top: 4px; }
+  .profit { color: #4ade80; }
+  .love { color: #f472b6; }
+  .tax { color: #f87171; }
+  .plt-value { color: #fbbf24; font-size: 2rem; }
+</style>
+</head>
+<body>
+  <h1>GSK Memetic Propagation & PLT Telemetry Dashboard</h1>
+  <div class="grid">
+    <div class="card">
+      <h2>Memetic Graph Network</h2>
+      <canvas id="memeticCanvas"></canvas>
+    </div>
+    <div class="card">
+      <h2>PLT Value Stream</h2>
+      <div>Profit Prime: <div class="stat-val profit" id="valProfit">0.90</div></div><br>
+      <div>Love Weaver: <div class="stat-val love" id="valLove">0.85</div></div><br>
+      <div>Tax Collector: <div class="stat-val tax" id="valTax">0.05</div></div><br>
+      <hr style="border-color:#334155">
+      <div>Net PLT Multiplier: <div class="stat-val plt-value" id="valPLT">1.70</div></div>
+    </div>
+  </div>
+  <script>
+    console.log("Telemetry Dashboard Active - Memetic PLT Engine Operational");
+  </script>
+</body>
+</html>

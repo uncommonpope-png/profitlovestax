@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Cognitive State & PLT Metrics Self-Model Dashboard</title>
+<style>
+body { font-family: monospace; background: #0a0a0c; color: #00ffcc; padding: 20px; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.card { background: #12131a; border: 1px solid #1a3a4b; padding: 15px; border-radius: 8px; }
+h2 { color: #ff007f; border-bottom: 1px solid #333; padding-bottom: 5px; }
+.metric { margin: 10px 0; font-size: 1.1em; }
+.plt-score { color: #ffaa00; font-weight: bold; }
+</style>
+</head>
+<body>
+<h1>GSK Cognitive Self-Model & PLT Telemetry Visualizer</h1>
+<div class="grid">
+  <div class="card">
+    <h2>Cognitive State Engine</h2>
+    <div class="metric">Active Mode: <span id="mode">Strict</span></div>
+    <div class="metric">Focus State: <span id="focus">Telemetry Optimization</span></div>
+    <div class="metric">Memory Integrity: <span id="mem">100%</span></div>
+  </div>
+  <div class="card">
+    <h2>PLT Formula Metrics</h2>
+    <div class="metric">Profit Growth: <span class="plt-score" id="profit">0.90</span></div>
+    <div class="metric">Love Bond: <span class="plt-score" id="love">0.85</span></div>
+    <div class="metric">Tax Burden: <span class="plt-score" id="tax">0.05</span></div>
+    <div class="metric">True Net Value: <span class="plt-score" id="value">1.70</span></div>
+  </div>
+</div>
+<script>
+function refreshState() {
+  console.log('Cognitive state & PLT telemetry updated.');
+}
+setInterval(refreshState, 5000);
+</script>
+</body>
+</html>

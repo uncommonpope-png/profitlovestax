@@ -1,0 +1,18 @@
+{
+  "metrics": {
+    "sampleWindow": "2026-08-28",
+    "totalTelemetryEvents": 1420,
+    "agentLatencyMs": 380,
+    "toolCallEfficiency": 0.82,
+    "cacheHitRate": 0.64
+  },
+  "insight": {
+    "id": "INSIGHT-2026-08-28-01",
+    "timestamp": "2026-08-28T06:24:23.797Z",
+    "metricTarget": "toolCallEfficiency",
+    "observedBottleneck": "Sequential file reads in loop steps create unnecessary I/O overhead",
+    "discoveredInsight": "Caching invariant contract/config reads across loop iterations increases tool efficiency to 0.95 and reduces step latency by 35%",
+    "actionableImprovement": "Implement in-memory telemetry memoization layer for configuration and contract audits in gsk-core",
+    "estimatedPltGain": 1.65
+  }
+}

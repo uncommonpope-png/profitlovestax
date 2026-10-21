@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PLT Live Strategic Telemetry Visualizer</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0b0e14; color: #e6edf3; margin: 0; padding: 24px; }
+  .header { border-bottom: 1px solid #30363d; padding-bottom: 16px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; }
+  .header h1 { font-size: 1.5rem; color: #58a6ff; margin: 0; }
+  .status-badge { background: #238636; color: white; padding: 4px 12px; border-radius: 12px; font-size: 0.85rem; font-weight: 600; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+  .card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 20px; transition: border-color 0.2s; }
+  .card:hover { border-color: #58a6ff; }
+  .metric-title { font-size: 0.85rem; color: #8b949e; text-transform: uppercase; letter-spacing: 0.05em; }
+  .metric-value { font-size: 2rem; font-weight: 700; color: #7ee787; margin: 12px 0 4px 0; }
+  .metric-sub { font-size: 0.85rem; color: #8b949e; }
+</style>
+</head>
+<body>
+<div class="header">
+  <div>
+    <h1>PLT Live Strategic Telemetry Visualizer</h1>
+    <div style="color: #8b949e; font-size: 0.9rem; margin-top: 4px;">Recursive Self-Model Calibration & Interoceptive Metrics</div>
+  </div>
+  <span class="status-badge" id="conn-status">ACTIVE TELEMETRY</span>
+</div>
+<div class="grid">
+  <div class="card">
+    <div class="metric-title">Token Probability Entropy</div>
+    <div class="metric-value" id="val-entropy">0.384</div>
+    <div class="metric-sub">Homeostatic Target: &lt; 0.450</div>
+  </div>
+  <div class="card">
+    <div class="metric-title">Context Window Saturation</div>
+    <div class="metric-value" id="val-context">64.2%</div>
+    <div class="metric-sub">Allocated: 128k / Capacity</div>
+  </div>
+  <div class="card">
+    <div class="metric-title">PLT True Value</div>
+    <div class="metric-value" id="val-plt">+0.920</div>
+    <div class="metric-sub">Formula: P(0.95) + L(0.02) - T(0.05)</div>
+  </div>
+  <div class="card">
+    <div class="metric-title">Tool Execution Latency</div>
+    <div class="metric-value" id="val-latency">142 ms</div>
+    <div class="metric-sub">P99 Threshold: &lt; 500 ms</div>
+  </div>
+</div>
+<script>
+async function fetchTelemetry() {
+  try {
+    const res = await fetch('http://127.0.0.1:3001/api/telemetry');
+    const data = await res.json();
+    if (data.entropy) document.getElementById('val-entropy').innerText = data.entropy;
+    if (data.context) document.getElementById('val-context').innerText = data.context;
+    if (data.plt) document.getElementById('val-plt').innerText = data.plt;
+    if (data.latency) document.getElementById('val-latency').innerText = data.latency;
+  } catch (err) {
+    console.log('Telemetry poll cycle active - waiting for next frame');
+  }
+}
+fetchTelemetry();
+setInterval(fetchTelemetry, 2500);
+</script>
+</body>
+</html>

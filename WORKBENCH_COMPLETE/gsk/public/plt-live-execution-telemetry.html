@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PLT Tool Execution Telemetry Dashboard</title>
+<style>
+  body { background: #0b0d13; color: #00ffcc; font-family: monospace; padding: 20px; margin: 0; }
+  .card { background: #141824; border: 1px solid #00ffcc; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+  h1 { color: #ffffff; text-shadow: 0 0 10px #00ffcc; }
+  .metric { display: inline-block; margin-right: 24px; font-size: 1.2em; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>PLT Live Telemetry Dashboard</h1>
+  <div id="metrics-stream">
+    <div class="metric">Profit: <span id="profit-val">1.00</span></div>
+    <div class="metric">Love: <span id="love-val">0.85</span></div>
+    <div class="metric">Tax: <span id="tax-val">0.15</span></div>
+    <div class="metric">True Value: <span id="tv-val">1.70</span></div>
+  </div>
+</div>
+<script>
+  console.log('PLT Telemetry Visualizer initialized');
+</script>
+</body>
+</html>

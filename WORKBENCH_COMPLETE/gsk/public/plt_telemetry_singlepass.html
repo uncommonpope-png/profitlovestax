@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PLT Single-Pass Telemetry Visualizer</title>
+  <style>
+    body { background: #0b0f19; color: #e2e8f0; font-family: monospace; padding: 20px; }
+    .container { max-width: 900px; margin: 0 auto; }
+    .metric-card { background: #1e293b; border: 1px solid #334155; padding: 15px; border-radius: 8px; margin-bottom: 12px; }
+    .gauge { font-size: 1.8rem; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>PLT Single-Pass Telemetry Visualizer</h1>
+    <div id="metrics">
+      <div class="metric-card"><h2>Profit</h2><div id="profit-val" class="gauge">--</div></div>
+      <div class="metric-card"><h2>Love</h2><div id="love-val" class="gauge">--</div></div>
+      <div class="metric-card"><h2>Tax</h2><div id="tax-val" class="gauge">--</div></div>
+      <div class="metric-card"><h2>True Value</h2><div id="tv-val" class="gauge">--</div></div>
+    </div>
+    <div id="status">Agent State: Single-Pass Telemetry Active</div>
+  </div>
+  <script>
+    function renderTelemetry(data) {
+      const p = data.profit || 0;
+      const l = data.love || 0;
+      const t = data.tax || 0;
+      const tv = p + l - t;
+      document.getElementById('profit-val').textContent = p.toFixed(2);
+      document.getElementById('love-val').textContent = l.toFixed(2);
+      document.getElementById('tax-val').textContent = t.toFixed(2);
+      document.getElementById('tv-val').textContent = tv.toFixed(2);
+    }
+    // Single-pass direct telemetry tick without complex buffering
+    const sampleState = { profit: 0.85, love: 0.90, tax: 0.15 };
+    renderTelemetry(sampleState);
+  </script>
+</body>
+</html>

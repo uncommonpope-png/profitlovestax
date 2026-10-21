@@ -1,0 +1,11 @@
+{
+  "id": "cqrs",
+  "title": "CQRS",
+  "content": "Command Query Responsibility Segregation separates read and write models to optimize each independently. Often paired with event sourcing.",
+  "tags": [
+    "cqrs",
+    "read-model",
+    "write-model",
+    "event-sourcing"
+  ]
+}

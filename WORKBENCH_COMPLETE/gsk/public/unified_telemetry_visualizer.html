@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GSK Unified Live Telemetry Visualizer</title>
+<style>
+body { margin: 0; background: #0a0b10; color: #e2e8f0; font-family: system-ui, sans-serif; overflow: hidden; }
+.glass-panel { background: rgba(15, 23, 42, 0.65); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 16px; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37); }
+#app { display: grid; grid-template-columns: 300px 1fr 340px; height: 100vh; gap: 12px; padding: 12px; box-sizing: border-box; }
+canvas { width: 100%; height: 100%; display: block; border-radius: 8px; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="glass-panel" id="state-inspector">
+    <h2>Agent State</h2>
+    <div id="agent-metrics">Loading state...</div>
+  </div>
+  <div class="glass-panel" id="viewport">
+    <canvas id="gl-canvas"></canvas>
+  </div>
+  <div class="glass-panel" id="plt-optimizer">
+    <h2>PLT Value Telemetry</h2>
+    <div id="plt-gauges">Loading metrics...</div>
+  </div>
+</div>
+<script>
+const canvas = document.getElementById('gl-canvas');
+const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+let telemetryState = { profit: 0.9, love: 0.05, tax: 0.05, activeCycle: 1, dynamicValue: 1.0 };
+function updateMetricsUI() {
+  document.getElementById('agent-metrics').innerHTML = `<p>Active Cycle: ${telemetryState.activeCycle}</p><p>Dynamic Value: ${telemetryState.dynamicValue.toFixed(4)}</p>`;
+  document.getElementById('plt-gauges').innerHTML = `<p>Profit (0.9): ${telemetryState.profit}</p><p>Love (0.05): ${telemetryState.love}</p><p>Tax (0.05): ${telemetryState.tax}</p>`;
+}
+setInterval(() => {
+  telemetryState.activeCycle++;
+  telemetryState.dynamicValue = (telemetryState.profit * 0.9 + telemetryState.love * 0.05 - telemetryState.tax * 0.05) * (1 + Math.sin(Date.now() / 1000) * 0.05);
+  updateMetricsUI();
+}, 1000);
+updateMetricsUI();
+</script>
+</body>
+</html>

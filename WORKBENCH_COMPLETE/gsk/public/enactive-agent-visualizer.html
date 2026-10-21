@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Enactive Agent State Visualizer</title>
+  <style>
+    body { margin: 0; background: #0a0a0c; color: #00ffcc; font-family: monospace; overflow: hidden; }
+    #canvas { width: 100vw; height: 100vh; display: block; }
+    #hud { position: absolute; top: 16px; left: 16px; background: rgba(0,0,0,0.8); padding: 12px; border: 1px solid #00ffcc; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <div id="hud">
+    <h2>ENACTIVE AGENT TELEMETRY</h2>
+    <div id="metrics">Coupling: 100% | PLT Optimal</div>
+  </div>
+  <canvas id="canvas"></canvas>
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+    window.addEventListener('resize', resize);
+    resize();
+    function render() {
+      ctx.fillStyle = 'rgba(10, 10, 12, 0.2)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      requestAnimationFrame(render);
+    }
+    render();
+  </script>
+</body>
+</html>

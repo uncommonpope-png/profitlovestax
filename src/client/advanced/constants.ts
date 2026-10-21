@@ -1,0 +1,1638 @@
+// @ts-nocheck
+import { Skill } from "./types";
+
+export const INITIAL_SKILLS: Skill[] = [
+  // ========================== CORE CATEGORY (25 SKILLS) ==========================
+  {
+    id: "web_search",
+    name: "Web Grounding Search",
+    description: "Equips the Agent with real-time web retrieval capability via Google Search. Automatically queries the live web to anchor answers in current events.",
+    category: "core",
+    parameters: {
+      depth: "standard",
+      safeSearch: "active",
+    },
+    paramDefinitions: [
+      { key: "depth", label: "Search Grounding Depth", type: "select", options: ["standard", "comprehensive"], value: "standard" },
+      { key: "safeSearch", label: "SafeSearch Filter", type: "select", options: ["active", "off"], value: "active" },
+    ],
+    unlocked: true,
+    costCode: "GEMINI_CORE_RETRIEVAL",
+  },
+  {
+    id: "vision_processor",
+    name: "Multimodal Vision Matrix",
+    description: "Utilizes advanced visual grounding networks to decode images, schemas, charts, and structural blueprints. Returns dense spatial and textual annotations.",
+    category: "core",
+    parameters: {
+      resolution: "high-res",
+      detailFocus: "balanced",
+    },
+    paramDefinitions: [
+      { key: "resolution", label: "Visual Ingestion Resolution", type: "select", options: ["standard-res", "high-res", "ultra-dense"], value: "high-res" },
+      { key: "detailFocus", label: "Focal Ingestion Strategy", type: "select", options: ["balanced", "textual-ocr", "geometric-schematics"], value: "balanced" },
+    ],
+    unlocked: true,
+    costCode: "GEMINI_VISION_V1",
+  },
+  {
+    id: "db_query_sync",
+    name: "Relational DB Sync",
+    description: "Simulates direct querying and filtering from relational database schemas. Perfect for connecting agents to backoffice ledger states.",
+    category: "core",
+    parameters: {
+      tableName: "users_ledger",
+      primaryKey: "user_uuid",
+      readOnly: "true",
+    },
+    paramDefinitions: [
+      { key: "tableName", label: "Primary Table Target", type: "text", placeholder: "users_ledger", value: "users_ledger" },
+      { key: "primaryKey", label: "Primary Key Column ID", type: "text", placeholder: "id", value: "user_uuid" },
+      { key: "readOnly", label: "Read-Only Restriction", type: "select", options: ["true", "false"], value: "true" },
+    ],
+    unlocked: true,
+    costCode: "SQL_SIMULATOR_LV1",
+  },
+  {
+    id: "sandbox_executor",
+    name: "Python Logic Container",
+    description: "Instantiates a safe runtime logic console inside the response loop to safely process mathematical matrix equations, array sortings, or regular expressions.",
+    category: "core",
+    parameters: {
+      timeoutMs: "1500",
+      isolateLevel: "hyper-safe",
+    },
+    paramDefinitions: [
+      { key: "timeoutMs", label: "Maximum Execution Limit (ms)", type: "number", placeholder: "1500", value: "1500" },
+      { key: "isolateLevel", label: "Sandbox Isolation Security", type: "select", options: ["standard", "hyper-safe"], value: "hyper-safe" },
+    ],
+    unlocked: true,
+    costCode: "SANDBOX_COMPILER_LV3",
+  },
+  {
+    id: "translation_nexus",
+    name: "Polyglot Translation Nexus",
+    description: "Translates complex multi-turn dialogs and documents across 120+ localized languages, auto-preserving formatting styles like Markdown or raw HTML tags.",
+    category: "core",
+    parameters: {
+      targetLang: "Spanish (Spain)",
+      preserveTone: "professional",
+    },
+    paramDefinitions: [
+      { key: "targetLang", label: "Target Language Spec", type: "select", options: ["Spanish (Spain)", "Japanese", "French (EU)", "German", "Mandarin Simplified", "Portuguese", "Arabic"], value: "Spanish (Spain)" },
+      { key: "preserveTone", label: "Translation Voice Accent", type: "select", options: ["professional", "casual", "literal-word-for-word"], value: "professional" },
+    ],
+    unlocked: true,
+    costCode: "CORE_NLP_TRANS_X",
+  },
+  {
+    id: "prompt_optimizer",
+    name: "Prompt Synthesizer and Tuner",
+    description: "Processes user prompts through a recursive meta-compiler, automatically injecting structured examples, variables constraints, and XML tags to maximize LLM compliance.",
+    category: "core",
+    parameters: {
+      targetModel: "gemini-3.5-flash",
+      includeExamples: "true",
+    },
+    paramDefinitions: [
+      { key: "targetModel", label: "Optimize for model structure", type: "select", options: ["gemini-3.5-flash", "claude-3-op", "gpt-4o-mini"], value: "gemini-3.5-flash" },
+      { key: "includeExamples", label: "Inject Few-Shot Scenarios", type: "select", options: ["true", "false"], value: "true" },
+    ],
+    unlocked: true,
+    costCode: "META_NLP_TUNER",
+  },
+  {
+    id: "semantic_similarity",
+    name: "Semantic Vector Embedder",
+    description: "Engages a local multi-layer encoder to convert textual prompts into high-dimensional standard vectors, calculating similarity scores with historical chat databases.",
+    category: "core",
+    parameters: {
+      dimension: "1536",
+      distanceMetric: "cosine",
+    },
+    paramDefinitions: [
+      { key: "dimension", label: "Vector Sizing Dimensions", type: "select", options: ["384", "768", "1536"], value: "1536" },
+      { key: "distanceMetric", label: "Distance Math Matrix", type: "select", options: ["cosine", "l2-euclidean", "dot-product"], value: "cosine" },
+    ],
+    unlocked: true,
+    costCode: "EMBED_CALC_LVL4",
+  },
+  {
+    id: "stt_whisper",
+    name: "Audio Ingest Whisper Decoder",
+    description: "Converts oral voice scripts, conference calls, or WAV/MP3 files into time-stamped text annotations. Detects speaker alterations.",
+    category: "core",
+    parameters: {
+      diarization: "true",
+      maxSpeakers: "4",
+    },
+    paramDefinitions: [
+      { key: "diarization", label: "Differentiate Speakers", type: "select", options: ["true", "false"], value: "true" },
+      { key: "maxSpeakers", label: "Maximum Speaker Cap", type: "number", placeholder: "4", value: "4" },
+    ],
+    unlocked: true,
+    costCode: "CORE_AUDIO_Whisper",
+  },
+  {
+    id: "tts_speech_matrix",
+    name: "Vocal Synthesizer (TTS)",
+    description: "Translates systemic logs, reports, or messages into rich, natural vocal outputs (MP3 format) with custom speech velocity controls.",
+    category: "core",
+    parameters: {
+      voiceId: "alloy-neural",
+      speechRate: "1.0",
+    },
+    paramDefinitions: [
+      { key: "voiceId", label: "Target Speech Avatar", type: "select", options: ["alloy-neural", "echo-stable", "fable-warm", "nova-fast"], value: "alloy-neural" },
+      { key: "speechRate", label: "Voice Execution Velocity", type: "number", placeholder: "1.0", value: "1.0" },
+    ],
+    unlocked: true,
+    costCode: "CORE_SPEECH_TTS",
+  },
+  {
+    id: "text_chunker_splitter",
+    name: "Recursive Text Chunker",
+    description: "Chunks documents into overlapping sliding paragraphs, ready for clean vector database feeding without slicing mid-sentence words.",
+    category: "core",
+    parameters: {
+      chunkSize: "500",
+      chunkOverlap: "50",
+    },
+    paramDefinitions: [
+      { key: "chunkSize", label: "Characters Per Segment (Size)", type: "number", placeholder: "500", value: "500" },
+      { key: "chunkOverlap", label: "Character Overlap Margin", type: "number", placeholder: "50", value: "50" },
+    ],
+    unlocked: true,
+    costCode: "RAG_NLP_CHUNKER",
+  },
+  {
+    id: "llm_fallback_agent",
+    name: "Failover Provider Routing Swarm",
+    description: "Instantly reroutes active LLM commands to secondary providers (e.g. OpenAI of Anthropic) if the primary cloud model encounters an API timeout.",
+    category: "core",
+    parameters: {
+      primaryProvider: "gemini",
+      backupProvider: "openai",
+    },
+    paramDefinitions: [
+      { key: "primaryProvider", label: "Initial Priority Gateway", type: "select", options: ["gemini", "openai", "anthropic"], value: "gemini" },
+      { key: "backupProvider", label: "Secondary Fallback Gateway", type: "select", options: ["openai", "anthropic", "gemini"], value: "openai" },
+    ],
+    unlocked: true,
+    costCode: "CORE_FAILSAFE_ROUTER",
+  },
+  {
+    id: "guardrails_toxic_detector",
+    name: "Content Guardrails Evaluator",
+    description: "Intercepts and audits incoming client inputs, matching tags against strict behavioral standards to block exploit codes, SQL injections, or spam queries.",
+    category: "core",
+    parameters: {
+      strictnessLevel: "high",
+      autoFormatOffenders: "true",
+    },
+    paramDefinitions: [
+      { key: "strictnessLevel", label: "Guardrail Integrity Level", type: "select", options: ["low", "medium", "high"], value: "high" },
+      { key: "autoFormatOffenders", label: "Block and flag offenders", type: "select", options: ["true", "false"], value: "true" },
+    ],
+    unlocked: true,
+    costCode: "SEC_NLP_GUARDRAILS",
+  },
+  {
+    id: "sentiment_scalar",
+    name: "Conversational Sentiment Classifier",
+    description: "Performs dense linguistic analytics on user prompts to measure real-time emotional vectors (positive, negative, frustrated, or neutral).",
+    category: "core",
+    parameters: {
+      exportFormat: "JSON",
+      trackHistory: "true",
+    },
+    paramDefinitions: [
+      { key: "exportFormat", label: "Output analytics metric structure", type: "select", options: ["JSON", "Float Score (-1 to 1)", "Categorised Label"], value: "JSON" },
+      { key: "trackHistory", label: "Persist rolling sentiment vectors", type: "select", options: ["true", "false"], value: "true" },
+    ],
+    unlocked: true,
+    costCode: "NLP_ANALYTICS_SENT",
+  },
+  {
+    id: "pipeline_scheduler",
+    name: "Recursive Pipeline Cron orchestrator",
+    description: "Executes loops of specific actions at set schedules, pulling new database changes or transmitting report summaries to outbound ports.",
+    category: "core",
+    parameters: {
+      cronInterval: "Every 5 mins",
+      runRetries: "3",
+    },
+    paramDefinitions: [
+      { key: "cronInterval", label: "Scheduler Expression Interval", type: "select", options: ["Every 5 mins", "Hourly", "Daily (Midnight)"], value: "Every 5 mins" },
+      { key: "runRetries", label: "Failed Task Auto-Retry Count", type: "number", placeholder: "3", value: "3" },
+    ],
+    unlocked: true,
+    costCode: "CORE_EXEC_SCHEDULER",
+  },
+  {
+    id: "ner_extraction_matrix",
+    name: "Named Entity Recognizer (NER)",
+    description: "Scans raw emails or prompt requests to extract structural parameters such as physical addresses, monetary figures, names, and phone numbers.",
+    category: "core",
+    parameters: {
+      regexOverride: "\\d{10}",
+    },
+    paramDefinitions: [
+      { key: "regexOverride", label: "Custom Match Regular Expression", type: "text", placeholder: "\\d{10}", value: "\\d{10}" },
+    ],
+    unlocked: true,
+    costCode: "CORE_NLP_NER_EXT",
+  },
+  {
+    id: "reasoning_tree",
+    name: "Tree of Thoughts Reasoner",
+    description: "Synthesizes multi-path execution forks for convoluted math or strategic puzzles, scoring candidate results to secure optimal output pipelines.",
+    category: "core",
+    parameters: {
+      forkBranches: "3",
+      maxTraceDepth: "5",
+    },
+    paramDefinitions: [
+      { key: "forkBranches", label: "Maximum Path Inquiries (Forks)", type: "number", placeholder: "3", value: "3" },
+      { key: "maxTraceDepth", label: "Trace Recursive Depth Sizing", type: "number", placeholder: "5", value: "5" },
+    ],
+    unlocked: true,
+    costCode: "AI_COG_TOT_REASONER",
+  },
+  {
+    id: "context_compressor",
+    name: "Grounding Context Condenser",
+    description: "Condenses bulk database transcripts and document segments by 80%, keeping essential semantic anchors before feeding prompts to conserve prompt tokens.",
+    category: "core",
+    parameters: {
+      compresRatio: "0.20",
+    },
+    paramDefinitions: [
+      { key: "compresRatio", label: "Context Compress Target Ratio", type: "select", options: ["0.10", "0.20", "0.40"], value: "0.20" },
+    ],
+    unlocked: true,
+    costCode: "CORE_RAG_COMPRESSOR",
+  },
+  {
+    id: "system_state_cache",
+    name: "Volatile RAM Caching Engine",
+    description: "Maintains temporary, lightning-fast key-value mappings of system transcripts directly in system container memory, bypassing disk read latencies.",
+    category: "core",
+    parameters: {
+      cacheDuration: "1800",
+      lruPurge: "true",
+    },
+    paramDefinitions: [
+      { key: "cacheDuration", label: "Object Eviction TTL (Seconds)", type: "number", placeholder: "1800", value: "1800" },
+      { key: "lruPurge", label: "Enable LRU Cache Eviction", type: "select", options: ["true", "false"], value: "true" },
+    ],
+    unlocked: true,
+    costCode: "CORE_MEM_REDIS_SIM",
+  },
+  {
+    id: "text_summarizer_core",
+    name: "Abstractive Document Summarizer",
+    description: "Ingests large research documents (PDF, Markdown) and compresses them into a human-readable list of structural arguments and actions.",
+    category: "core",
+    parameters: {
+      bulletLength: "10",
+      outputFormatting: "Markdown list",
+    },
+    paramDefinitions: [
+      { key: "bulletLength", label: "Maximum Output Bullet Points", type: "number", placeholder: "10", value: "10" },
+      { key: "outputFormatting", label: "Visual output format outline", type: "select", options: ["Markdown list", "Standard paragraph", "JSON array"], value: "Markdown list" },
+    ],
+    unlocked: true,
+    costCode: "CORE_NLP_SUMMARIZER",
+  },
+  {
+    id: "data_anonymizer",
+    name: "PII Personal Data Masker",
+    description: "Scans chat loops and documents, automatically replacing sensitive cards, SSNs, credit card figures, and personal addresses with placeholder tags.",
+    category: "core",
+    parameters: {
+      maskStyle: "REDACTED",
+      maskCcOnly: "false",
+    },
+    paramDefinitions: [
+      { key: "maskStyle", label: "PII Replacement String style", type: "select", options: ["REDACTED", "[PRIVATE_PII]", "random_hashes"], value: "REDACTED" },
+      { key: "maskCcOnly", label: "Restrict masking to credit cards", type: "select", options: ["true", "false"], value: "false" },
+    ],
+    unlocked: true,
+    costCode: "SEC_DATA_ANONYMIZER",
+  },
+  {
+    id: "code_refactor_copilot",
+    name: "AST Structure Code Reviewer",
+    description: "Parses inputs against AST parsers, matching code layouts against modular standards to locate potential runtime memory leaks.",
+    category: "core",
+    parameters: {
+      targetLanguage: "TypeScript",
+      lintStrictness: "strict-recommended",
+    },
+    paramDefinitions: [
+      { key: "targetLanguage", label: "Language context scope", type: "select", options: ["TypeScript", "Python", "Rust", "Go"], value: "TypeScript" },
+      { key: "lintStrictness", label: "Linter Style Rule enforcement", type: "select", options: ["lenient", "strict-recommended", "paranoid-all"], value: "strict-recommended" },
+    ],
+    unlocked: true,
+    costCode: "CORE_CODE_AST_LINT",
+  },
+  {
+    id: "grammar_proof_nexus",
+    name: "Orthographic Linguistic Rectifier",
+    description: "Audits grammar, syntactical style flows, and flow patterns within emails, ensuring high-end business grade composition is dispatched.",
+    category: "core",
+    parameters: {
+      styleTuning: "executive-brief",
+    },
+    paramDefinitions: [
+      { key: "styleTuning", label: "Output Professional Grade Dialect", type: "select", options: ["executive-brief", "academic-formal", "cooperative-soft"], value: "executive-brief" },
+    ],
+    unlocked: true,
+    costCode: "CORE_NLP_POLISHER",
+  },
+  {
+    id: "knowledge_graph",
+    name: "Semantic Knowledge Mapper",
+    description: "Maps conversations into custom logical nodes and structural arcs, building dynamic context map trees for complex problem solutions.",
+    category: "core",
+    parameters: {
+      mapFormat: "GraphViz JSON",
+    },
+    paramDefinitions: [
+      { key: "mapFormat", label: "Export Graph representation format", type: "select", options: ["GraphViz JSON", "Cytoscape JS Structure", "Markdown Relations"], value: "GraphViz JSON" },
+    ],
+    unlocked: true,
+    costCode: "CORE_COG_KNOWLEDGE_G",
+  },
+  {
+    id: "intent_router",
+    name: "Semantic Intent Router Switchboard",
+    description: "Quickly parses input requests and automatically delegates the operational tasks to the best slotted agent skill without checking the full LLM context.",
+    category: "core",
+    parameters: {
+      routeThreshold: "0.72",
+    },
+    paramDefinitions: [
+      { key: "routeThreshold", label: "Match Routing Minimum Threshold", type: "number", placeholder: "0.72", value: "0.72" },
+    ],
+    unlocked: true,
+    costCode: "CORE_NLP_ROUTER_NODE",
+  },
+  {
+    id: "agent_orchestrator",
+    name: "Multi-Agent Dialog Supervisor",
+    description: "Administers conversational exchanges between custom agent templates in the workspace, ensuring instructions constraints are followed.",
+    category: "core",
+    parameters: {
+      supervisorTone: "assertive",
+      turnLimit: "8",
+    },
+    paramDefinitions: [
+      { key: "supervisorTone", label: "Orchestrator instruction enforcement", type: "select", options: ["assertive", "cooperative", "observation-only"], value: "assertive" },
+      { key: "turnLimit", label: "Maximum conversation turn cap", type: "number", placeholder: "8", value: "8" },
+    ],
+    unlocked: true,
+    costCode: "CORE_AGENT_ORCHESTRA",
+  },
+
+  // ========================== INTEGRATION CATEGORY (40 SKILLS) ==========================
+  {
+    id: "webhook_dispatcher",
+    name: "Webhook Sync Dispatcher",
+    description: "Triggers external system HTTP POST APIs with customized JSON payloads on demand. Tests connections dynamically to live pipelines.",
+    category: "integration",
+    parameters: {
+      targetUrl: "https://httpbin.org/post",
+      authHeader: "Bearer SEC_TOKEN_DEMO",
+      contentType: "application/json",
+    },
+    paramDefinitions: [
+      { key: "targetUrl", label: "Endpoint target HTTP POST URL", type: "text", placeholder: "https://yourserver.com/webhooks/agent", value: "https://httpbin.org/post" },
+      { key: "authHeader", label: "Authorization Header Value", type: "text", placeholder: "Bearer your-token", value: "Bearer SEC_TOKEN_DEMO" },
+      { key: "contentType", label: "Content-Type", type: "select", options: ["application/json", "application/x-www-form-urlencoded"], value: "application/json" },
+    ],
+    unlocked: true,
+    costCode: "NET_DISPATCHER_LV2",
+  },
+  {
+    id: "pinecone_retriever",
+    name: "Pinecone Vector RAG Network",
+    description: "Connects agent cognition directly to unified vector knowledge reservoirs, enabling hyper-relevant context lookup over terabytes of unstructured records.",
+    category: "integration",
+    parameters: {
+      indexName: "agent-memory-index",
+      metric: "cosine",
+      topK: "5",
+    },
+    paramDefinitions: [
+      { key: "indexName", label: "Pinecone Target Index", type: "text", placeholder: "e.g. enterprise-docs", value: "agent-memory-index" },
+      { key: "metric", label: "Vector Similarity Algorithm", type: "select", options: ["cosine", "euclidean", "dot-product"], value: "cosine" },
+      { key: "topK", label: "Context Segment Pool (K)", type: "number", placeholder: "5", value: "5" },
+    ],
+    unlocked: true,
+    costCode: "VEC_DB_RAG_LV4",
+    dependencies: ["web_search"],
+  },
+  {
+    id: "slack_notifier",
+    name: "Slack Channel Alert hook",
+    description: "Dispatches conversational digests or system warnings to public or private Slack workspaces via incoming webhooks.",
+    category: "integration",
+    parameters: {
+      slackWebhookUrl: "https://hooks.slack.com/services/T00/B00/X00",
+      channelName: "#general",
+      alertPriority: "medium",
+    },
+    paramDefinitions: [
+      { key: "slackWebhookUrl", label: "Slack Incoming Webhook URL", type: "text", placeholder: "https://hooks.slack.com/services/...", value: "https://hooks.slack.com/services/T00/B00/X00" },
+      { key: "channelName", label: "Target Channel Accent Name", type: "text", placeholder: "#alerts-feed", value: "#general" },
+      { key: "alertPriority", label: "Notification Dispatch Level", type: "select", options: ["low", "medium", "critical"], value: "medium" },
+    ],
+    unlocked: true,
+    costCode: "SLACK_INTEGRATOR_LV1",
+    dependencies: ["webhook_dispatcher"],
+  },
+  {
+    id: "hubspot_crm",
+    name: "HubSpot CRM Connector",
+    description: "Orchestrates deals pipelines, synchronizes contact metadata, and maps organizational owners with structural intelligence algorithms.",
+    category: "integration",
+    parameters: {
+      apiKey: "HS_DEMO_SECRET_KEY_PRO",
+      autoSync: "true",
+    },
+    paramDefinitions: [
+      { key: "apiKey", label: "HubSpot Developer Secret Key", type: "password", placeholder: "pat-na1-xxxx-xxxx", value: "HS_DEMO_SECRET_KEY_PRO" },
+      { key: "autoSync", label: "Automatic Deal Sync Action", type: "select", options: ["true", "false"], value: "true" },
+    ],
+    unlocked: true,
+    costCode: "CRM_HUBSPOT_NODE_V2",
+    dependencies: ["webhook_dispatcher"],
+  },
+  {
+    id: "shopify_sync",
+    name: "Shopify Order Logistics",
+    description: "Ingests ecommerce order feeds, updates product inventory status charts, maps shipping tracking nodes and manages refund validations.",
+    category: "integration",
+    parameters: {
+      storeUrl: "agent-merch.myshopify.com",
+      syncThreshold: "50",
+    },
+    paramDefinitions: [
+      { key: "storeUrl", label: "Shopify Store Host Domain", type: "text", placeholder: "shop-name.myshopify.com", value: "agent-merch.myshopify.com" },
+      { key: "syncThreshold", label: "Max Logistical Rows per Sync", type: "number", placeholder: "50", value: "50" },
+    ],
+    unlocked: true,
+    costCode: "ECOM_SHOPIFY_SYNC_V1",
+    dependencies: ["webhook_dispatcher"],
+  },
+  {
+    id: "ethereum_tracker",
+    name: "Ethereum Base Gas Auditor",
+    description: "Monitors mainnet network pending pools via Etherscan RPC sockets. Translates raw smart-contract events into structured human logs.",
+    category: "integration",
+    parameters: {
+      etherscanKey: "ETH_DEMO_KEY_SEC_V5",
+      minimumGasGwei: "25",
+    },
+    paramDefinitions: [
+      { key: "etherscanKey", label: "Etherscan API Private Key token", type: "password", placeholder: "E.g. XYZ123...456", value: "ETH_DEMO_KEY_SEC_V5" },
+      { key: "minimumGasGwei", label: "Alert Trigger GWEI threshold", type: "number", placeholder: "25", value: "25" },
+    ],
+    unlocked: true,
+    costCode: "WEB3_ETH_AUDITOR_LV2",
+    dependencies: ["webhook_dispatcher"],
+  },
+  {
+    id: "aws_s3_loader",
+    name: "AWS S3 Asset Bucket Gateway",
+    description: "Syncs file records and visual files with secured AWS S3 bucket structures, automatically refreshing public URLs under access policies.",
+    category: "integration",
+    parameters: {
+      bucketName: "company-assets-prod",
+      awsRegion: "us-east-1",
+      accessKeyId: "AKIA_DEMO_PROX_99",
+    },
+    paramDefinitions: [
+      { key: "bucketName", label: "AWS Identity S3 Bucket Name", type: "text", placeholder: "company-assets-prod", value: "company-assets-prod" },
+      { key: "awsRegion", label: "AWS Area Deployment Zone", type: "select", options: ["us-east-1", "us-west-2", "eu-central-1", "ap-southeast-1"], value: "us-east-1" },
+      { key: "accessKeyId", label: "AWS IAM Access Key Identity ID", type: "text", placeholder: "AKIA...", value: "AKIA_DEMO_PROX_99" },
+    ],
+    unlocked: true,
+    costCode: "CLOUD_AWS_S3_LOADER",
+    dependencies: ["webhook_dispatcher"],
+  },
+  {
+    id: "mongodb_atlas",
+    name: "MongoDB Atlas Data Connector",
+    description: "Establishes secure telemetry tunnels inside MongoDB cluster environments. Queries and formats nested BSON documents into layout rows.",
+    category: "integration",
+    parameters: {
+      connectionString: "mongodb+srv://admin:pass@cluster.mongodb.net",
+      primaryDatabase: "agent_workbench_telemetry",
+    },
+    paramDefinitions: [
+      { key: "connectionString", label: "MongoDB Secret URI link", type: "password", placeholder: "mongodb+srv://...", value: "mongodb+srv://admin:pass@cluster.mongodb.net" },
+      { key: "primaryDatabase", label: "Target Database namespace", type: "text", placeholder: "agent_workbench_telemetry", value: "agent_workbench_telemetry" },
+    ],
+    unlocked: true,
+    costCode: "DB_MONGO_ATLAS_NODE",
+  },
+  {
+    id: "discord_announcer",
+    name: "Discord Guild Webhook Broadcaster",
+    description: "Constructs formatted Embed cards, complete with colors, thumbnail links, and markdown details, and pushes them to active Discord channels.",
+    category: "integration",
+    parameters: {
+      webhookUrl: "https://discord.com/api/webhooks/123",
+      embedColorHex: "#5865F2",
+    },
+    paramDefinitions: [
+      { key: "webhookUrl", label: "Discord Client Channel Webhook URL", type: "text", placeholder: "https://discord.com/api/webhooks/...", value: "https://discord.com/api/webhooks/123" },
+      { key: "embedColorHex", label: "Card Left Accent Hex Color", type: "text", placeholder: "#5865F2", value: "#5865F2" },
+    ],
+    unlocked: true,
+    costCode: "DISCORD_MESSENGER_H",
+    dependencies: ["webhook_dispatcher"],
+  },
+  {
+    id: "mailchimp_dispatcher",
+    name: "MailChimp Campaign Syncer",
+    description: "Appends contact records to list audiences, applying segment variables based on client profile interactions.",
+    category: "integration",
+    parameters: {
+      mailchimpApiKey: "MC_DEMO_KEY_PRO_V7",
+      targetAudienceId: "a1b2c3d4e5",
+    },
+    paramDefinitions: [
+      { key: "mailchimpApiKey", label: "Mailchimp Account API Token", type: "password", placeholder: "xxxx-us19", value: "MC_DEMO_KEY_PRO_V7" },
+      { key: "targetAudienceId", label: "Target Client List (Audience ID)", type: "text", placeholder: "a1b2c3d4e5", value: "a1b2c3d4e5" },
+    ],
+    unlocked: true,
+    costCode: "MKT_MAILCHIMP_DISPAT",
+    dependencies: ["webhook_dispatcher"],
+  },
+  {
+    id: "linear_issue_tracker",
+    name: "Linear Task Board Sync",
+    description: "Builds developer bugs, aligns engineering milestones, and modifies issue statuses inside Linear workspaces on system triggers.",
+    category: "integration",
+    parameters: {
+      linearToken: "lin_api_demo_pat_0099",
+      targetProject: "Agent Neural Systems",
+    },
+    paramDefinitions: [
+      { key: "linearToken", label: "Linear Developer PAT Key", type: "password", placeholder: "lin_api_...", value: "lin_api_demo_pat_0099" },
+      { key: "targetProject", label: "Primary Project Board Target", type: "text", placeholder: "Neural Core Beta", value: "Agent Neural Systems" },
+    ],
+    unlocked: true,
+    costCode: "DEV_LINEAR_PROJECTS",
+    dependencies: ["webhook_dispatcher"],
+  },
+  {
+    id: "jira_enterprise",
+    name: "Jira Software Scrum Syncer",
+    description: "Drafts epic blocks, registers story logs, and formats engineering sprints inside Atlassian environments.",
+    category: "integration",
+    parameters: {
+      atlassianHost: "enterprise-teams.atlassian.net",
+      jiraApiToken: "JIRA_DEMO_TOKEN_KEY_992",
+    },
+    paramDefinitions: [
+      { key: "atlassianHost", label: "Atlassian Hostname Context URL", type: "text", placeholder: "my-company.atlassian.net", value: "enterprise-teams.atlassian.net" },
+      { key: "jiraApiToken", label: "Jira API Private Service Key", type: "password", placeholder: "Atlassian secret-pat", value: "JIRA_DEMO_TOKEN_KEY_992" },
+    ],
+    unlocked: true,
+    costCode: "DEV_JIRA_ENTERPRISE",
+    dependencies: ["webhook_dispatcher"],
+  },
+  {
+    id: "stripe_billing_portal",
+    name: "Stripe Subscription Ingester",
+    description: "Validates subscription invoices, logs dynamic webhook purchase traces, and triggers client credential codes on card purchases.",
+    category: "integration",
+    parameters: {
+      stripeSecretKey: "sk_live_demo_charge_secret_88",
+    },
+    paramDefinitions: [
+      { key: "stripeSecretKey", label: "Stripe Private API Key Token", type: "password", placeholder: "sk_live_...", value: "sk_live_demo_charge_secret_88" },
+    ],
+    unlocked: true,
+    costCode: "FIN_STRIPE_ORCHESTRA",
+    dependencies: ["webhook_dispatcher"],
+  },
+  {
+    id: "telegram_broadcaster",
+    name: "Telegram Bot Broadcast Node",
+    description: "Delivers urgent server notifications directly to private channels or system chat groups via Telegram's Bot API.",
+    category: "integration",
+    parameters: {
+      telegramBotToken: "123456:ABC-DemoBotTokenString",
+      targetChatId: "-100123456789",
+    },
+    paramDefinitions: [
+      { key: "telegramBotToken", label: "Telegram Bot API Credential Token", type: "password", placeholder: "123456:ABC...", value: "123456:ABC-DemoBotTokenString" },
+      { key: "targetChatId", label: "Recipient Group/Channel Chat ID", type: "text", placeholder: "@alerts_channel or -100...", value: "-100123456789" },
+    ],
+    unlocked: true,
+    costCode: "COMM_TELEGRAM_DISPAT",
+    dependencies: ["webhook_dispatcher"],
+  },
+  {
+    id: "github_actions_wf",
+    name: "Github Actions CI Pipeline",
+    description: "Launches external GitHub Actions build files on system triggers using the Repository Dispatch Webhook standard.",
+    category: "integration",
+    parameters: {
+      githubRepository: "soul-genesis/neural-core",
+      githubToken: "ghp_secure_github_client_token",
+    },
+    paramDefinitions: [
+      { key: "githubRepository", label: "Target Git Repository Host", type: "text", placeholder: "owner/repo-name", value: "soul-genesis/neural-core" },
+      { key: "githubToken", label: "GitHub Personal Access Token (PAT)", type: "password", placeholder: "ghp_...", value: "ghp_secure_github_client_token" },
+    ],
+    unlocked: true,
+    costCode: "DEV_GITHUB_ACTIONS",
+    dependencies: ["webhook_dispatcher"],
+  },
+  {
+    id: "sentry_error_logger",
+    name: "Sentry Event Issue Aggregator",
+    description: "Extracts recent backend production exceptions from project streams, compiling stacktraces for Copilot diagnostic runs.",
+    category: "integration",
+    parameters: {
+      sentryDsnKey: "https://sentry.io/keys/998124",
+      environmentLabel: "production",
+    },
+    paramDefinitions: [
+      { key: "sentryDsnKey", label: "Sentry Project DSN Access URL", type: "text", placeholder: "https://public@sentry.io/123", value: "https://sentry.io/keys/998124" },
+      { key: "environmentLabel", label: "Target Scope Server Environment", type: "select", options: ["production", "staging", "development"], value: "production" },
+    ],
+    unlocked: true,
+    costCode: "DEV_SENTRY_MONITOR",
+    dependencies: ["webhook_dispatcher"],
+  },
+  {
+    id: "notion_document_db",
+    name: "Notion Knowledge Base Syncer",
+    description: "Appends conversational summaries as page entries inside Notion database workspaces using properties definitions.",
+    category: "integration",
+    parameters: {
+      notionSecretToken: "secret_NotionPrivateWorkspaceToken",
+      targetPageId: "notion_database_uuid_here_990",
+    },
+    paramDefinitions: [
+      { key: "notionSecretToken", label: "Notion Private Integration Key", type: "password", placeholder: "secret_...", value: "secret_NotionPrivateWorkspaceToken" },
+      { key: "targetPageId", label: "Target Workspace Page/Database ID", type: "text", placeholder: "Enter 32-char UUID", value: "notion_database_uuid_here_990" },
+    ],
+    unlocked: true,
+    costCode: "PROD_NOTION_SYNC",
+    dependencies: ["webhook_dispatcher"],
+  },
+  {
+    id: "google_calendar_bridge",
+    name: "Google Calendar Event Booker",
+    description: "Schedules meetings, checks staff availability slots, and dispatches calendar invites with Zoom links.",
+    category: "integration",
+    parameters: {
+      authProfile: "oauth_client_agent",
+      timeZone: "UTC",
+    },
+    paramDefinitions: [
+      { key: "authProfile", label: "Target Connected Calendar Profile", type: "text", placeholder: "e.g. workspace-admin", value: "oauth_client_agent" },
+      { key: "timeZone", label: "Primary Calendar Timezone", type: "select", options: ["UTC", "EST", "PST", "GMT", "JST"], value: "UTC" },
+    ],
+    unlocked: true,
+    costCode: "PROD_G_CAL_BRIDGE",
+    dependencies: ["webhook_dispatcher"],
+  },
+  {
+    id: "supabase_auth_gate",
+    name: "Supabase Database & Auth API",
+    description: "Authenticates client profiles, checks credential status tables, and modifies profile rows directly via Supabase client libraries.",
+    category: "integration",
+    parameters: {
+      supabaseUrl: "https://cluster-xyz.supabase.co",
+      supabaseAnonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.anon",
+    },
+    paramDefinitions: [
+      { key: "supabaseUrl", label: "Supabase Project Endpoint URL", type: "text", placeholder: "https://yourproject.supabase.co", value: "https://cluster-xyz.supabase.co" },
+      { key: "supabaseAnonKey", label: "Supabase Public Anon Key Token", type: "password", placeholder: "eyJhbGciOi...", value: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.anon" },
+    ],
+    unlocked: true,
+    costCode: "DB_SUPABASE_GATEWAY",
+  },
+  {
+    id: "segment_telemetry",
+    name: "Segment CDP Event Ingester",
+    description: "Broadcasts user interaction data and agent choices to Segment, keeping customer records aligned across analytics endpoints.",
+    category: "integration",
+    parameters: {
+      writeKey: "SEGMENT_DEMO_WRITE_KEY_858",
+    },
+    paramDefinitions: [
+      { key: "writeKey", label: "Segment Service Write API Key", type: "password", placeholder: "Enter source write key", value: "SEGMENT_DEMO_WRITE_KEY_858" },
+    ],
+    unlocked: true,
+    costCode: "MKT_SEGMENT_TELEMETR",
+    dependencies: ["webhook_dispatcher"],
+  },
+  {
+    id: "gcp_cloudrun_scaler",
+    name: "GCP Cloud Run Scaler Controller",
+    description: "Instructs GCP REST endpoints to scale container instances based on inbound traffic or task queue backlogs.",
+    category: "integration",
+    parameters: {
+      projectId: "genesis-neural-prod",
+      serviceName: "agent-simulator-engine",
+      maxInstances: "10",
+    },
+    paramDefinitions: [
+      { key: "projectId", label: "Google Cloud Project ID Name", type: "text", placeholder: "my-gcp-project", value: "genesis-neural-prod" },
+      { key: "serviceName", label: "Active Cloud Run Service Label", type: "text", placeholder: "core-runner-api", value: "agent-simulator-engine" },
+      { key: "maxInstances", label: "Maximum Instance Threshold Sizing", type: "number", placeholder: "10", value: "10" },
+    ],
+    unlocked: true,
+    costCode: "DEV_GCP_CLOUDRUN_CTL",
+    dependencies: ["webhook_dispatcher"],
+  },
+  {
+    id: "redis_caching_layer",
+    name: "Redis Cloud Distributed Cache",
+    description: "Stores frequent query calculations in Redis servers to lower database read costs and fast-track user inquiries.",
+    category: "integration",
+    parameters: {
+      redisHost: "redis-12821.c52.us-east-1-mz.ec2.cloud.redislabs.com",
+      redisPort: "12821",
+    },
+    paramDefinitions: [
+      { key: "redisHost", label: "Redis Endpoint Network Domain", type: "text", placeholder: "redis-xxxx.redislabs.com", value: "redis-12821.c52.us-east-1-mz.ec2.cloud.redislabs.com" },
+      { key: "redisPort", label: "Redis Endpoint TCP Port", type: "number", placeholder: "6379", value: "12821" },
+    ],
+    unlocked: true,
+    costCode: "CLOUD_REDIS_DIST_V3",
+  },
+  {
+    id: "twilio_sms_gateway",
+    name: "Twilio SMS Dispatch Gateway",
+    description: "Sends customized alerts, system alerts, or transaction verification logins directly to cellphones via Twilio SMS APIs.",
+    category: "integration",
+    parameters: {
+      accountSid: "AC_TwilioDemoAccountSidKey009",
+      senderTwilioNumber: "+15005550006",
+    },
+    paramDefinitions: [
+      { key: "accountSid", label: "Twilio Account SID Reference", type: "text", placeholder: "AC...", value: "AC_TwilioDemoAccountSidKey009" },
+      { key: "senderTwilioNumber", label: "Registered Twilio Outbound Mobile", type: "text", placeholder: "+1xxxxxxxxxx", value: "+15005550006" },
+    ],
+    unlocked: true,
+    costCode: "COMM_TWILIO_SMS_GATE",
+    dependencies: ["webhook_dispatcher"],
+  },
+  {
+    id: "sendgrid_mail_nexus",
+    name: "SendGrid Outbound transactional Node",
+    description: "Delivers responsive HTML newsletters to user contacts on campaign events, complete with automated fallback templates.",
+    category: "integration",
+    parameters: {
+      sendgridApiKey: "SG.SendGridDemoApiKeyToken_12345",
+      bounceAddress: "alerts@plt-press.net",
+    },
+    paramDefinitions: [
+      { key: "sendgridApiKey", label: "SendGrid Account Secret Key", type: "password", placeholder: "SG.xxxx", value: "SG.SendGridDemoApiKeyToken_12345" },
+      { key: "bounceAddress", label: "Outbound Bounce Tracking Email", type: "text", placeholder: "bounces@company.com", value: "alerts@plt-press.net" },
+    ],
+    unlocked: true,
+    costCode: "COMM_SENDGRID_MAIL",
+    dependencies: ["webhook_dispatcher"],
+  },
+  {
+    id: "google_analytics_v4",
+    name: "Google Analytics Reporting Node",
+    description: "Queries active sessions, visitor maps, and content interaction totals from Google Analytics v4 reporting suites.",
+    category: "integration",
+    parameters: {
+      propertyId: "3389141",
+    },
+    paramDefinitions: [
+      { key: "propertyId", label: "Google Analytics 4 Property ID", type: "number", placeholder: "e.g. 12345678", value: "3389141" },
+    ],
+    unlocked: true,
+    costCode: "MKT_GOOGLE_ANALYTICS",
+    dependencies: ["webhook_dispatcher"],
+  },
+  {
+    id: "amplitude_beh_analytics",
+    name: "Amplitude Cohort Segment Syncer",
+    description: "Matches customer behavioral steps with Amplitude cohorts, updating customer segmentation variables.",
+    category: "integration",
+    parameters: {
+      apiKey: "AMP_DEMO_CLIENT_API_KEY",
+    },
+    paramDefinitions: [
+      { key: "apiKey", label: "Amplitude Target Account API Token", type: "password", placeholder: "Enter project API Key", value: "AMP_DEMO_CLIENT_API_KEY" },
+    ],
+    unlocked: true,
+    costCode: "MKT_AMPLITUDE_COG_V2",
+    dependencies: ["webhook_dispatcher"],
+  },
+  {
+    id: "zoom_webinar_bridge",
+    name: "Zoom Meeting Scheduler Core",
+    description: "Handles meeting schedules, issues secure lobby registrations, and records meeting video transcripts directly to cloud folders.",
+    category: "integration",
+    parameters: {
+      meetingDuration: "45",
+    },
+    paramDefinitions: [
+      { key: "meetingDuration", label: "Meeting Duration Margin (Min)", type: "number", placeholder: "45", value: "45" },
+    ],
+    unlocked: true,
+    costCode: "COMM_ZOOM_MEET_NXS",
+    dependencies: ["webhook_dispatcher"],
+  },
+  {
+    id: "intercom_messenger",
+    name: "Intercom Customer Workspace Bridge",
+    description: "Connects agent chats with Intercom, automatically matching unresolved support tickets with staff panels.",
+    category: "integration",
+    parameters: {
+      appId: "intercom_app_id_demo_888",
+    },
+    paramDefinitions: [
+      { key: "appId", label: "Intercom Account Application ID", type: "text", placeholder: "e.g. workspace-id", value: "intercom_app_id_demo_888" },
+    ],
+    unlocked: true,
+    costCode: "CRM_INTERCOM_MSG",
+    dependencies: ["webhook_dispatcher"],
+  },
+  {
+    id: "active_campaign_sync",
+    name: "ActiveCampaign CRM Pipeline",
+    description: "Updates contact properties, marks pipeline tasks complete, and logs dynamic deal histories directly.",
+    category: "integration",
+    parameters: {
+      activeCampaignKey: "ACTIVE_CAMP_KEY_DEMO_9",
+    },
+    paramDefinitions: [
+      { key: "activeCampaignKey", label: "ActiveCampaign Enterprise Private Key", type: "password", placeholder: "AC Token string", value: "ACTIVE_CAMP_KEY_DEMO_9" },
+    ],
+    unlocked: true,
+    costCode: "CRM_ACTIVE_CAMPAIGN",
+    dependencies: ["webhook_dispatcher"],
+  },
+  {
+    id: "salesforce_enterprise",
+    name: "Salesforce Client Cloud Connector",
+    description: "Queries Salesforce records, inserts fresh opportunity rows, and details staff owners within cloud projects.",
+    category: "integration",
+    parameters: {
+      sfInstanceUrl: "https://genesis-prod.my.salesforce.com",
+    },
+    paramDefinitions: [
+      { key: "sfInstanceUrl", label: "Salesforce Instance Domain URL", type: "text", placeholder: "https://naXX.salesforce.com", value: "https://genesis-prod.my.salesforce.com" },
+    ],
+    unlocked: true,
+    costCode: "CRM_SALESFORCE_NODE",
+    dependencies: ["webhook_dispatcher"],
+  },
+  {
+    id: "kubernetes_engine",
+    name: "Kubernetes Cluster Pod Auditor",
+    description: "Monitors active pod statuses, scales replicas, and restarts failing developer tasks directly via GCP Kubernetes APIs.",
+    category: "integration",
+    parameters: {
+      kubeClusterAddress: "https://104.197.10.22",
+    },
+    paramDefinitions: [
+      { key: "kubeClusterAddress", label: "Kubernetes Master API Address Host", type: "text", placeholder: "https://ip-address", value: "https://104.197.10.22" },
+    ],
+    unlocked: true,
+    costCode: "CLOUD_K8S_PROD_MGMT",
+    dependencies: ["webhook_dispatcher"],
+  },
+  {
+    id: "cloudflare_cache_purge",
+    name: "Cloudflare Edge Cache Control",
+    description: "Purges production file paths from CDN nodes on content updates to fasttrace updates to web users.",
+    category: "integration",
+    parameters: {
+      zoneId: "cl_zone_id_demo_xxxxx_88",
+    },
+    paramDefinitions: [
+      { key: "zoneId", label: "Cloudflare Domain Zone ID String", type: "text", placeholder: "Zone ID hash", value: "cl_zone_id_demo_xxxxx_88" },
+    ],
+    unlocked: true,
+    costCode: "NET_CLOUDFLARE_EDGE",
+    dependencies: ["webhook_dispatcher"],
+  },
+  {
+    id: "datadog_telemetry",
+    name: "Datadog Metric Event Ingester",
+    description: "Pushes custom agent decisions and timing logs directly, graphing latency trends in operational dashboards.",
+    category: "integration",
+    parameters: {
+      ddApiKey: "DATADOG_DEMO_API_KEY_token",
+    },
+    paramDefinitions: [
+      { key: "ddApiKey", label: "Datadog Private Account API Key", type: "password", placeholder: "DD private api key", value: "DATADOG_DEMO_API_KEY_token" },
+    ],
+    unlocked: true,
+    costCode: "DEV_DATADOG_TELEMETRY",
+    dependencies: ["webhook_dispatcher"],
+  },
+  {
+    id: "auth0_identity_gate",
+    name: "Auth0 User Registration Auditor",
+    description: "Verifies user roles, manages profile states, and resets passwords directly using Auth0 management endpoints.",
+    category: "integration",
+    parameters: {
+      auth0Domain: "auth-identity-genesis.auth0.com",
+    },
+    paramDefinitions: [
+      { key: "auth0Domain", label: "Auth0 Account Identity Domain URL", type: "text", placeholder: "company.auth0.com", value: "auth-identity-genesis.auth0.com" },
+    ],
+    unlocked: true,
+    costCode: "SEC_AUTH0_IDENT_GATE",
+  },
+  {
+    id: "replicate_model_runner",
+    name: "Replicate Inference Model Node",
+    description: "Transmits media prompts to Replicate backend APIs, returning generated image files to storage buckets.",
+    category: "integration",
+    parameters: {
+      modelTag: "stability-ai/sdxl",
+    },
+    paramDefinitions: [
+      { key: "modelTag", label: "Replicate Model Tag", type: "select", options: ["stability-ai/sdxl", "black-forest-labs/flux", "meta/llama-3-70b"], value: "stability-ai/sdxl" },
+    ],
+    unlocked: true,
+    costCode: "AI_REPLICATE_RUNNER",
+    dependencies: ["webhook_dispatcher"],
+  },
+  {
+    id: "gcp_pubsub_pipeline",
+    name: "GCP PubSub Messaging Pipeline",
+    description: "Publishes system events to PubSub queues, dispatching async tasks to backing container engines safely.",
+    category: "integration",
+    parameters: {
+      gcpTopicName: "agent-telemetry-queue",
+    },
+    paramDefinitions: [
+      { key: "gcpTopicName", label: "GCP PubSub Topic Identifier ID", type: "text", placeholder: "system-topic-prod", value: "agent-telemetry-queue" },
+    ],
+    unlocked: true,
+    costCode: "CLOUD_GCP_PUBSUB",
+    dependencies: ["webhook_dispatcher"],
+  },
+  {
+    id: "mira_agent_mcp",
+    name: "Mira MCP Specialized Agent Node",
+    description: "Plugs context workflows into Mira MCP server protocols, allowing external agents to assist inside our loops.",
+    category: "integration",
+    parameters: {
+      miraServerUrl: "http://localhost:5005/mcp",
+    },
+    paramDefinitions: [
+      { key: "miraServerUrl", label: "Mira MCP SSE Service Endpoint", type: "text", placeholder: "http://host:port/mcp", value: "http://localhost:5005/mcp" },
+    ],
+    unlocked: true,
+    costCode: "MCP_MIRA_AGENT_LINK",
+  },
+  {
+    id: "mailchimp_lists",
+    name: "MailChimp Subscriber Link",
+    description: "Adds or updates newsletter contacts on the MailChimp platform dynamically.",
+    category: "integration",
+    parameters: {
+      mailchimpListId: "mc_list_id_demo_888",
+    },
+    paramDefinitions: [
+      { key: "mailchimpListId", label: "MailChimp target list ID", type: "text", placeholder: "List ID string", value: "mc_list_id_demo_888" },
+    ],
+    unlocked: true,
+    costCode: "MKT_MAILCHIMP_LISTS",
+    dependencies: ["webhook_dispatcher"],
+  },
+  {
+    id: "close_crm_node",
+    name: "Close CRM Lead Syncer",
+    description: "Syncs sales pipelines, drafts follow-up sequences, and alerts sales teams directly.",
+    category: "integration",
+    parameters: {
+      closeApiKey: "api_key_close_crm_demo_88",
+    },
+    paramDefinitions: [
+      { key: "closeApiKey", label: "Close CRM API key token", type: "password", placeholder: "api_...", value: "api_key_close_crm_demo_88" },
+    ],
+    unlocked: true,
+    costCode: "CRM_CLOSE_CRM_NODE",
+    dependencies: ["webhook_dispatcher"],
+  },
+  {
+    id: "discord_commands",
+    name: "Discord Slash Command Listener",
+    description: "Monitors custom slash commands in Discord, feeding command arguments into agent actions.",
+    category: "integration",
+    parameters: {
+      discordGuildId: "847291122851",
+    },
+    paramDefinitions: [
+      { key: "discordGuildId", label: "Target Discord Guild/Server ID", type: "text", placeholder: "Guild ID string", value: "847291122851" },
+    ],
+    unlocked: true,
+    costCode: "DISCORD_COMMAND_SYS",
+    dependencies: ["webhook_dispatcher"],
+  },
+
+  // ========================== UTILITY CATEGORY (40 SKILLS) ==========================
+  {
+    id: "data_extractor",
+    name: "Table Structure Parser",
+    description: "Parses unstructured HTML grids, long textual reports, or messy list chains into beautifully formatted spreadsheet JSON/CSV columns.",
+    category: "utility",
+    parameters: {
+      targetFormat: "JSON",
+      strictClean: "true",
+    },
+    paramDefinitions: [
+      { key: "targetFormat", label: "Data Target Output Format", type: "select", options: ["JSON", "CSV", "Markdown Table"], value: "JSON" },
+      { key: "strictClean", label: "Purge Empty Columns", type: "select", options: ["true", "false"], value: "true" },
+    ],
+    unlocked: true,
+    costCode: "DATA_PARSER_CORE",
+  },
+  {
+    id: "email_composer",
+    name: "HTML Email Orchestrator",
+    description: "Drafts detailed contextual HTML messages, client reports, or transaction receipts with matching system variables.",
+    category: "utility",
+    parameters: {
+      smtpHost: "sandbox.smtp.mailtrap.io",
+      senderEmail: "agent-transcripts@plt-press.net",
+    },
+    paramDefinitions: [
+      { key: "smtpHost", label: "SMTP Outbound Server IP/Host", type: "text", placeholder: "smtp.mailgun.org", value: "sandbox.smtp.mailtrap.io" },
+      { key: "senderEmail", label: "Masked Outbound Sender Address", type: "text", placeholder: "no-reply@mycompany.com", value: "agent-transcripts@plt-press.net" },
+    ],
+    unlocked: true,
+    costCode: "STREET_MAILER_LV2",
+  },
+  {
+    id: "solana_tracker",
+    name: "Web3 Solana Token Ledger",
+    description: "Queries Decentralized RPC nodes to fetch transaction histories, token lockups, current fluid gas price arrays, and signature states.",
+    category: "utility",
+    parameters: {
+      rpcCluster: "mainnet-beta",
+      tokenMintFilter: "none",
+    },
+    paramDefinitions: [
+      { key: "rpcCluster", label: "Solana RPC Network Node", type: "select", options: ["mainnet-beta", "devnet", "testnet"], value: "mainnet-beta" },
+      { key: "tokenMintFilter", label: "Token Mint Address Filter", type: "text", placeholder: "Token mint public key (Optional)", value: "none" },
+    ],
+    unlocked: true,
+    costCode: "WEB3_SOLANA_V1",
+  },
+  {
+    id: "git_auditor",
+    name: "GitHub Repository Vulnerability Scanner",
+    description: "Scans commits, inspects branches, parses AST representations, and automatically flags potential hardcoded secrets or outdated dependency structures.",
+    category: "utility",
+    parameters: {
+      severityThreshold: "medium",
+      branchToScan: "main",
+    },
+    paramDefinitions: [
+      { key: "severityThreshold", label: "Secret Scan Detection Severity", type: "select", options: ["low", "medium", "high", "critical"], value: "medium" },
+      { key: "branchToScan", label: "Branch Target", type: "text", placeholder: "main", value: "main" },
+    ],
+    unlocked: true,
+    costCode: "GH_SEC_AUDITOR_V1",
+  },
+  {
+    id: "pdf_generator",
+    name: "Automated PDF Report Architect",
+    description: "Compiles system performance dashboards and ledger calculations into highly stylized, print-ready corporate PDF documents.",
+    category: "utility",
+    parameters: {
+      pdfTemplateStyle: "corporate-clean",
+      includeCharts: "true",
+    },
+    paramDefinitions: [
+      { key: "pdfTemplateStyle", label: "Document styling layout", type: "select", options: ["corporate-clean", "technical-mono", "executive-indigo"], value: "corporate-clean" },
+      { key: "includeCharts", label: "Generate Visual Charts", type: "select", options: ["true", "false"], value: "true" },
+    ],
+    unlocked: true,
+    costCode: "UTIL_PDF_BUILDER_LV3",
+    dependencies: ["data_extractor"],
+  },
+  {
+    id: "currency_converter",
+    name: "Forex Live Exchange Node",
+    description: "Retrieves live fiat currency exchange ratios from public banks, converting transactional values into targeted client currencies.",
+    category: "utility",
+    parameters: {
+      baseFiat: "USD",
+      targetFiat: "EUR",
+    },
+    paramDefinitions: [
+      { key: "baseFiat", label: "Primary Currency Code", type: "select", options: ["USD", "EUR", "GBP", "JPY", "CAD", "AUD"], value: "USD" },
+      { key: "targetFiat", label: "Target Invoice Currency Code", type: "select", options: ["EUR", "USD", "GBP", "JPY", "CHF", "SGD"], value: "EUR" },
+    ],
+    unlocked: true,
+    costCode: "UTIL_RATE_ORACLE",
+  },
+  {
+    id: "qr_code_factory",
+    name: "Dynamic QR Code Generator",
+    description: "Encodes urls, transaction numbers, or verification codes into beautiful, printable vector QR codes with styling control.",
+    category: "utility",
+    parameters: {
+      pixelColor: "#0F172A",
+      errorCorrection: "high",
+    },
+    paramDefinitions: [
+      { key: "pixelColor", label: "QR Pixel Hex Color Code", type: "text", placeholder: "#000000", value: "#0F172A" },
+      { key: "errorCorrection", label: "Error Redundancy Sizing", type: "select", options: ["low", "medium", "high"], value: "high" },
+    ],
+    unlocked: true,
+    costCode: "UTIL_QR_FACTOR_LV1",
+  },
+  {
+    id: "markdown_compiler",
+    name: "Markdown Document Compiler",
+    description: "Converts Markdown reports, logs, or README files into standardized, clean CSS-styled HTML schemas ready for website posting.",
+    category: "utility",
+    parameters: {
+      cssPreset: "modern-corporate",
+    },
+    paramDefinitions: [
+      { key: "cssPreset", label: "Styling template preset", type: "select", options: ["modern-corporate", "slate-cyber", "educational-warm"], value: "modern-corporate" },
+    ],
+    unlocked: true,
+    costCode: "UTIL_MD_TRANS_COMP",
+  },
+  {
+    id: "csv_export_engine",
+    name: "Bulk CSV Spreadsheet Exporter",
+    description: "Formats system event timelines and database lists into spreadsheet-clean CSV outputs with selectable separators.",
+    category: "utility",
+    parameters: {
+      csvDelimiter: ",",
+      encapsulateQuotes: "true",
+    },
+    paramDefinitions: [
+      { key: "csvDelimiter", label: "Column Separator Symbol", type: "select", options: [",", ";", "\\t"], value: "," },
+      { key: "encapsulateQuotes", label: "Wrap Values in Quotes", type: "select", options: ["true", "false"], value: "true" },
+    ],
+    unlocked: true,
+    costCode: "UTIL_CSV_DATA_EX",
+    dependencies: ["data_extractor"],
+  },
+  {
+    id: "jwt_token_decoder",
+    name: "JWT Bearer Token Gate",
+    description: "Deconstructs JWT keys, verifying expiration parameters, origin signatures, and user scope properties.",
+    category: "utility",
+    parameters: {
+      signingAlgorithm: "HS256",
+    },
+    paramDefinitions: [
+      { key: "signingAlgorithm", label: "Assumed crypto algorithm", type: "select", options: ["HS256", "RS256", "none"], value: "HS256" },
+    ],
+    unlocked: true,
+    costCode: "UTIL_JSON_WEB_TOKEN",
+  },
+  {
+    id: "ssl_expiry_checker",
+    name: "SSL Certificate Expiry Auditor",
+    description: "Probes public urls to audit security status, identifying soon-to-expire SSL setups and dispatching warning emails.",
+    category: "utility",
+    parameters: {
+      warningWindowDays: "14",
+    },
+    paramDefinitions: [
+      { key: "warningWindowDays", label: "Warning buffer interval days", type: "number", placeholder: "14", value: "14" },
+    ],
+    unlocked: true,
+    costCode: "UTIL_SSL_PORT_AUDIT",
+  },
+  {
+    id: "timezone_calculator",
+    name: "Global Timezone Converter",
+    description: "Aligns event timelines across multiple countries, accounting for localized daylight saving time schedules.",
+    category: "utility",
+    parameters: {
+      sourceZone: "UTC",
+      targetZone: "PST",
+    },
+    paramDefinitions: [
+      { key: "sourceZone", label: "Base reference timezone", type: "select", options: ["UTC", "GMT", "EST", "CET", "AEST"], value: "UTC" },
+      { key: "targetZone", label: "Target convert timezone", type: "select", options: ["PST", "EST", "CET", "JST", "GMT"], value: "PST" },
+    ],
+    unlocked: true,
+    costCode: "UTIL_TIMEZONE_MATH",
+  },
+  {
+    id: "base64_converter",
+    name: "Base64 Encoder / Decoder Node",
+    description: "Safely converts binary buffers, files or system keys to standards-compliant Base64 strings, or decodes them back to original form.",
+    category: "utility",
+    parameters: {
+      operationMode: "encode",
+    },
+    paramDefinitions: [
+      { key: "operationMode", label: "Required encoding execution", type: "select", options: ["encode", "decode"], value: "encode" },
+    ],
+    unlocked: true,
+    costCode: "UTIL_BASE64_CONV",
+  },
+  {
+    id: "regex_tester",
+    name: "Regular Expression Evaluator",
+    description: "Tests and validates structural strings against custom regex rules. Ideal for parsing patterns out of messy customer logs.",
+    category: "utility",
+    parameters: {
+      regexRule: "[a-zA-Z0-9+_.-]+@[a-zA-Z0-9.-]+",
+    },
+    paramDefinitions: [
+      { key: "regexRule", label: "Target search regex pattern", type: "text", placeholder: "^[0-9]{5}$", value: "[a-zA-Z0-9+_.-]+@[a-zA-Z0-9.-]+" },
+    ],
+    unlocked: true,
+    costCode: "UTIL_REGEX_VALIDATOR",
+  },
+  {
+    id: "password_evaluator",
+    name: "Password Strength Auditor",
+    description: "Evaluates passphrases against entropy checks and dictionary matches to ensure enterprise system setups remain safe.",
+    category: "utility",
+    parameters: {
+      requireSpecialChar: "true",
+      minimumLength: "12",
+    },
+    paramDefinitions: [
+      { key: "requireSpecialChar", label: "Force Special Character Usage", type: "select", options: ["true", "false"], value: "true" },
+      { key: "minimumLength", label: "Minimum Length limit characters", type: "number", placeholder: "12", value: "12" },
+    ],
+    unlocked: true,
+    costCode: "UTIL_PASSWORD_AUDIT",
+  },
+  {
+    id: "wikipedia_scout",
+    name: "Wikipedia Information Scout",
+    description: "Retrieves summaries, references, and key metrics from Wikipedia articles to expand agent grounding context.",
+    category: "utility",
+    parameters: {
+      resultLimit: "3",
+    },
+    paramDefinitions: [
+      { key: "resultLimit", label: "Maximum paragraph summaries", type: "number", placeholder: "3", value: "3" },
+    ],
+    unlocked: true,
+    costCode: "UTIL_WIKIPEDIA_SCOUT",
+  },
+  {
+    id: "arxiv_explorer",
+    name: "arXiv Academic Research Finder",
+    description: "Queries the arXiv research catalog, gathering abstracts and links of cutting-edge AI breakthroughs to ground complex research.",
+    category: "utility",
+    parameters: {
+      scientificCategory: "cs.AI",
+    },
+    paramDefinitions: [
+      { key: "scientificCategory", label: "arXiv Area Code Target", type: "select", options: ["cs.AI (Artificial Intel)", "cs.LG (Machine Learn)", "cs.CL (Computation/Lang)", "hep-th"], value: "cs.AI (Artificial Intel)" },
+    ],
+    unlocked: true,
+    costCode: "UTIL_ARXIV_RESEARCH",
+  },
+  {
+    id: "hacker_news_trends",
+    name: "Hacker News Trend Scanner",
+    description: "Monitors the Hacker News firehose pool via developer APIs, reporting trending software and hardware topics on demand.",
+    category: "utility",
+    parameters: {
+      queryMode: "top-stories",
+    },
+    paramDefinitions: [
+      { key: "queryMode", label: "Target Item Listing Feed", type: "select", options: ["top-stories", "new-stories", "ask-hn-trends"], value: "top-stories" },
+    ],
+    unlocked: true,
+    costCode: "UTIL_HN_TREND_SCOUT",
+  },
+  {
+    id: "url_param_parser",
+    name: "URL Query String Decoder",
+    description: "Deconstructs complex HTTP URL paths, extracting analytics tags, UTM codes, and redirect parameters into structured key-value arrays.",
+    category: "utility",
+    parameters: {
+      decodeUnicode: "true",
+    },
+    paramDefinitions: [
+      { key: "decodeUnicode", label: "Enable full Unicode decoding", type: "select", options: ["true", "false"], value: "true" },
+    ],
+    unlocked: true,
+    costCode: "UTIL_URL_PROP_PARSER",
+  },
+  {
+    id: "html_sanitizer",
+    name: "HTML Markup Purifier Node",
+    description: "Strips unrequested script tags, flash elements, or bad css lines from raw HTML dumps to keep system outputs safe.",
+    category: "utility",
+    parameters: {
+      stripStyles: "true",
+    },
+    paramDefinitions: [
+      { key: "stripStyles", label: "Evict inline style elements", type: "select", options: ["true", "false"], value: "true" },
+    ],
+    unlocked: true,
+    costCode: "UTIL_HTML_SANITIZER",
+  },
+  {
+    id: "uuid_generator",
+    name: "Cryptographic UUID Factory",
+    description: "Generates high-entropy standard V4 UUID strings, ideal for assigning unique database row keys to system flows.",
+    category: "utility",
+    parameters: {
+      generateCount: "5",
+    },
+    paramDefinitions: [
+      { key: "generateCount", label: "Batch generation size (Keys)", type: "number", placeholder: "5", value: "5" },
+    ],
+    unlocked: true,
+    costCode: "UTIL_UUID_GENERATOR",
+  },
+  {
+    id: "xml_json_converter",
+    name: "XML to JSON Structure Converter",
+    description: "Converts old XML feeds or backoffice schemas into standard modern JSON objects recursively.",
+    category: "utility",
+    parameters: {
+      ignoreAttributes: "false",
+    },
+    paramDefinitions: [
+      { key: "ignoreAttributes", label: "Omit XML markup parameters", type: "select", options: ["true", "false"], value: "false" },
+    ],
+    unlocked: true,
+    costCode: "UTIL_XML_JSON_PARSE",
+  },
+  {
+    id: "json_schema_validator",
+    name: "JSON Structure Schema Validator",
+    description: "Validates JSON structures against standard draft layouts, flagging missing parameters or type mismatches.",
+    category: "utility",
+    parameters: {
+      failFast: "true",
+    },
+    paramDefinitions: [
+      { key: "failFast", label: "Fail on first schema violation", type: "select", options: ["true", "false"], value: "true" },
+    ],
+    unlocked: true,
+    costCode: "UTIL_JSON_VAL_AGNT",
+  },
+  {
+    id: "yaml_config_parser",
+    name: "YAML Specification Reader",
+    description: "Parses complex multi-tier YAML configuration block layouts into highly readable workspace JSON trees.",
+    category: "utility",
+    parameters: {
+      indentSpacing: "2",
+    },
+    paramDefinitions: [
+      { key: "indentSpacing", label: "Expected Indentation Size", type: "select", options: ["2", "4"], value: "2" },
+    ],
+    unlocked: true,
+    costCode: "UTIL_YAML_SPEC_PARS",
+  },
+  {
+    id: "lorem_generator",
+    name: "Lorem Ipsum Design Filler",
+    description: "Generates variable-length standard design text block layouts used as structural placeholders in page designs.",
+    category: "utility",
+    parameters: {
+      contentType: "paragraphs",
+      volumeAmount: "3",
+    },
+    paramDefinitions: [
+      { key: "contentType", label: "Placeholder output type", type: "select", options: ["paragraphs", "wordsOnly", "bulletLists"], value: "paragraphs" },
+      { key: "volumeAmount", label: "Target item count generation", type: "number", placeholder: "3", value: "3" },
+    ],
+    unlocked: true,
+    costCode: "UTIL_LOREM_DESIGN_F",
+  },
+  {
+    id: "cron_parser",
+    name: "Cron Schedule Humanizer",
+    description: "Translates technical system cron triggers (e.g. '*/15 9-17 * * 1-5') into straightforward human descriptions.",
+    category: "utility",
+    parameters: {
+      use24Hour: "true",
+    },
+    paramDefinitions: [
+      { key: "use24Hour", label: "Output timeline in 24hr format", type: "select", options: ["true", "false"], value: "true" },
+    ],
+    unlocked: true,
+    costCode: "UTIL_CRON_HUMANIZER",
+  },
+  {
+    id: "md5_hasher",
+    name: "SHA-256 Certificate Hasher",
+    description: "Applies high-entropy SHA-256 cryptographic hashes to file blobs or tracking strings for secure transfer validation.",
+    category: "utility",
+    parameters: {
+      outputCase: "lowercase",
+    },
+    paramDefinitions: [
+      { key: "outputCase", label: "Output hash letter casing", type: "select", options: ["lowercase", "UPPERCASE"], value: "lowercase" },
+    ],
+    unlocked: true,
+    costCode: "UTIL_SHA256_HASHER",
+  },
+  {
+    id: "css_minify_engine",
+    name: "CSS Stylesheet Minifier",
+    description: "Strips layouts comments, redundant spaces, and empty classes from styling files to speed up web loading speeds.",
+    category: "utility",
+    parameters: {
+      removeUnusedSelectors: "false",
+    },
+    paramDefinitions: [
+      { key: "removeUnusedSelectors", label: "Analyze and prune unused classes", type: "select", options: ["true", "false"], value: "false" },
+    ],
+    unlocked: true,
+    costCode: "UTIL_CSS_COMPRESSOR",
+  },
+  {
+    id: "image_thumbnailer",
+    name: "Responsive Image Thumbnailer",
+    description: "Resizes bulk raw JPG/PNG assets, generating optimized web-responsive file assets recursively.",
+    category: "utility",
+    parameters: {
+      maxDimensionPixel: "480",
+    },
+    paramDefinitions: [
+      { key: "maxDimensionPixel", label: "Target Sizing Dimension px Limit", type: "number", placeholder: "480", value: "480" },
+    ],
+    unlocked: true,
+    costCode: "UTIL_IMG_THUMBNAIL",
+  },
+  {
+    id: "dns_lookup_resolver",
+    name: "DNS Namespace MX Inquirer",
+    description: "Performs standard DNS inquiries, matching IP address layouts, and querying MX records of recipient customer inbox domains.",
+    category: "utility",
+    parameters: {
+      lookupType: "A",
+    },
+    paramDefinitions: [
+      { key: "lookupType", label: "DNS Record Target Spec", type: "select", options: ["A (IPv4)", "AAAA (IPv6)", "MX (Email Routes)", "TXT (Identity Keys)"], value: "A" },
+    ],
+    unlocked: true,
+    costCode: "UTIL_DNS_RESOLVER_X",
+  },
+  {
+    id: "ping_latency_prob",
+    name: "ICMP Gateway Ping Auditor",
+    description: "Probes public developer endpoints, calculating response times and tracking latency degradation across Cloud hosts.",
+    category: "utility",
+    parameters: {
+      targetHost: "api.google.com",
+      pingCount: "4",
+    },
+    paramDefinitions: [
+      { key: "targetHost", label: "Target Host Server Address", type: "text", placeholder: "e.g. google.com", value: "api.google.com" },
+      { key: "pingCount", label: "Transmit Probes Packet Count", type: "number", placeholder: "4", value: "4" },
+    ],
+    unlocked: true,
+    costCode: "UTIL_PING_LAT_PROBE",
+  },
+  {
+    id: "tar_zip_packer",
+    name: "ZIP Asset File Packer",
+    description: "Composes standard ZIP clusters out of client documents or download tables, reducing download file transfer burdens.",
+    category: "utility",
+    parameters: {
+      compressionLevel: "default",
+    },
+    paramDefinitions: [
+      { key: "compressionLevel", label: "ZIP Archive Compression Ratio", type: "select", options: ["store-only", "default", "maximum-compression"], value: "default" },
+    ],
+    unlocked: true,
+    costCode: "UTIL_ZIP_PACKER_LV1",
+  },
+  {
+    id: "calculator_matrix",
+    name: "Algebraic Formula Solver",
+    description: "Solves advanced engineering equations or parses currency calculations, feeding accurate parameters back into workspace stats.",
+    category: "utility",
+    parameters: {
+      decimalRounding: "4",
+    },
+    paramDefinitions: [
+      { key: "decimalRounding", label: "Rounds results to decimal limit", type: "number", placeholder: "4", value: "4" },
+    ],
+    unlocked: true,
+    costCode: "UTIL_MATH_CALCULATOR",
+  },
+  {
+    id: "morse_code_translator",
+    name: "Morse Code Signaling Nexus",
+    description: "Translates human-readable text sequences into Morse code signal beats, or parses signals back to plain words.",
+    category: "utility",
+    parameters: {
+      signalPattern: "dots-and-dashes",
+    },
+    paramDefinitions: [
+      { key: "signalPattern", label: "Output Signal Wave Pattern", type: "select", options: ["dots-and-dashes", "binary-zeros-ones"], value: "dots-and-dashes" },
+    ],
+    unlocked: true,
+    costCode: "UTIL_MORSE_SIGNAL_X",
+  },
+  {
+    id: "fraction_converter",
+    name: "Decimal to Fraction Reducer",
+    description: "Converts metrics floating decimals into reduced algebraic mathematical fractions recursively.",
+    category: "utility",
+    parameters: {
+      strictPruning: "true",
+    },
+    paramDefinitions: [
+      { key: "strictPruning", label: "Apply strict factor pruning", type: "select", options: ["true", "false"], value: "true" },
+    ],
+    unlocked: true,
+    costCode: "UTIL_FRACTION_COORD",
+  },
+  {
+    id: "web_scraper_simple",
+    name: "Simple Layout HTML Scraper",
+    description: "Fetches static web pages directly, parsing the layout elements to extract readable text, links, and visual icons.",
+    category: "utility",
+    parameters: {
+      followRedirects: "true",
+    },
+    paramDefinitions: [
+      { key: "followRedirects", label: "Follow Server Location redirects", type: "select", options: ["true", "false"], value: "true" },
+    ],
+    unlocked: true,
+    costCode: "UTIL_HTML_SCRAPER",
+  },
+  {
+    id: "phonetic_alphabet",
+    name: "ICAO NATO Phonetic Speller",
+    description: "Converts transaction spelling cues (e.g. 'S-O-U-L') into official international NATO phonetic alphabetic cues ('Sierra-Oscar-Uniform-Lima').",
+    category: "utility",
+    parameters: {
+      splitCharacter: "space",
+    },
+    paramDefinitions: [
+      { key: "splitCharacter", label: "Spelling Output divider markup", type: "select", options: ["space", "hyphen-separated", "comma-separated"], value: "space" },
+    ],
+    unlocked: true,
+    costCode: "UTIL_NATO_SPELLER_V1",
+  },
+  {
+    id: "leet_speak_nexus",
+    name: "LeetSpeak (1337) Text encoder",
+    description: "Converts system reports into geek-standard 1337-speak alphabetic encodings for fun playground displays or basic obfuscation.",
+    category: "utility",
+    parameters: {
+      leetIntensity: "mild",
+    },
+    paramDefinitions: [
+      { key: "leetIntensity", label: "1337 Character Replacement Level", type: "select", options: ["mild", "hyper-1337-all"], value: "mild" },
+    ],
+    unlocked: true,
+    costCode: "PLAY_1337_COMPILER",
+  },
+  {
+    id: "temperature_converter",
+    name: "Thermodynamic Scale Align-er",
+    description: "Quickly converts thermal parameters between Celsius, Fahrenheit, and Kelvin, useful in computing cooling variables.",
+    category: "utility",
+    parameters: {
+      fromScale: "Celsius",
+      toScale: "Fahrenheit",
+    },
+    paramDefinitions: [
+      { key: "fromScale", label: "Convert From thermal unit Scale", type: "select", options: ["Celsius", "Fahrenheit", "Kelvin"], value: "Celsius" },
+      { key: "toScale", label: "Convert To thermal unit Scale", type: "select", options: ["Fahrenheit", "Celsius", "Kelvin"], value: "Fahrenheit" },
+    ],
+    unlocked: true,
+    costCode: "UTIL_THERMO_CONVERT",
+  },
+  {
+    id: "roman_numeral",
+    name: "Roman Numeral Algebraic Nexus",
+    description: "Translates standard arabic numbers into classic Roman numerals, or decodes numeral strings into integers.",
+    category: "utility",
+    parameters: {
+      strictForm: "true",
+    },
+    paramDefinitions: [
+      { key: "strictForm", label: "Enforce strict subtractive notation", type: "select", options: ["true", "false"], value: "true" },
+    ],
+    unlocked: true,
+    costCode: "UTIL_ROMAN_NUM_NXS",
+  }
+];

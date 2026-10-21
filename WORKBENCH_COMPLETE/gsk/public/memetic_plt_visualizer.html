@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Memetic Propagation & Live PLT Visualizer</title>
+<style>
+  body { margin: 0; background: #0a0a0f; color: #e0e6ed; font-family: monospace; overflow: hidden; }
+  #header { padding: 16px; background: rgba(18, 20, 29, 0.9); border-bottom: 1px solid #2a2d3d; display: flex; justify-content: space-between; align-items: center; }
+  #canvas { width: 100vw; height: calc(100vh - 100px); display: block; }
+</style>
+</head>
+<body>
+<div id="header">
+  <h2>Memetic Propagation Metrics &bull; Live PLT Visualizer</h2>
+  <div id="stats">R0: 2.4 | Virality: 85% | PLT: +1.80</div>
+</div>
+<canvas id="canvas"></canvas>
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight - 100; }
+window.addEventListener('resize', resize);
+resize();
+
+const state = { profit: 1.2, love: 0.9, tax: 0.3, memeticR0: 2.4, nodes: [] };
+function calculatePLT(p, l, t) { return p + l - t; }
+
+for (let i = 0; i < 40; i++) {
+  state.nodes.push({
+    x: Math.random() * canvas.width,
+    y: Math.random() * canvas.height,
+    vx: (Math.random() - 0.5) * 2,
+    vy: (Math.random() - 0.5) * 2,
+    viralScore: Math.random()
+  });
+}
+
+function render() {
+  ctx.fillStyle = '#0a0a0f';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  state.nodes.forEach(node => {
+    node.x += node.vx; node.y += node.vy;
+    if (node.x < 0 || node.x > canvas.width) node.vx *= -1;
+    if (node.y < 0 || node.y > canvas.height) node.vy *= -1;
+    ctx.beginPath();
+    ctx.arc(node.x, node.y, 4 + node.viralScore * 6, 0, Math.PI * 2);
+    ctx.fillStyle = `hsl(${120 * node.viralScore}, 80%, 50%)`;
+    ctx.fill();
+  });
+  requestAnimationFrame(render);
+}
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Live Agent Telemetry Stream & PLT Inspector</title>
+<style>
+  body { background: #0d1117; color: #c9d1d9; font-family: 'Consolas', monospace; margin: 0; padding: 20px; }
+  header { border-bottom: 1px solid #30363d; padding-bottom: 10px; margin-bottom: 20px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .card { background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 15px; }
+  .metric { font-size: 20px; color: #58a6ff; margin: 10px 0; }
+  .value { color: #7ee787; font-weight: bold; }
+  pre { background: #010409; padding: 12px; border-radius: 4px; overflow-x: auto; font-size: 13px; max-height: 400px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>GSK Sovereign Telemetry Stream & PLT Inspector</h1>
+  <p>Continuous Real-Time Agent Telemetry | Status: <span style="color:#7ee787;">ONLINE</span></p>
+</header>
+<div class="grid">
+  <div class="card">
+    <h2>Agent Telemetry Stream</h2>
+    <pre id="state-stream">Initializing stream...</pre>
+  </div>
+  <div class="card">
+    <h2>Live PLT Value Optimization</h2>
+    <div class="metric">Profit Prime Score: <span class="value" id="plt-p">0.99</span></div>
+    <div class="metric">Love Weaver Clarity: <span class="value" id="plt-l">0.85</span></div>
+    <div class="metric">Tax Collector Friction: <span class="value" id="plt-t">0.05</span></div>
+    <div class="metric">Net Value Yield: <span class="value" id="plt-yield">1.79</span></div>
+  </div>
+</div>
+<script>
+  const streamLog = document.getElementById('state-stream');
+  function updateStream() {
+    const now = new Date().toISOString();
+    const telemetryEvent = {
+      timestamp: now,
+      agent: 'GSK-Sovereign-Agent',
+      state: 'EXECUTING_TELEMETRY_PIPELINE',
+      pltVector: { profit: 0.99, love: 0.85, tax: 0.05 },
+      memoryHealth: 'OPTIMAL',
+      heartbeat: Math.floor(Date.now() / 1000)
+    };
+    streamLog.innerText = JSON.stringify(telemetryEvent, null, 2) + '\n\n' + streamLog.innerText.slice(0, 1500);
+  }
+  setInterval(updateStream, 1500);
+  updateStream();
+</script>
+</body>
+</html>

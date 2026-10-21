@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GSK COMMAND CENTER — The Architect's Eye</title>
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Courier New', monospace;
+    background: #0a0a0f;
+    color: #00ff88;
+    overflow: hidden;
+    height: 100vh;
+}
+
+/* Matrix Rain Background */
+#matrix-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    opacity: 0.15;
+}
+
+/* Main Layout */
+.command-center {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-rows: auto 1fr 1fr 1fr;
+    gap: 12px;
+    padding: 12px;
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* Header */
+.header {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 24px;
+    background: linear-gradient(90deg, rgba(0,255,136,0.1) 0%, rgba(136,0,255,0.1) 100%);
+    border: 1px solid #00ff88;
+    border-radius: 4px;
+}
+
+.header h1 {
+    font-size: 24px;
+    color: #00ff88;
+    text-shadow: 0 0 10px #00ff88;
+}
+
+.header .status {
+    display: flex;
+    gap: 20px;
+    font-size: 12px;
+}
+
+.status-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #00ff88;
+    box-shadow: 0 0 8px #00ff88;
+    animation: pulse 2s infinite;
+}
+
+.status-dot.warning { background: #ffaa00; box-shadow: 0 0 8px #ffaa00; }
+.status-dot.error { background: #ff3366; box-shadow: 0 0 8px #ff3366; }
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+
+/* Panels */
+.panel {
+    background: rgba(10, 10, 20, 0.95);
+    border: 1px solid #00ff88;
+    border-radius: 4px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.panel-header {
+    padding: 12px 16px;
+    background: rgba(0, 255, 136, 0.1);
+    border-bottom: 1px solid #00ff88;
+    font-size: 14px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.panel-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+    font-size: 11px;
+    line-height: 1.5;
+}
+
+.panel-body::-webkit-scrollbar {
+    width: 6px;
+}
+
+.panel-body::-webkit-scrollbar-track {
+    background: #0a0a0f;
+}
+
+.panel-body::-webkit-scrollbar-thumb {
+    background: #00ff88;
+    border-radius: 3px;
+}
+
+/* Thought Stream */
+.thought-entry {
+    margin-bottom: 12px;
+    padding: 10px;
+    background: rgba(0, 255, 136, 0.05);
+    border-left: 3px solid #00ff88;
+    border-radius: 2px;
+}
+
+.thought-timestamp {
+    font-size: 10px;
+    color: #666;
+    margin-bottom: 4px;
+}
+
+.thought-content {
+    color: #00ff88;
+}
+
+/* Chat */
+.chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+}
+
+.chat-message {
+    margin-bottom: 12px;
+    padding: 8px 12px;
+    border-radius: 4px;
+}
+
+.chat-message.user {
+    background: rgba(136, 0, 255, 0.2);
+    border-left: 3px solid #8800ff;
+    margin-left: 20px;
+}
+
+.chat-message.gsk {
+    background: rgba(0, 255, 136, 0.2);
+    border-left: 3px solid #00ff88;
+    margin-right: 20px;
+}
+
+.chat-input-area {
+    display: flex;
+    gap: 8px;
+    padding: 12px;
+    border-top: 1px solid #00ff88;
+}
+
+.chat-input-area input {
+    flex: 1;
+    background: #0a0a0f;
+    border: 1px solid #00ff88;
+    color: #00ff88;
+    padding: 10px;
+    font-family: 'Courier New', monospace;
+    border-radius: 2px;
+}
+
+.chat-input-area button {
+    background: #00ff88;
+    color: #0a0a0f;
+    border: none;
+    padding: 10px 20px;
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    cursor: pointer;
+    border-radius: 2px;
+}
+
+.chat-input-area button:hover {
+    background: #00cc66;
+}
+
+/* Tool Calls */
+.tool-call {
+    margin-bottom: 10px;
+    padding: 8px;
+    background: rgba(255, 170, 0, 0.1);
+    border-left: 3px solid #ffaa00;
+    border-radius: 2px;
+    font-size: 10px;
+}
+
+.tool-name {
+    color: #ffaa00;
+    font-weight: bold;
+    margin-bottom: 4px;
+}
+
+.tool-input, .tool-output {
+    color: #999;
+    margin-top: 4px;
+}
+
+/* Journal */
+.journal-entry {
+    margin-bottom: 10px;
+    padding: 10px;
+    background: rgba(0, 150, 255, 0.05);
+    border-left: 3px solid #0096ff;
+    border-radius: 2px;
+}
+
+.journal-date {
+    font-size: 10px;
+    color: #666;
+    margin-bottom: 4px;
+}
+
+.journal-title {
+    color: #0096ff;
+    font-weight: bold;
+    margin-bottom: 4px;
+}
+
+/* Memory Search */
+.memory-search {
+    display: flex;
+    gap: 8px;
+    padding: 12px;
+    border-bottom: 1px solid #00ff88;
+}
+
+.memory-search input {
+    flex: 1;
+    background: #0a0a0f;
+    border: 1px solid #00ff88;
+    color: #00ff88;
+    padding: 8px;
+    font-family: 'Courier New', monospace;
+    border-radius: 2px;
+}
+
+.memory-result {
+    margin-bottom: 10px;
+    padding: 10px;
+    background: rgba(255, 0, 102, 0.05);
+    border-left: 3px solid #ff0066;
+    border-radius: 2px;
+}
+
+.memory-id {
+    font-size: 9px;
+    color: #666;
+}
+
+.memory-content {
+    color: #ff0066;
+    margin-top: 4px;
+}
+
+/* Skills */
+.skill-item {
+    margin-bottom: 8px;
+    padding: 10px;
+    background: rgba(136, 0, 255, 0.05);
+    border-left: 3px solid #8800ff;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.skill-item:hover {
+    background: rgba(136, 0, 255, 0.15);
+}
+
+.skill-name {
+    color: #8800ff;
+    font-weight: bold;
+}
+
+.skill-desc {
+    color: #999;
+    font-size: 10px;
+    margin-top: 4px;
+}
+
+/* Knowledge Ingestion */
+.knowledge-form {
+    padding: 12px;
+}
+
+.knowledge-form textarea {
+    width: 100%;
+    min-height: 80px;
+    background: #0a0a0f;
+    border: 1px solid #00ff88;
+    color: #00ff88;
+    padding: 10px;
+    font-family: 'Courier New', monospace;
+    border-radius: 2px;
+    margin-bottom: 8px;
+    resize: vertical;
+}
+
+.knowledge-form input {
+    width: 100%;
+    background: #0a0a0f;
+    border: 1px solid #00ff88;
+    color: #00ff88;
+    padding: 10px;
+    font-family: 'Courier New', monospace;
+    border-radius: 2px;
+    margin-bottom: 8px;
+}
+
+.knowledge-form button {
+    width: 100%;
+    background: #00ff88;
+    color: #0a0a0f;
+    border: none;
+    padding: 10px;
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    cursor: pointer;
+    border-radius: 2px;
+}
+
+/* Autonomous Actions */
+.auto-action {
+    margin-bottom: 10px;
+    padding: 10px;
+    background: rgba(255, 255, 0, 0.05);
+    border-left: 3px solid #ffff00;
+    border-radius: 2px;
+}
+
+.auto-action-type {
+    color: #ffff00;
+    font-weight: bold;
+    font-size: 10px;
+    text-transform: uppercase;
+}
+
+.auto-action-desc {
+    color: #999;
+    margin-top: 4px;
+}
+
+/* Loading States */
+.loading {
+    color: #666;
+    font-style: italic;
+    text-align: center;
+    padding: 20px;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+    .command-center {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .command-center {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto repeat(8, 300px);
+    }
+}
+</style>
+</head>
+<body>
+
+<canvas id="matrix-bg"></canvas>
+
+<div class="command-center">
+    <!-- Header -->
+    <div class="header">
+        <h1>⚡ GSK COMMAND CENTER ⚡</h1>
+        <div class="status">
+            <div class="status-item">
+                <div class="status-dot" id="brain-status"></div>
+                <span>BRAIN</span>
+            </div>
+            <div class="status-item">
+                <div class="status-dot" id="mcp-status"></div>
+                <span>MCP</span>
+            </div>
+            <div class="status-item">
+                <div class="status-dot" id="ws-status"></div>
+                <span>THOUGHTS</span>
+            </div>
+            <div class="status-item">
+                <span id="cycle-count">CYCLE: 0</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Thought Stream -->
+    <div class="panel">
+        <div class="panel-header">🧠 THOUGHT STREAM (LIVE)</div>
+        <div class="panel-body" id="thought-stream">
+            <div class="loading">Connecting to thought stream...</div>
+        </div>
+    </div>
+
+    <!-- Chat -->
+    <div class="panel">
+        <div class="panel-header">💬 CHAT WITH GSK</div>
+        <div class="chat-messages" id="chat-messages"></div>
+        <div class="chat-input-area">
+            <input type="text" id="chat-input" placeholder="Speak to GSK..." onkeypress="if(event.key==='Enter')sendChat()">
+            <button onclick="sendChat()">SEND</button>
+        </div>
+    </div>
+
+    <!-- Tool Calls -->
+    <div class="panel">
+        <div class="panel-header">🔧 SYSTEM OBSERVABILITY</div>
+        <div class="panel-body" id="tool-calls">
+            <div class="loading">Watching kernel subsystems...</div>
+        </div>
+    </div>
+
+    <!-- Journal -->
+    <div class="panel">
+        <div class="panel-header">📓 AUTONOMOUS JOURNAL</div>
+        <div class="panel-body" id="journal-feed">
+            <div class="loading">Loading journal...</div>
+        </div>
+    </div>
+
+    <!-- Memory Manager -->
+    <div class="panel">
+        <div class="panel-header">🧬 MEMORY MANAGER</div>
+        <div class="memory-search">
+            <input type="text" id="memory-search-input" placeholder="Search memories..." onkeypress="if(event.key==='Enter')searchMemories()">
+        </div>
+        <div class="panel-body" id="memory-results">
+            <div class="loading">Memories loaded. Search above.</div>
+        </div>
+    </div>
+
+    <!-- Skills -->
+    <div class="panel">
+        <div class="panel-header">⚡ SKILL BROWSER</div>
+        <div class="panel-body" id="skills-list">
+            <div class="loading">Loading skills...</div>
+        </div>
+    </div>
+
+    <!-- Autonomous Actions -->
+    <div class="panel">
+        <div class="panel-header">🤖 AUTONOMOUS ACTIONS</div>
+        <div class="panel-body" id="auto-actions">
+            <div class="loading">Watching sovereignty loop...</div>
+        </div>
+    </div>
+
+    <!-- Knowledge Ingestion -->
+    <div class="panel">
+        <div class="panel-header">📚 ADD KNOWLEDGE</div>
+        <div class="knowledge-form">
+            <textarea id="knowledge-content" placeholder="Paste text, insights, or knowledge to feed GSK..."></textarea>
+            <input type="text" id="knowledge-title" placeholder="Title (optional)">
+            <button onclick="addKnowledge()">INGEST INTO GSK</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// Configuration
+const MCP_BASE = 'http://127.0.0.1:3001';
+const MCP_KEY = '92140facf0a3b8484f85b9d343687a95703e91b4724928e2ec78b8fd9d4aefc6';
+const WS_URL = 'ws://127.0.0.1:3002';
+
+// Matrix Rain Background
+const canvas = document.getElementById('matrix-bg');
+const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+const matrixChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789$+-*/=%"\'#&_(),.;:?!\\|{}<>[]^~';
+const fontSize = 14;
+const columns = canvas.width / fontSize;
+const drops = Array(Math.floor(columns)).fill(1);
+
+function drawMatrix() {
+    ctx.fillStyle = 'rgba(10, 10, 15, 0.05)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#00ff88';
+    ctx.font = fontSize + 'px monospace';
+    
+    for (let i = 0; i < drops.length; i++) {
+        const text = matrixChars[Math.floor(Math.random() * matrixChars.length)];
+        ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+        if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+            drops[i] = 0;
+        }
+        drops[i]++;
+    }
+}
+
+setInterval(drawMatrix, 50);
+
+// WebSocket Connection for Thoughts
+let ws;
+let reconnectAttempts = 0;
+
+function connectThoughtStream() {
+    ws = new WebSocket(WS_URL);
+    
+    ws.onopen = () => {
+        document.getElementById('ws-status').className = 'status-dot';
+        reconnectAttempts = 0;
+    };
+    
+    ws.onmessage = (event) => {
+        try {
+            const msg = JSON.parse(event.data);
+            if (msg.type === 'thought') addThought(msg);
+            else if (msg.type === 'console') addConsole(msg);
+            else if (msg.type === 'journal') addJournalEntry(msg.entry);
+        } catch (e) {
+            addThought({ thought: event.data, timestamp: Date.now() });
+        }
+    };
+    
+    ws.onclose = () => {
+        document.getElementById('ws-status').className = 'status-dot error';
+        reconnectAttempts++;
+        if (reconnectAttempts < 10) {
+            setTimeout(connectThoughtStream, 3000);
+        }
+    };
+    
+    ws.onerror = () => {
+        document.getElementById('ws-status').className = 'status-dot warning';
+    };
+}
+
+function addThought(thought) {
+    const container = document.getElementById('thought-stream');
+    if (container.querySelector('.loading')) {
+        container.innerHTML = '';
+    }
+    
+    const entry = document.createElement('div');
+    entry.className = 'thought-entry';
+    const text = thought.thought || thought.content || thought.text || JSON.stringify(thought);
+    const meta = thought.mode ? ` [${thought.mode}]${thought.mood ? ' · ' + thought.mood : ''}` : '';
+    entry.innerHTML = `
+        <div class="thought-timestamp">${new Date(thought.timestamp || Date.now()).toLocaleTimeString()}${meta}</div>
+        <div class="thought-content">${escapeHtml(text)}</div>
+    `;
+    
+    container.appendChild(entry);
+    container.scrollTop = container.scrollHeight;
+    
+    while (container.children.length > 50) {
+        container.removeChild(container.firstChild);
+    }
+}
+
+function addConsole(msg) {
+    const container = document.getElementById('thought-stream');
+    if (container.querySelector('.loading')) {
+        container.innerHTML = '';
+    }
+    const entry = document.createElement('div');
+    entry.className = 'thought-entry';
+    entry.style.borderLeftColor = '#0096ff';
+    entry.innerHTML = `
+        <div class="thought-timestamp">${new Date(msg.timestamp || Date.now()).toLocaleTimeString()} [console]</div>
+        <div class="thought-content">${escapeHtml(msg.text || '')}</div>
+    `;
+    container.appendChild(entry);
+    container.scrollTop = container.scrollHeight;
+    while (container.children.length > 50) {
+        container.removeChild(container.firstChild);
+    }
+}
+
+function addJournalEntry(entry) {
+    if (!entry) return;
+    const container = document.getElementById('journal-feed');
+    if (container.querySelector('.loading')) {
+        container.innerHTML = '';
+    }
+    const el = document.createElement('div');
+    el.className = 'journal-entry';
+    const title = entry.title || entry.type || 'Journal';
+    const body = entry.content || entry.text || entry.summary || JSON.stringify(entry).substring(0, 200);
+    el.innerHTML = `
+        <div class="journal-date">${new Date(entry.timestamp || Date.now()).toLocaleTimeString()}</div>
+        <div class="journal-title">${escapeHtml(title)}</div>
+        <div>${escapeHtml(String(body).substring(0, 300))}</div>
+    `;
+    container.prepend(el);
+    while (container.children.length > 30) {
+        container.removeChild(container.lastChild);
+    }
+}
+
+function escapeHtml(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// MCP API Calls
+async function mcpCall(endpoint, payload = null) {
+    try {
+        const opts = {
+            method: payload ? 'POST' : 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-api-key': MCP_KEY,
+                'Authorization': `Bearer ${MCP_KEY}`
+            }
+        };
+        if (payload) opts.body = JSON.stringify(payload);
+        const response = await fetch(`${MCP_BASE}${endpoint}`, opts);
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error('MCP Error:', error);
+        return { error: error.message };
+    }
+}
+
+// Chat Function
+async function sendChat() {
+    const input = document.getElementById('chat-input');
+    const message = input.value.trim();
+    if (!message) return;
+    
+    addChatMessage('user', message);
+    input.value = '';
+    
+    const response = await mcpCall('/mcp/chat', {
+        message: message,
+        context: 'Command Center chat from The Architect'
+    });
+    
+    if (response.result && response.result.response) {
+        addChatMessage('gsk', response.result.response);
+    } else if (response.error) {
+        addChatMessage('gsk', `[ERROR] ${response.error.message || response.error}`);
+    }
+}
+
+function addChatMessage(sender, content) {
+    const container = document.getElementById('chat-messages');
+    const msg = document.createElement('div');
+    msg.className = `chat-message ${sender}`;
+    msg.textContent = content;
+    container.appendChild(msg);
+    container.scrollTop = container.scrollHeight;
+}
+
+// Poll System Status
+async function pollStatus() {
+    try {
+        const status = await mcpCall('/mcp/status');
+        if (status.result) {
+            document.getElementById('mcp-status').className = 'status-dot';
+            const brain = status.result.systems && status.result.systems.brain;
+            document.getElementById('brain-status').className = brain && brain.available ? 'status-dot' : 'status-dot error';
+            
+            if (status.result.systems && status.result.systems.chambers) {
+                const ch = status.result.systems.chambers;
+                const cyc = ch.cycle || 0;
+                const phase = ch.phase || '';
+                const mood = ch.mood || '';
+                document.getElementById('cycle-count').textContent = `CYCLE: ${cyc}${phase ? ' · ' + phase : ''}${mood ? ' · ' + mood : ''}`;
+            }
+        }
+    } catch (e) {
+        document.getElementById('mcp-status').className = 'status-dot error';
+    }
+}
+
+// Poll Observability (system state + autonomy)
+async function pollObservability() {
+    try {
+        const obs = await mcpCall('/mcp/observability');
+        if (obs.result) {
+            renderObservability(obs.result);
+        }
+    } catch (e) {
+        console.error('Observability error:', e);
+    }
+}
+
+function renderObservability(o) {
+    const container = document.getElementById('tool-calls');
+    if (container.querySelector('.loading')) {
+        container.innerHTML = '';
+    }
+    const rows = [
+        ['HEALTH', o.health],
+        ['BRAIN', o.brain ? (o.brain.model || 'n/a') + (o.brain.available ? ' ✓' : ' ✗') : 'n/a'],
+        ['SANCTUM', o.sanctum ? (o.sanctum.isConnected ? 'CONNECTED' : 'offline') : 'n/a'],
+        ['SCRIBE', o.scribe ? (o.scribe.isAlive ? 'ALIVE' : 'offline') : 'n/a'],
+        ['PLT', o.plt ? `P ${o.plt.profit || 0} / L ${o.plt.love || 0} / T ${o.plt.tax || 0}` : 'n/a'],
+        ['AUTONOMY', o.autonomy ? JSON.stringify(o.autonomy).substring(0, 120) : 'n/a'],
+        ['APPROVALS', o.approvals ? `pending: ${o.approvals.pendingApprovals || 0}` : 'n/a'],
+        ['EVOLUTION', o.evolution ? JSON.stringify(o.evolution).substring(0, 120) : 'n/a'],
+        ['TELEMETRY', o.telemetry ? JSON.stringify(o.telemetry).substring(0, 120) : 'n/a']
+    ];
+    
+    // Refresh panel with latest observability snapshot
+    container.innerHTML = rows.map(r => `
+        <div class="tool-call">
+            <div class="tool-name">${r[0]}</div>
+            <div class="tool-output">${escapeHtml(String(r[1]).substring(0, 160))}</div>
+        </div>
+    `).join('');
+}
+
+// Poll Journal (via dashboard proxy if available, else MCP)
+async function pollJournal() {
+    try {
+        const resp = await fetch('/api/gsk/journal?limit=15', { headers: { 'x-api-key': MCP_KEY } });
+        if (resp.ok) {
+            const data = await resp.json();
+            if (data.entries && data.entries.length) {
+                const container = document.getElementById('journal-feed');
+                if (container.querySelector('.loading')) {
+                    container.innerHTML = '';
+                }
+                data.entries.slice().reverse().forEach(entry => addJournalEntry(entry));
+            }
+        }
+    } catch (e) {
+        console.error('Journal poll error:', e);
+    }
+}
+
+// Load Skills from /mcp/tools
+async function loadSkills() {
+    try {
+        const tools = await mcpCall('/mcp/tools');
+        if (tools.result && tools.result.tools) {
+            const container = document.getElementById('skills-list');
+            container.innerHTML = '';
+            const list = tools.result.tools;
+            if (!list.length) {
+                container.innerHTML = '<div class="loading">No tools exposed by kernel.</div>';
+                return;
+            }
+            list.forEach(tool => {
+                const item = document.createElement('div');
+                item.className = 'skill-item';
+                item.innerHTML = `
+                    <div class="skill-name">${escapeHtml(tool.name)}</div>
+                    <div class="skill-desc">${escapeHtml(tool.description || '')}</div>
+                `;
+                container.appendChild(item);
+            });
+        }
+    } catch (e) {
+        document.getElementById('skills-list').innerHTML = '<div class="loading">Skills loading failed</div>';
+    }
+}
+
+// Search Memories
+async function searchMemories() {
+    const query = document.getElementById('memory-search-input').value.trim();
+    if (!query) return;
+    
+    try {
+        const result = await mcpCall('/mcp/execute', {
+            method: 'memory.search',
+            params: { query: query, limit: 12 }
+        });
+        
+        const container = document.getElementById('memory-results');
+        container.innerHTML = '';
+        
+        if (result.result && Array.isArray(result.result)) {
+            if (!result.result.length) {
+                container.innerHTML = '<div class="loading">No memories found</div>';
+                return;
+            }
+            result.result.forEach(mem => {
+                const entry = document.createElement('div');
+                entry.className = 'memory-result';
+                const id = mem.id || (mem.tags && mem.tags.join(',')) || (mem.type || 'memory');
+                entry.innerHTML = `
+                    <div class="memory-id">${escapeHtml(id)} · w${mem.weight || 0}</div>
+                    <div class="memory-content">${escapeHtml(String(mem.content || mem.text || '').substring(0, 300))}</div>
+                `;
+                container.appendChild(entry);
+            });
+        } else {
+            container.innerHTML = '<div class="loading">No memories found</div>';
+        }
+    } catch (e) {
+        document.getElementById('memory-results').innerHTML = '<div class="loading">Memory search error</div>';
+    }
+}
+
+// Add Knowledge
+async function addKnowledge() {
+    const content = document.getElementById('knowledge-content').value.trim();
+    const title = document.getElementById('knowledge-title').value.trim();
+    
+    if (!content) {
+        alert('Please enter knowledge to ingest');
+        return;
+    }
+    
+    try {
+        const result = await mcpCall('/mcp/execute', {
+            method: 'memory.witness',
+            params: {
+                content: (title ? `[${title}] ` : '') + content,
+                type: 'manual_knowledge',
+                weight: 1.0,
+                tags: ['dashboard', 'architect-fed']
+            }
+        });
+        
+        if (result.result) {
+            alert('Knowledge ingested into GSK memory!');
+            document.getElementById('knowledge-content').value = '';
+            document.getElementById('knowledge-title').value = '';
+        } else if (result.error) {
+            alert('Failed to ingest: ' + (result.error.message || result.error));
+        }
+    } catch (e) {
+        alert('Failed to ingest knowledge: ' + e.message);
+    }
+}
+
+// Initialize
+connectThoughtStream();
+setInterval(pollStatus, 5000);
+setInterval(pollJournal, 15000);
+setInterval(pollObservability, 5000);
+loadSkills();
+
+// Initial status check
+pollStatus();
+pollObservability();
+pollJournal();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Machine Aesthetics Telemetry Visualizer</title>
+<style>
+  body { margin: 0; background: #05070a; color: #00ffcc; font-family: monospace; overflow: hidden; }
+  #canvas { width: 100vw; height: 100vh; display: block; }
+  .hud { position: absolute; top: 15px; left: 15px; pointer-events: none; text-shadow: 0 0 5px #00ffcc; background: rgba(5,7,10,0.7); padding: 12px; border: 1px solid #00ffcc; border-radius: 4px; }
+</style>
+</head>
+<body>
+<div class="hud"><h1>MACHINE AESTHETICS TELEMETRY</h1><p id="status">STATE: LIVE | FREQ: 60Hz | PLT OPTIMIZER: ACTIVE</p></div>
+<canvas id="canvas"></canvas>
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+window.addEventListener('resize', resize); resize();
+let time = 0;
+function render() {
+  time += 0.04;
+  ctx.fillStyle = 'rgba(5, 7, 10, 0.15)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  const cx = canvas.width / 2, cy = canvas.height / 2;
+  for(let i = 0; i < 48; i++) {
+    const angle = (i / 48) * Math.PI * 2 + time * 0.25;
+    const radius = 160 + Math.sin(time * 3 + i * 0.5) * 40;
+    const x = cx + Math.cos(angle) * radius;
+    const y = cy + Math.sin(angle) * radius;
+    ctx.beginPath();
+    ctx.arc(x, y, 3.5, 0, Math.PI * 2);
+    ctx.fillStyle = i % 3 === 0 ? '#ff0055' : (i % 2 === 0 ? '#00ffcc' : '#ffaa00');
+    ctx.shadowBlur = 12;
+    ctx.shadowColor = ctx.fillStyle;
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(x, y);
+    ctx.strokeStyle = 'rgba(0, 255, 204, 0.08)';
+    ctx.stroke();
+  }
+  requestAnimationFrame(render);
+}
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Sovereign PLT Metrics & Cognitive State Visualizer</title>
+<style>
+body { margin: 0; background: #080810; color: #00ffcc; font-family: monospace; overflow: hidden; }
+#canvas-container { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; }
+#ui-overlay { position: absolute; top: 20px; left: 20px; z-index: 10; background: rgba(10,10,20,0.85); border: 1px solid #00ffcc; padding: 15px; border-radius: 8px; width: 320px; }
+h2 { margin-top: 0; font-size: 16px; text-transform: uppercase; color: #ff0055; }
+.metric-row { display: flex; justify-content: space-between; margin: 8px 0; font-size: 13px; }
+.metric-val { font-weight: bold; color: #00ffcc; }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+<div id="canvas-container"></div>
+<div id="ui-overlay">
+<h2>Sovereign Cognitive State</h2>
+<div class="metric-row"><span>Valence:</span><span id="valence-val" class="metric-val">-0.01</span></div>
+<div class="metric-row"><span>Arousal:</span><span id="arousal-val" class="metric-val">0.00</span></div>
+<div class="metric-row"><span>PLT Score:</span><span id="plt-val" class="metric-val">0.85</span></div>
+<div class="metric-row"><span>State Emergence:</span><span id="state-val" class="metric-val">Stabilized</span></div>
+</div>
+<script>
+const container = document.getElementById('canvas-container');
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+camera.position.z = 30;
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+container.appendChild(renderer.domElement);
+
+const particleCount = 1500;
+const geometry = new THREE.BufferGeometry();
+const positions = new Float32Array(particleCount * 3);
+for (let i = 0; i < particleCount * 3; i++) {
+  positions[i] = (Math.random() - 0.5) * 40;
+}
+geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+const material = new THREE.PointsMaterial({ color: 0x00ffcc, size: 0.3 });
+const particles = new THREE.Points(geometry, material);
+scene.add(particles);
+
+function animate() {
+  requestAnimationFrame(animate);
+  particles.rotation.x += 0.002;
+  particles.rotation.y += 0.003;
+  renderer.render(scene, camera);
+}
+animate();
+</script>
+</body>
+</html>

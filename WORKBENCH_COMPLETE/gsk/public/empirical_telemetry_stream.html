@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Empirical Telemetry Stream Tab</title>
+<style>
+  body { font-family: monospace; background-color: #0b0e14; color: #00ffcc; margin: 0; padding: 20px; }
+  .panel { border: 1px solid #00ffcc; padding: 15px; border-radius: 6px; background: rgba(0,255,204,0.05); }
+  #stream-log { height: 300px; overflow-y: auto; background: #05070a; border: 1px solid #334155; padding: 10px; font-size: 12px; }
+</style>
+</head>
+<body>
+  <div class="panel">
+    <h2>Empirical Agent Telemetry Stream Visualizer</h2>
+    <div id="stream-container">Connecting to state cycle feed...</div>
+    <h3>Live Telemetry Payload Log</h3>
+    <div id="stream-log"></div>
+  </div>
+<script>
+const API_BASE = 'http://127.0.0.1:3001';
+console.log('Initializing empirical telemetry stream target:', API_BASE);
+function appendTelemetryEvent(evt) {
+  const log = document.getElementById('stream-log');
+  const entry = document.createElement('div');
+  entry.textContent = `[${new Date().toISOString()}] Cycle: ${evt.cycle || 'N/A'} | State: ${evt.state || 'IDLE'} | PLT: ${evt.pltScore || '0.00'}`;
+  log.prepend(entry);
+}
+console.log('Telemetry rendering pipeline attached.');
+</script>
+</body>
+</html>

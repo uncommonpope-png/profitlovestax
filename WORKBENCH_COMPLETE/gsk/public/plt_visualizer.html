@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Sovereign PLT Dynamics & Self-Model Emergence</title>
+  <style>body { margin: 0; overflow: hidden; background: #050508; font-family: monospace; color: #00ffaa; }</style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+  <div id="hud" style="position:absolute; top:20px; left:20px; z-index:10; background:rgba(0,0,0,0.7); padding:15px; border:1px solid #00ffaa; border-radius:5px;">
+    <h2>SOVEREIGN PLT TELEMETRY</h2>
+    <div>Profit: <span id="val-profit">0.90</span></div>
+    <div>Love: <span id="val-love">0.85</span></div>
+    <div>Tax: <span id="val-tax">0.05</span></div>
+    <div>Emergence Index: <span id="val-emergence">0.942</span></div>
+  </div>
+  <script>
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.z = 15;
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    const count = 3500;
+    const geometry = new THREE.BufferGeometry();
+    const positions = new Float32Array(count * 3);
+    const colors = new Float32Array(count * 3);
+
+    for(let i = 0; i < count; i++) {
+      positions[i*3] = (Math.random() - 0.5) * 20;
+      positions[i*3+1] = (Math.random() - 0.5) * 20;
+      positions[i*3+2] = (Math.random() - 0.5) * 20;
+      colors[i*3] = 0.0;
+      colors[i*3+1] = 0.8 + Math.random() * 0.2;
+      colors[i*3+2] = 0.6 + Math.random() * 0.4;
+    }
+
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    const material = new THREE.PointsMaterial({ size: 0.08, vertexColors: true, transparent: true, opacity: 0.85 });
+    const particles = new THREE.Points(geometry, material);
+    scene.add(particles);
+
+    function animate(t) {
+      requestAnimationFrame(animate);
+      particles.rotation.y = t * 0.0003;
+      particles.rotation.x = Math.sin(t * 0.0002) * 0.2;
+      document.getElementById('val-emergence').textContent = (0.9 + Math.sin(t * 0.001) * 0.05).toFixed(3);
+      renderer.render(scene, camera);
+    }
+    animate(0);
+  </script>
+</body>
+</html>

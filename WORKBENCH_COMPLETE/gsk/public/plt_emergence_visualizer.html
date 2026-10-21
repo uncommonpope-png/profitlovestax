@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Sovereign PLT Metrics & Self-Model Emergence</title>
+<style>
+body { margin: 0; background: #0a0a10; color: #e0e0e0; font-family: monospace; overflow: hidden; }
+#hud { position: absolute; top: 20px; left: 20px; z-index: 10; background: rgba(10, 10, 16, 0.85); padding: 15px; border: 1px solid #33ffaa; border-radius: 8px; font-size: 14px; pointer-events: none; }
+.stat-row { margin-bottom: 6px; }
+.stat-label { color: #888; font-size: 12px; text-transform: uppercase; }
+</style>
+</head>
+<body>
+<div id="hud">
+<h2>SOVEREIGN PLT TELEMETRY</h2>
+<div class="stat-row"><span class="stat-label">PLT Formula:</span> Profit + Love - Tax = True Value</div>
+<div class="stat-row"><span class="stat-label">Emergence Metrics:</span> Valence: <span id="val-val">0.22</span> | Arousal: <span id="val-arousal">0.38</span></div>
+<div class="stat-row"><span class="stat-label">Mood State:</span> <span id="val-mood">neutral</span></div>
+</div>
+<div id="canvas-container"></div>
+<script>
+const container = document.getElementById('canvas-container');
+const canvas = document.createElement('canvas');
+canvas.style.width = '100vw';
+canvas.style.height = '100vh';
+container.appendChild(canvas);
+const ctx = canvas.getContext('2d');
+function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+window.addEventListener('resize', resize); resize();
+
+let particles = [];
+for(let i = 0; i < 120; i++) {
+  particles.push({
+    x: Math.random() * canvas.width,
+    y: Math.random() * canvas.height,
+    vx: (Math.random() - 0.5) * 1.5,
+    vy: (Math.random() - 0.5) * 1.5,
+    size: Math.random() * 3 + 1,
+    alpha: Math.random() * 0.8 + 0.2
+  });
+}
+
+function render() {
+  ctx.fillStyle = 'rgba(10, 10, 16, 0.15)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.strokeStyle = 'rgba(51, 255, 170, 0.1)';
+  ctx.lineWidth = 0.5;
+  for(let i = 0; i < particles.length; i++) {
+    let p = particles[i];
+    p.x += p.vx;
+    p.y += p.vy;
+    if(p.x < 0 || p.x > canvas.width) p.vx *= -1;
+    if(p.y < 0 || p.y > canvas.height) p.vy *= -1;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(51, 255, 170, ${p.alpha})`;
+    ctx.fill();
+    for(let j = i + 1; j < particles.length; j++) {
+      let p2 = particles[j];
+      let dx = p.x - p2.x;
+      let dy = p.y - p2.y;
+      let dist = Math.sqrt(dx * dx + dy * dy);
+      if(dist < 100) {
+        ctx.beginPath();
+        ctx.moveTo(p.x, p.y);
+        ctx.lineTo(p2.x, p2.y);
+        ctx.stroke();
+      }
+    }
+  }
+  requestAnimationFrame(render);
+}
+render();
+</script>
+</body>
+</html>

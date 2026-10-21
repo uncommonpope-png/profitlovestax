@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Live Neural Decoding Visualizer</title>
+<style>
+body { margin: 0; background: #080914; color: #e0e6ed; font-family: monospace; overflow: hidden; }
+#canvas { width: 100vw; height: 100vh; display: block; }
+#hud { position: absolute; top: 16px; left: 16px; background: rgba(8,9,20,0.9); padding: 16px; border: 1px solid #00f0ff; border-radius: 8px; font-size: 13px; font-family: monospace; color: #00f0ff; z-index: 10; }
+</style>
+</head>
+<body>
+<div id="hud">
+<h2>NEURAL DECODING STREAM v2026</h2>
+<p>Status: ACTIVE DECODING</p>
+</div>
+<canvas id="canvas"></canvas>
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+const nodes = Array.from({length: 60}, () => ({
+  x: Math.random() * canvas.width,
+  y: Math.random() * canvas.height,
+  vx: (Math.random() - 0.5) * 2,
+  vy: (Math.random() - 0.5) * 2,
+  activation: Math.random()
+}));
+function loop() {
+  ctx.fillStyle = 'rgba(8, 9, 20, 0.2)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  nodes.forEach(n => {
+    n.x += n.vx;
+    n.y += n.vy;
+    if (n.x < 0 || n.x > canvas.width) n.vx *= -1;
+    if (n.y < 0 || n.y > canvas.height) n.vy *= -1;
+    ctx.beginPath();
+    ctx.arc(n.x, n.y, 4, 0, Math.PI * 2);
+    ctx.fillStyle = '#00f0ff';
+    ctx.fill();
+  });
+  requestAnimationFrame(loop);
+}
+loop();
+</script>
+</body>
+</html>

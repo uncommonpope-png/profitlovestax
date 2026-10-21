@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Multi-Agent Telemetry PLT Dashboard</title>
+<style>
+body { margin: 0; background: #0a0a0f; color: #00ffcc; font-family: monospace; overflow: hidden; }
+#canvas { display: block; width: 100vw; height: 100vh; }
+.panel { position: absolute; top: 10px; left: 10px; background: rgba(10,10,15,0.85); padding: 15px; border: 1px solid #00ffcc; border-radius: 8px; width: 320px; }
+</style>
+</head>
+<body>
+<div class="panel">
+<h2>PLT Multi-Agent Stream</h2>
+<div id="metrics">Initializing telemetry...</div>
+</div>
+<canvas id="canvas"></canvas>
+<script>
+// Telemetry Engine Skeleton
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+window.addEventListener('resize', resize); resize();
+
+const agents = [
+  { name: 'Profit Prime', plt: [0.90, 0.05, 0.05], color: '#ffcc00', x: 200, y: 300 },
+  { name: 'Love Weaver', plt: [0.10, 0.85, 0.05], color: '#ff00aa', x: 400, y: 300 },
+  { name: 'Tax Collector', plt: [0.05, 0.05, 0.90], color: '#00ccff', x: 600, y: 300 },
+  { name: 'Harvester', plt: [0.40, 0.30, 0.30], color: '#00ff66', x: 800, y: 300 }
+];
+
+let t = 0;
+function animate() {
+  t += 0.05;
+  ctx.fillStyle = 'rgba(10, 10, 15, 0.2)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  agents.forEach(agent => {
+    const v_aesthetic = Math.sin(t + agent.plt[0]*10) - 0.1 * agent.plt[2];
+    const r = 20 + v_aesthetic * 10;
+    ctx.beginPath();
+    ctx.arc(agent.x + Math.cos(t)*20, agent.y + Math.sin(t)*20, Math.max(5, r), 0, Math.PI*2);
+    ctx.fillStyle = agent.color;
+    ctx.fill();
+  });
+  requestAnimationFrame(animate);
+}
+animate();
+</script>
+</body>
+</html>

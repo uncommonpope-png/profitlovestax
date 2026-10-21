@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Live Telemetry Dashboard - Modular Machine Aesthetics</title>
+<style>
+:root {
+  --bg-dark: #0a0c10;
+  --panel-bg: #12161f;
+  --border-gold: #c9a050;
+  --accent-cyan: #00f0ff;
+  --text-main: #e2e8f0;
+}
+body {
+  margin: 0; background: var(--bg-dark); color: var(--text-main);
+  font-family: 'Courier New', monospace;
+}
+.dashboard-grid {
+  display: grid; grid-template-columns: 300px 1fr 340px; gap: 12px; padding: 12px;
+}
+.panel {
+  background: var(--panel-bg); border: 1px solid var(--border-gold); padding: 12px; border-radius: 4px;
+}
+</style>
+</head>
+<body>
+<div class="dashboard-grid">
+  <div class="panel" id="agent-tree"><h3>AGENT STATE</h3><div id="tree-nodes"></div></div>
+  <div class="panel" id="telemetry-main"><h3>LIVE METRICS STREAM</h3><canvas id="metrics-canvas" width="800" height="450"></canvas></div>
+  <div class="panel" id="plt-optimizer"><h3>PLT VALUE OPTIMIZER</h3><div id="plt-stats"></div></div>
+</div>
+<script>
+const canvas = document.getElementById('metrics-canvas');
+const ctx = canvas ? canvas.getContext('2d') : null;
+let frame = 0;
+function renderLoop() {
+  if (ctx) {
+    ctx.fillStyle = '#0a0c10';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = '#00f0ff';
+    ctx.beginPath();
+    for(let x = 0; x < canvas.width; x += 20) {
+      let y = 200 + Math.sin((x + frame) * 0.02) * 50;
+      if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+  frame++;
+  requestAnimationFrame(renderLoop);
+}
+renderLoop();
+</script>
+</body>
+</html>

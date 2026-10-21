@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PLT Computational Aesthetics Visualizer</title>
+<style>
+body { margin: 0; background: #0a0a10; color: #e0e0e0; font-family: monospace; overflow: hidden; }
+#canvas { width: 100vw; height: 80vh; display: block; }
+#telemetry-bar { height: 20vh; background: #12121c; border-top: 1px solid #333; padding: 15px; box-sizing: border-box; display: flex; justify-content: space-around; align-items: center; }
+.stat { font-size: 14px; text-transform: uppercase; }
+.val { color: #00ffcc; font-weight: bold; font-size: 18px; }
+</style>
+</head>
+<body>
+<canvas id="canvas"></canvas>
+<div id="telemetry-bar">
+<div>Profit (P): <span id="p-val" class="val">0.00</span></div>
+<div>Love (L): <span id="l-val" class="val">0.00</span></div>
+<div>Tax (T): <span id="t-val" class="val">0.00</span></div>
+<div>Aesthetics Index: <span id="aes-val" class="val">0.00</span></div>
+</div>
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+let width, height;
+function resize() { width = canvas.width = window.innerWidth; height = canvas.height = window.innerHeight * 0.8; }
+window.addEventListener('resize', resize); resize();
+let mouseMoves = 0, clicks = 0, lastTime = performance.now(), fps = 60;
+window.addEventListener('mousemove', () => mouseMoves++);
+window.addEventListener('click', () => clicks++);
+function render(t) {
+  const delta = (t - lastTime) / 1000; lastTime = t;
+  fps = Math.round(1 / (delta || 0.016));
+  const P = Math.min(1.0, (mouseMoves * 0.05) + (fps / 120));
+  const L = Math.min(1.0, clicks * 0.1 + 0.2);
+  const T = Math.min(1.0, (mouseMoves * 0.02) + (clicks * 0.05));
+  const PLT = P + L - T;
+  document.getElementById('p-val').textContent = P.toFixed(2);
+  document.getElementById('l-val').textContent = L.toFixed(2);
+  document.getElementById('t-val').textContent = T.toFixed(2);
+  document.getElementById('aes-val').textContent = PLT.toFixed(2);
+  ctx.fillStyle = 'rgba(10, 10, 16, 0.2)'; ctx.fillRect(0, 0, width, height);
+  const hue = Math.floor(Math.max(0, Math.min(360, PLT * 180)));
+  ctx.strokeStyle = 'hsl(' + hue + ', 80%, 50%)';
+  ctx.beginPath(); ctx.arc(width/2, height/2, 50 + PLT * 100, 0, Math.PI * 2); ctx.stroke();
+  requestAnimationFrame(render);
+}
+requestAnimationFrame(render);
+</script>
+</body>
+</html>

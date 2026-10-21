@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Agent Tool Call Telemetry Visualizer</title>
+<style>
+body { background: #0a0a0c; color: #00ffcc; font-family: monospace; padding: 20px; }
+.card { border: 1px solid #00ffcc; padding: 15px; margin-bottom: 10px; border-radius: 4px; }
+</style>
+</head>
+<body>
+<h1>Agent Tool Call Telemetry</h1>
+<div id="app">Loading execution telemetry...</div>
+<script>
+const state = { activeCalls: [], history: [] };
+function render() {
+  const app = document.getElementById('app');
+  app.innerHTML = `<div class="card"><h2>Active Tool Execution States</h2><pre>${JSON.stringify(state, null, 2)}</pre></div>`;
+}
+render();
+setInterval(render, 1000);
+</script>
+</body>
+</html>

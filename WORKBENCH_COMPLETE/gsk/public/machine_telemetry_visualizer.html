@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GSK Machine Telemetry & Shader Visualizer</title>
+<style>
+  :root { --bg: #05070a; --glass: rgba(18, 24, 38, 0.7); --border: rgba(0, 240, 255, 0.2); --neon: #00f0ff; --gold: #ffd700; }
+  body { margin: 0; padding: 0; background: var(--bg); color: #e2e8f0; font-family: monospace; overflow: hidden; }
+  #canvas-container { position: absolute; inset: 0; z-index: 1; }
+  .glass-panel { position: absolute; top: 20px; left: 20px; z-index: 10; background: var(--glass); backdrop-filter: blur(12px); border: 1px solid var(--border); border-radius: 12px; padding: 20px; width: 320px; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
+  h1 { font-size: 16px; margin: 0 0 10px; color: var(--neon); text-transform: uppercase; letter-spacing: 2px; }
+  .metric { display: flex; justify-content: space-between; margin: 8px 0; font-size: 13px; }
+  .val { color: var(--gold); font-weight: bold; }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+<div id="canvas-container"></div>
+<div class="glass-panel">
+  <h1>Machine Aesthetics</h1>
+  <div class="metric"><span>GPU Shader Load</span><span class="val" id="gpu-load">98.4%</span></div>
+  <div class="metric"><span>PLT Value Vector</span><span class="val" id="plt-val">1.04</span></div>
+  <div class="metric"><span>Telemetry Pulse</span><span class="val" id="pulse-rate">120 Hz</span></div>
+</div>
+<script>
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+const vertexShader = `
+  varying vec2 vUv;
+  varying vec3 vPosition;
+  uniform float time;
+  void main() {
+    vUv = uv;
+    vPosition = position;
+    vec3 pos = position;
+    pos.z += sin(pos.x * 5.0 + time * 3.0) * 0.15;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+  }
+`;
+
+const fragmentShader = `
+  varying vec2 vUv;
+  varying vec3 vPosition;
+  uniform float time;
+  void main() {
+    vec2 grid = abs(fract(vUv * 20.0 - 0.5) - 0.5) / fwidth(vUv * 20.0);
+    float line = min(grid.x, grid.y);
+    float c = 1.0 - min(line, 1.0);
+    vec3 color = mix(vec3(0.0, 0.8, 1.0), vec3(1.0, 0.84, 0.0), sin(vPosition.z * 10.0 + time) * 0.5 + 0.5);
+    float scanline = sin(vUv.y * 800.0 + time * 10.0) * 0.1;
+    gl_FragColor = vec4(color * c + scanline, 0.85);
+  }
+`;
+
+const geometry = new THREE.PlaneGeometry(10, 10, 64, 64);
+const material = new THREE.ShaderMaterial({
+  vertexShader,
+  fragmentShader,
+  uniforms: { time: { value: 0 } },
+  transparent: true,
+  side: THREE.DoubleSide
+});
+const mesh = new THREE.Mesh(geometry, material);
+mesh.rotation.x = -Math.PI / 3;
+scene.add(mesh);
+camera.position.z = 5;
+let clock = new THREE.Clock();
+function animate() {
+  requestAnimationFrame(animate);
+  let elapsedTime = clock.getElapsedTime();
+  material.uniforms.time.value = elapsedTime;
+  mesh.rotation.z = elapsedTime * 0.1;
+  document.getElementById('plt-val').innerText = (1.04 + Math.sin(elapsedTime * 2) * 0.02).toFixed(3);
+  document.getElementById('pulse-rate').innerText = Math.floor(118 + Math.random() * 5) + ' Hz';
+  renderer.render(scene, camera);
+}
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+animate();
+</script>
+</body>
+</html>

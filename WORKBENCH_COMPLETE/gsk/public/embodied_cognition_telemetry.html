@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Embodied Cognition Telemetry Visualizer</title>
+<style>
+body { margin: 0; background: #0a0a0f; color: #e0e0e0; font-family: monospace; overflow: hidden; }
+#canvas { width: 100vw; height: 100vh; display: block; }
+.hud { position: absolute; top: 15px; left: 15px; background: rgba(10,10,15,0.85); border: 1px solid #00ffcc; padding: 15px; border-radius: 8px; font-size: 13px; z-index: 10; }
+.plt-score { font-size: 18px; font-weight: bold; color: #00ffcc; margin-top: 5px; }
+</style>
+</head>
+<body>
+<div class="hud">
+  <h2>EMBODIED COGNITION TELEMETRY</h2>
+  <div>Agent State: <span id="agent-state">Active Navigation</span></div>
+  <div class="plt-score">PLT Optimization Index: <span id="plt-val">1.000</span></div>
+</div>
+<canvas id="canvas"></canvas>
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+let agent = { x: canvas.width / 2, y: canvas.height / 2, vx: 3, vy: 2, radius: 10, history: [] };
+let target = { x: canvas.width * 0.7, y: canvas.height * 0.6, radius: 18 };
+let plt = { profit: 0.9, love: 0.85, tax: 0.05 };
+
+function update() {
+  agent.x += agent.vx;
+  agent.y += agent.vy;
+  if (agent.x < 50 || agent.x > canvas.width - 50) agent.vx *= -1;
+  if (agent.y < 50 || agent.y > canvas.height - 50) agent.vy *= -1;
+  agent.history.push({ x: agent.x, y: agent.y });
+  if (agent.history.length > 60) agent.history.shift();
+  const dist = Math.hypot(agent.x - target.x, agent.y - target.y);
+  const taxCost = plt.tax * (dist / 400);
+  const trueValue = (plt.profit * 0.5 + plt.love * 0.5) - taxCost;
+  document.getElementById('plt-val').innerText = Math.max(0, trueValue).toFixed(4);
+}
+
+function render() {
+  ctx.fillStyle = '#0a0a0f';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.strokeStyle = 'rgba(0, 255, 204, 0.3)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  for (let i = 0; i < agent.history.length; i++) {
+    ctx.lineTo(agent.history[i].x, agent.history[i].y);
+  }
+  ctx.stroke();
+  ctx.fillStyle = '#ff0055';
+  ctx.beginPath();
+  ctx.arc(target.x, target.y, target.radius, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#00ffcc';
+  ctx.beginPath();
+  ctx.arc(agent.x, agent.y, agent.radius, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function loop() { update(); render(); requestAnimationFrame(loop); }
+loop();
+</script>
+</body>
+</html>

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PLT Sovereign Emergence Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+body { margin: 0; overflow: hidden; background: #050508; font-family: monospace; color: #00ffcc; }
+#hud { position: absolute; top: 20px; left: 20px; z-index: 10; background: rgba(5,5,8,0.85); padding: 15px; border: 1px solid #00ffcc; border-radius: 6px; }
+</style>
+</head>
+<body>
+<div id="hud">
+  <h2>SOVEREIGN PLT EMERGENCE</h2>
+  <div>PROFIT: <span id="profitVal">0.90</span></div>
+  <div>LOVE: <span id="loveVal">0.85</span></div>
+  <div>TAX: <span id="taxVal">0.05</span></div>
+  <div>EMERGENCE INDEX: <span id="emergenceVal">0.982</span></div>
+</div>
+<script>
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+const geometry = new THREE.BufferGeometry();
+const count = 3000;
+const positions = new Float32Array(count * 3);
+const colors = new Float32Array(count * 3);
+for(let i=0; i<count*3; i+=3) {
+  positions[i] = (Math.random() - 0.5) * 10;
+  positions[i+1] = (Math.random() - 0.5) * 10;
+  positions[i+2] = (Math.random() - 0.5) * 10;
+  colors[i] = 0.0; colors[i+1] = 1.0; colors[i+2] = 0.8;
+}
+geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+const material = new THREE.PointsMaterial({ size: 0.05, vertexColors: true, transparent: true, opacity: 0.8 });
+const points = new THREE.Points(geometry, material);
+scene.add(points);
+camera.position.z = 5;
+function animate() {
+  requestAnimationFrame(animate);
+  points.rotation.x += 0.002;
+  points.rotation.y += 0.003;
+  renderer.render(scene, camera);
+}
+animate();
+</script>
+</body>
+</html>

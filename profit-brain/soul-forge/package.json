@@ -1,0 +1,27 @@
+{
+  "name": "soul-forge",
+  "version": "1.0.0",
+  "description": "Collective intelligence framework for evolving agents",
+  "main": "index.js",
+  "scripts": {
+    "test": "node test.js",
+    "ledger": "node soul-ledger.js",
+    "council": "node -e \"const {ForgeCouncil} = require('./forge-council'); console.log('Council ready')\"",
+    "vine": "node -e \"const {MemoryVine} = require('./memory-vine'); const v = new MemoryVine(); console.log('Vine stats:', v.getStats())\""
+  },
+  "keywords": [
+    "ai",
+    "agents",
+    "collective-intelligence",
+    "reputation",
+    "memory",
+    "evolution"
+  ],
+  "author": "Craig Jones",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/uncommonpope-png/fix-us.git",
+    "directory": "soul-forge"
+  }
+}

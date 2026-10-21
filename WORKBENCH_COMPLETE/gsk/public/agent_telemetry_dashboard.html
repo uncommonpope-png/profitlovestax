@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>GSK Real-Time Agent Telemetry Dashboard</title>
+<style>
+body { background: #0b0f19; color: #00ffcc; font-family: monospace; margin: 0; padding: 20px; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.card { background: #111827; border: 1px solid #1f2937; border-radius: 8px; padding: 15px; }
+h2 { margin-top: 0; color: #38bdf8; }
+#telemetry-canvas { width: 100%; height: 300px; background: #030712; border: 1px solid #374151; }
+</style>
+</head>
+<body>
+<h1>GSK Telemetry & State Inspection Tab</h1>
+<div class="grid">
+<div class="card"><h2>Agent State & Resonance</h2><div id="state-display">Initializing...</div></div>
+<div class="card"><h2>Telemetry Stream Canvas</h2><canvas id="telemetry-canvas"></canvas></div>
+</div>
+<script>
+const stateEl = document.getElementById('state-display');
+const canvas = document.getElementById('telemetry-canvas');
+const ctx = canvas.getContext('2d');
+let ticks = 0;
+function render() {
+  ticks++;
+  stateEl.innerHTML = `<p>Status: ACTIVE</p><p>Ticks: ${ticks}</p><p>PLT Score: 1.17</p><p>Resonance: 0.88</p>`;
+  if (ctx) {
+    ctx.fillStyle = '#030712';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = '#00ffcc';
+    ctx.beginPath();
+    for(let i=0; i<canvas.width; i+=10) {
+      let y = canvas.height/2 + Math.sin((ticks + i)*0.05)*40;
+      if(i===0) ctx.moveTo(i,y); else ctx.lineTo(i,y);
+    }
+    ctx.stroke();
+  }
+  requestAnimationFrame(render);
+}
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Agent State Continuity Telemetry Dashboard</title>
+<style>
+body { background: #0b0f19; color: #e2e8f0; font-family: monospace; margin: 0; padding: 20px; }
+.container { max-width: 1200px; margin: 0 auto; }
+.grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+.card { background: #161e2e; border: 1px solid #1e293b; border-radius: 8px; padding: 16px; }
+canvas { width: 100%; height: 280px; background: #0d1322; border-radius: 4px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Agent State Continuity Telemetry Dashboard</h1>
+  <div class="grid">
+    <div class="card">
+      <h3>Cycle Fluctuation & State Continuity Visualizer</h3>
+      <canvas id="telemetryCanvas"></canvas>
+    </div>
+    <div class="card">
+      <h3>State Inspection Tabs</h3>
+      <div id="inspectionTab">Loading cycles...</div>
+    </div>
+  </div>
+</div>
+<script>
+const canvas = document.getElementById('telemetryCanvas');
+const ctx = canvas.getContext('2d');
+canvas.width = canvas.clientWidth || 800;
+canvas.height = canvas.clientHeight || 280;
+let cycles = [];
+for (let i = 1; i <= 38; i++) {
+  cycles.push({
+    cycle: i,
+    energy: Math.sin(i * 0.5) * 20 + 85,
+    continuityScore: (0.95 + (Math.sin(i) * 0.04)).toFixed(4),
+    status: i % 7 === 0 ? 'STATE_RECOVERY' : 'CONTINUOUS'
+  });
+}
+function drawTelemetry() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.strokeStyle = '#38bdf8';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  const step = canvas.width / (cycles.length - 1);
+  cycles.forEach((c, idx) => {
+    const x = idx * step;
+    const y = canvas.height - (c.energy / 120 * canvas.height);
+    if (idx === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+}
+drawTelemetry();
+const tab = document.getElementById('inspectionTab');
+tab.innerHTML = '<p>Active Cycles Logged: ' + cycles.length + '</p><p>Continuity Index: 98.4%</p>';
+</script>
+</body>
+</html>

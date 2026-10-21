@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>4-Gods Council Strategic Debate Visualizer</title>
+<style>
+  body { background: #0a0d14; color: #e2e8f0; font-family: system-ui, sans-serif; margin: 0; padding: 20px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .card { background: #121824; border: 1px solid #232d3f; border-radius: 8px; padding: 20px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+// 4-Gods Debate Telemetry Scaffold
+const GODS = [
+  { id: 'profit', name: 'Profit Prime', color: '#10b981', weights: [0.9, 0.05, 0.05] },
+  { id: 'love', name: 'Love Weaver', color: '#ec4899', weights: [0.1, 0.85, 0.05] },
+  { id: 'tax', name: 'Tax Collector', color: '#ef4444', weights: [0.05, 0.05, 0.9] },
+  { id: 'harvester', name: 'Harvester', color: '#f59e0b', weights: [0.4, 0.3, 0.3] }
+];
+console.log('4-Gods Council Debate Telemetry Visualizer Initialized');
+</script>
+</body>
+</html>

@@ -1,0 +1,36 @@
+name: anime-video
+version: "1.0"
+description: >
+  Anime Video Creator — describe your topic and the agent produces a full anime
+  video: research -> proposal -> character extraction -> script -> scene plan
+  -> anime-style image generation (FLUX/Imagen with cel-shaded manga aesthetic)
+  -> TTS narration -> Remotion/HyperFrames composition with camera motion
+  -> self-review and verification. Best for Ghibli-style animations, story
+  recaps, educational anime, and manga-style explainers.
+category: generated
+stability: experimental
+stage_director: skills/pipelines/anime-video
+
+stages:
+  - research
+  - proposal
+  - characters
+  - script
+  - scene_plan
+  - assets
+  - narration
+  - edit
+  - compose
+  - verify
+
+style_profile: anime
+render_runtimes:
+  - remotion
+  - hyperframes
+  - ffmpeg
+
+cost_estimate_usd:
+  image_based: 0.15
+  with_tts: 0.60
+  with_music: 1.20
+  full_setup: 3.00

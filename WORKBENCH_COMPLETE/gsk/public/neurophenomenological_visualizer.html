@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neurophenomenological Agent Visualizer</title>
+<style>
+body { margin: 0; background: #0a0a12; color: #00ffcc; font-family: monospace; overflow: hidden; }
+#canvas { width: 100vw; height: 100vh; display: block; }
+.panel { position: absolute; top: 15px; left: 15px; background: rgba(10,10,18,0.88); border: 1px solid #00ffcc; padding: 15px; border-radius: 8px; width: 300px; box-shadow: 0 0 15px rgba(0,255,204,0.2); }
+h1 { font-size: 15px; margin: 0 0 12px 0; text-transform: uppercase; color: #00ffcc; letter-spacing: 1px; border-bottom: 1px solid #00ffcc; padding-bottom: 5px; }
+.metric { display: flex; justify-content: space-between; align-items: center; margin: 8px 0; font-size: 12px; }
+.bar-bg { width: 110px; height: 8px; background: #1a1a2e; border: 1px solid #00ffcc; border-radius: 4px; overflow: hidden; }
+.bar-fill { height: 100%; background: #00ffcc; transition: width 0.2s ease; }
+</style>
+</head>
+<body>
+<div class="panel">
+<h1>Phenomenological Telemetry</h1>
+<div id="metrics-list"></div>
+</div>
+<canvas id="canvas"></canvas>
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+window.addEventListener('resize', resize); resize();
+
+const state = {
+  qualiaValence: 0.88,
+  cognitiveEntropy: 0.14,
+  agencyVector: 0.92,
+  temporalHorizon: 0.75,
+  profitAlignment: 0.95
+};
+
+const metricsList = document.getElementById('metrics-list');
+function updateMetricsUI() {
+  metricsList.innerHTML = Object.entries(state).map(([k, v]) => `
+    <div class="metric">
+      <span>${k}</span>
+      <div class="bar-bg"><div class="bar-fill" style="width: ${v * 100}%"></div></div>
+    </div>
+  `).join('');
+}
+updateMetricsUI();
+
+function draw() {
+  ctx.fillStyle = 'rgba(10, 10, 18, 0.15)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  const cx = canvas.width / 2, cy = canvas.height / 2;
+  const t = Date.now() * 0.0015;
+  
+  ctx.save();
+  ctx.translate(cx, cy);
+  for(let i = 0; i < 8; i++) {
+    const angle = (i / 8) * Math.PI * 2 + t * 0.5;
+    const r = 120 + Math.sin(t * 3 + i) * 30 * state.cognitiveEntropy;
+    const x = Math.cos(angle) * r;
+    const y = Math.sin(angle) * r;
+    ctx.beginPath();
+    ctx.arc(x, y, 12 * state.agencyVector, 0, Math.PI * 2);
+    ctx.fillStyle = i % 2 === 0 ? '#00ffcc' : '#ff00aa';
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = ctx.fillStyle;
+    ctx.fill();
+  }
+  ctx.restore();
+  requestAnimationFrame(draw);
+}
+draw();
+</script>
+</body>
+</html>

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PLT State Inspector</title>
+<style>
+body { background: #0a0a10; color: #00ffcc; font-family: monospace; margin: 0; padding: 20px; }
+.header { display: flex; justify-content: space-between; border-bottom: 1px solid #00ffcc; padding-bottom: 10px; }
+.grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-top: 20px; }
+#plt-inspector-canvas { width: 100%; height: 400px; background: #050508; border: 1px solid #1a1a2e; }
+#stream-log { height: 400px; overflow-y: auto; background: #050508; border: 1px solid #1a1a2e; padding: 10px; font-size: 12px; color: #8899ac; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>PLT State Inspector - Real-Time Value Flow</h1>
+  <div id="homeostatic-status">SETPOINT: BALANCED</div>
+</div>
+<div class="grid">
+  <canvas id="plt-inspector-canvas"></canvas>
+  <div id="stream-log">[INIT] Monitoring PLT state transitions...</div>
+</div>
+<script>
+const baseUrl = 'http://127.0.0.1:3001';
+const canvas = document.getElementById('plt-inspector-canvas');
+const ctx = canvas.getContext('2d');
+let history = [];
+function renderPLT(data) {
+  history.push(data);
+  if (history.length > 50) history.shift();
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.strokeStyle = '#00ffcc';
+  ctx.beginPath();
+  history.forEach((pt, i) => {
+    const x = (i / 50) * canvas.width;
+    const y = canvas.height - (pt.profit * canvas.height);
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+}
+setInterval(() => {
+  const sample = { profit: Math.random(), love: Math.random(), tax: Math.random() * 0.1 };
+  renderPLT(sample);
+  const log = document.getElementById('stream-log');
+  log.innerText += '\n[PLT FLOW] P:' + sample.profit.toFixed(2) + ' L:' + sample.love.toFixed(2) + ' T:' + sample.tax.toFixed(2);
+}, 1000);
+</script>
+</body>
+</html>

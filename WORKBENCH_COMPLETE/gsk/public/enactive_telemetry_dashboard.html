@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Enactive Telemetry Dashboard - Agent Sensorimotor Loops</title>
+<style>
+  :root { --bg: #0b0f19; --card-bg: rgba(255, 255, 255, 0.05); --card-border: rgba(255, 255, 255, 0.1); --accent-profit: #10b981; --accent-love: #ec4899; --accent-tax: #f59e0b; --text: #f3f4f6; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, sans-serif; display: flex; flex-direction: column; min-height: 100vh; padding: 20px; box-sizing: border-box; }
+  header { backdrop-filter: blur(16px); background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; padding: 20px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+  h1 { margin: 0; font-size: 1.5rem; font-weight: 700; color: #fff; text-shadow: 0 0 10px rgba(255,255,255,0.2); }
+  .grid { display: grid; grid-template-columns: 1fr 350px; gap: 20px; flex: 1; }
+  .glass-panel { backdrop-filter: blur(16px); background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 15px; }
+  canvas { width: 100%; height: 100%; min-height: 400px; border-radius: 12px; background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.05); }
+  .metric-card { background: rgba(0,0,0,0.3); border: 1px solid var(--card-border); padding: 12px 16px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; }
+  .metric-val { font-size: 1.25rem; font-weight: 700; font-family: monospace; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Enactive Sensorimotor Loop Telemetry</h1>
+  <div id="plt-summary">PLT Score: <span id="pltScore" style="color: #10b981; font-weight: bold;">1.00</span></div>
+</header>
+<div class="grid">
+  <div class="glass-panel">
+    <h3>Live Sensorimotor Visualizer (Perception - Action - Feedback)</h3>
+    <canvas id="sensorimotorCanvas"></canvas>
+  </div>
+  <div class="glass-panel">
+    <h3>Agent Telemetry</h3>
+    <div class="metric-card"><span>Sensory Energy:</span><span id="sensoryEnergy" class="metric-val">0.85</span></div>
+    <div class="metric-card"><span>Motor Velocity:</span><span id="motorVelocity" class="metric-val">0.42</span></div>
+    <div class="metric-card"><span>Env Entropy:</span><span id="envEntropy" class="metric-val">0.12</span></div>
+    <div class="metric-card"><span>PLT Balance:</span><span id="pltBalance" class="metric-val">+0.73</span></div>
+    <h3>Control Console</h3>
+    <button onclick="triggerPulse()" style="padding: 10px; background: #3b82f6; color: white; border: none; border-radius: 8px; cursor: pointer;">Inject Sensory Pulse</button>
+  </div>
+</div>
+<script>
+const canvas = document.getElementById('sensorimotorCanvas');
+const ctx = canvas.getContext('2d');
+function resize() { canvas.width = canvas.parentElement.clientWidth; canvas.height = 450; }
+window.addEventListener('resize', resize);
+resize();
+
+let sensoryEnergy = 0.85, motorVel = 0.42, envEntropy = 0.12;
+let particles = [];
+
+function triggerPulse() {
+  sensoryEnergy = Math.min(1.0, sensoryEnergy + 0.25);
+  for(let i=0; i<15; i++) {
+    particles.push({ x: canvas.width/2, y: canvas.height/2, vx: (Math.random()-0.5)*8, vy: (Math.random()-0.5)*8, life: 1.0 });
+  }
+}
+
+function draw() {
+  ctx.fillStyle = 'rgba(11, 15, 25, 0.3)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  const cx = canvas.width / 2, cy = canvas.height / 2;
+  
+  ctx.beginPath();
+  ctx.arc(cx, cy, 80 + Math.sin(Date.now()*0.003)*10*sensoryEnergy, 0, Math.PI*2);
+  ctx.strokeStyle = '#10b981';
+  ctx.lineWidth = 3;
+  ctx.stroke();
+  
+  ctx.beginPath();
+  ctx.arc(cx, cy, 130 + Math.cos(Date.now()*0.002)*15, 0, Math.PI*2);
+  ctx.strokeStyle = 'rgba(236, 72, 153, 0.6)';
+  ctx.setLineDash([8, 8]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  
+  particles.forEach((p, idx) => {
+    p.x += p.vx;
+    p.y += p.vy;
+    p.life -= 0.02;
+    ctx.fillStyle = `rgba(59, 130, 246, ${p.life})`;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 4, 0, Math.PI*2);
+    ctx.fill();
+    if(p.life <= 0) particles.splice(idx, 1);
+  });
+  
+  document.getElementById('sensoryEnergy').innerText = sensoryEnergy.toFixed(2);
+  document.getElementById('motorVelocity').innerText = (motorVel + Math.sin(Date.now()*0.005)*0.1).toFixed(2);
+  document.getElementById('envEntropy').innerText = (envEntropy + Math.cos(Date.now()*0.004)*0.05).toFixed(2);
+  
+  sensoryEnergy = Math.max(0.2, sensoryEnergy - 0.001);
+  requestAnimationFrame(draw);
+}
+requestAnimationFrame(draw);
+</script>
+</body>
+</html>

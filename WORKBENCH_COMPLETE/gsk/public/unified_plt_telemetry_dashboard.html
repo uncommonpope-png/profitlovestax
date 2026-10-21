@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PLT Telemetry Dashboard & Agent State Inspector</title>
+  <style>
+    :root { --bg: #0b0f19; --card: rgba(18, 26, 44, 0.75); --accent-profit: #10b981; --accent-love: #ec4899; --accent-tax: #f59e0b; --text: #f3f4f6; }
+    body { margin: 0; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, sans-serif; display: flex; height: 100vh; overflow: hidden; }
+    #sidebar { width: 320px; background: var(--card); border-right: 1px solid rgba(255,255,255,0.1); padding: 20px; backdrop-filter: blur(12px); overflow-y: auto; }
+    #main { flex: 1; display: grid; grid-template-rows: 60px 1fr 300px; gap: 16px; padding: 20px; box-sizing: border-box; }
+    header { display: flex; justify-content: space-between; align-items: center; background: var(--card); padding: 0 20px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; min-height: 0; }
+    .card { background: var(--card); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 16px; backdrop-filter: blur(12px); display: flex; flex-direction: column; }
+    canvas { flex: 1; width: 100%; height: 100%; border-radius: 4px; background: rgba(0,0,0,0.3); }
+    .badge { padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.8rem; }
+    .badge-profit { background: rgba(16,185,129,0.2); color: var(--accent-profit); border: 1px solid var(--accent-profit); }
+    .badge-love { background: rgba(236,72,153,0.2); color: var(--accent-love); border: 1px solid var(--accent-love); }
+    .badge-tax { background: rgba(245,158,11,0.2); color: var(--accent-tax); border: 1px solid var(--accent-tax); }
+    pre { background: #05070c; padding: 12px; border-radius: 6px; font-size: 0.85rem; overflow-x: auto; color: #38bdf8; border: 1px solid rgba(255,255,255,0.05); }
+  </style>
+</head>
+<body>
+  <div id="sidebar">
+    <h2>Agent Inspector</h2>
+    <div id="agent-meta">Loading agent state...</div>
+    <hr style="border-color: rgba(255,255,255,0.1); margin: 16px 0;">
+    <h3>RSMCL Interoception</h3>
+    <div id="interoception-metrics">Initializing telemetry stream...</div>
+  </div>
+  <div id="main">
+    <header>
+      <h1>PLT Telemetry Visualizer v2.91</h1>
+      <div>Status: <span class="badge badge-profit">ONLINE</span></div>
+    </header>
+    <div class="grid-2">
+      <div class="card">
+        <h3>Live Tri-Vector Stream (Profit / Love / Tax)</h3>
+        <canvas id="pltCanvas"></canvas>
+      </div>
+      <div class="card">
+        <h3>Active Inference Entropy & Precision</h3>
+        <canvas id="entropyCanvas"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <h3>State Transition & Self-Model Log</h3>
+      <pre id="telemetryLog">[SYSTEM INIT] Awaiting real-time telemetry frame broadcast...</pre>
+    </div>
+  </div>
+  <script>
+    const state = {
+      profit: 0.7875,
+      love: 0.625,
+      tax: 0.2125,
+      entropy: 0.142,
+      precision: 0.958,
+      history: [],
+      logs: []
+    };
+
+    const pltCanvas = document.getElementById('pltCanvas');
+    const pltCtx = pltCanvas.getContext('2d');
+    const entropyCanvas = document.getElementById('entropyCanvas');
+    const entropyCtx = entropyCanvas.getContext('2d');
+
+    function resizeCanvases() {
+      [pltCanvas, entropyCanvas].forEach(c => {
+        c.width = c.clientWidth * window.devicePixelRatio || 800;
+        c.height = c.clientHeight * window.devicePixelRatio || 400;
+      });
+    }
+    window.addEventListener('resize', resizeCanvases);
+    resizeCanvases();
+
+    function updateTelemetry() {
+      state.profit = Math.min(1, Math.max(0, state.profit + (Math.random() - 0.48) * 0.02));
+      state.love = Math.min(1, Math.max(0, state.love + (Math.random() - 0.47) * 0.02));
+      state.tax = Math.min(1, Math.max(0, state.tax + (Math.random() - 0.52) * 0.015));
+      state.entropy = Math.min(1, Math.max(0, state.entropy + (Math.random() - 0.5) * 0.01));
+      state.precision = 1 - state.entropy * 0.8;
+
+      const trueValue = (state.profit * 0.5) + (state.love * 0.5) - (state.tax * 0.3);
+      state.history.push({ p: state.profit, l: state.love, t: state.tax, e: state.entropy, tv: trueValue, ts: Date.now() });
+      if (state.history.length > 100) state.history.shift();
+
+      document.getElementById('agent-meta').innerHTML = `
+        <p><strong>Agent Identity:</strong> GSK Grand Code Pope Assistant</p>
+        <p><strong>True Value (TV):</strong> <span class="badge badge-profit">${trueValue.toFixed(4)}</span></p>
+        <p><strong>Profit Vector:</strong> <span class="badge badge-profit">${state.profit.toFixed(3)}</span></p>
+        <p><strong>Love Vector:</strong> <span class="badge badge-love">${state.love.toFixed(3)}</span></p>
+        <p><strong>Tax Vector:</strong> <span class="badge badge-tax">${state.tax.toFixed(3)}</span></p>
+      `;
+
+      document.getElementById('interoception-metrics').innerHTML = `
+        <p><strong>Entropy:</strong> ${state.entropy.toFixed(4)}</p>
+        <p><strong>Precision Anchor:</strong> ${(state.precision * 100).toFixed(1)}%</p>
+        <p><strong>Active Inference State:</strong> Operational Target Reached</p>
+      `;
+
+      const logEl = document.getElementById('telemetryLog');
+      const newLog = `[${new Date().toISOString()}] TELEMETRY_FRAME | P:${state.profit.toFixed(3)} L:${state.love.toFixed(3)} T:${state.tax.toFixed(3)} | TV:${trueValue.toFixed(4)} | Entropy:${state.entropy.toFixed(4)}`;
+      state.logs.unshift(newLog);
+      if (state.logs.length > 15) state.logs.pop();
+      logEl.innerText = state.logs.join('\n');
+
+      renderCharts();
+    }
+
+    function renderCharts() {
+      const w = pltCanvas.width, h = pltCanvas.height;
+      pltCtx.clearRect(0, 0, w, h);
+      entropyCtx.clearRect(0, 0, entropyCanvas.width, entropyCanvas.height);
+
+      if (state.history.length < 2) return;
+      const step = w / 99;
+
+      // Render PLT Chart
+      const drawLine = (ctx, key, color) => {
+        ctx.beginPath();
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 3;
+        state.history.forEach((pt, i) => {
+          const x = i * step;
+          const y = h - (pt[key] * (h - 20) + 10);
+          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+      };
+
+      drawLine(pltCtx, 'p', '#10b981');
+      drawLine(pltCtx, 'l', '#ec4899');
+      drawLine(pltCtx, 't', '#f59e0b');
+      drawLine(pltCtx, 'tv', '#38bdf8');
+
+      // Render Entropy Chart
+      const ew = entropyCanvas.width, eh = entropyCanvas.height;
+      const estep = ew / 99;
+      entropyCtx.beginPath();
+      entropyCtx.strokeStyle = '#a855f7';
+      entropyCtx.lineWidth = 2;
+      state.history.forEach((pt, i) => {
+        const x = i * estep;
+        const y = eh - (pt.e * (eh - 20) + 10);
+        if (i === 0) entropyCtx.moveTo(x, y); else entropyCtx.lineTo(x, y);
+      });
+      entropyCtx.stroke();
+    }
+
+    setInterval(updateTelemetry, 1000);
+    updateTelemetry();
+  </script>
+</body>
+</html>

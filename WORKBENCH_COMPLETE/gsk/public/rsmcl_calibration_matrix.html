@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RSMCL Self-Model Calibration & Operational Risk Telemetry</title>
+  <style>
+    body { margin: 0; background: #0a0a12; color: #e0e0e0; font-family: monospace; padding: 20px; }
+    h1 { color: #00ffcc; text-shadow: 0 0 10px rgba(0,255,204,0.5); }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+    .card { background: #121220; border: 1px solid #1e1e38; border-radius: 8px; padding: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+  </style>
+</head>
+<body>
+  <h1>RSMCL Self-Model Calibration Matrix</h1>
+  <div id="app" class="grid">
+    <div class="card"><h2>Active Inference Loops</h2><canvas id="inferenceCanvas" width="280" height="150"></canvas></div>
+    <div class="card"><h2>Interoceptive Entropy Vector</h2><div id="entropyMetrics">Initializing...</div></div>
+  </div>
+  <script>
+    console.log('RSMCL Calibration Matrix Initialized');
+  </script>
+</body>
+</html>

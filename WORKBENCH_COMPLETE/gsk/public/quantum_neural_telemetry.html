@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quantum Neural Runtime Telemetry Visualizer</title>
+<style>
+  :root { --bg: #07090e; --panel-bg: rgba(18, 24, 38, 0.65); --border: rgba(255, 255, 255, 0.12); --profit: #10b981; --love: #ec4899; --tax: #ef4444; }
+  body { margin: 0; padding: 16px; background: var(--bg); color: #f1f5f9; font-family: ui-sans-serif, system-ui, sans-serif; overflow: hidden; }
+  .grid { display: grid; grid-template-columns: 320px 1fr; gap: 16px; height: calc(100vh - 32px); }
+  .card { background: var(--panel-bg); backdrop-filter: blur(16px); border: 1px solid var(--border); border-radius: 12px; padding: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.37); }
+  canvas { width: 100%; height: 100%; display: block; border-radius: 8px; }
+</style>
+</head>
+<body>
+<div class="grid">
+  <div class="card" id="telemetry-panel"><h2>Runtime Metrics</h2><div id="metrics-stream"></div></div>
+  <div class="card"><canvas id="telemetry-canvas"></canvas></div>
+</div>
+<script>
+const canvas = document.getElementById('telemetry-canvas');
+const ctx = canvas.getContext('2d');
+function resize() { canvas.width = canvas.parentElement.clientWidth; canvas.height = canvas.parentElement.clientHeight; }
+window.addEventListener('resize', resize); resize();
+
+const history = [];
+let frame = 0;
+function animate() {
+  requestAnimationFrame(animate);
+  frame++;
+  const coherence = Math.sin(frame * 0.05) * 0.4 + 0.5 + Math.random() * 0.1;
+  const entanglement = Math.cos(frame * 0.03) * 0.3 + 0.6;
+  const pltValue = (coherence * 0.6 + entanglement * 0.4).toFixed(4);
+  history.push({ coherence, entanglement, pltValue });
+  if (history.length > 200) history.shift();
+
+  ctx.fillStyle = 'rgba(7, 9, 14, 0.2)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.beginPath();
+  ctx.strokeStyle = '#10b981';
+  ctx.lineWidth = 2;
+  history.forEach((h, i) => {
+    const x = (i / 200) * canvas.width;
+    const y = canvas.height - (h.coherence * canvas.height * 0.8) - 20;
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+}
+animate();
+</script>
+</body>
+</html>

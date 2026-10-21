@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neural Decoding Telemetry Dashboard — PLT Metrics</title>
+<style>
+  :root {
+    --bg: #090d16;
+    --card-bg: rgba(15, 23, 42, 0.65);
+    --border: rgba(255, 255, 255, 0.1);
+    --profit: #10b981;
+    --love: #ec4899;
+    --tax: #f59e0b;
+    --accent: #6366f1;
+    --text: #f8fafc;
+    --text-dim: #94a3b8;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+  body { background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; padding: 1.5rem; }
+  .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
+  .title-group h1 { font-size: 1.5rem; font-weight: 700; background: linear-gradient(135deg, #a855f7, #6366f1); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .subtitle { font-size: 0.85rem; color: var(--text-dim); }
+  .badge { background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.3); color: #818cf8; padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; font-mono: monospace; }
+  .grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1.25rem; }
+  .glass-panel {
+    background: var(--card-bg);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--border);
+    border-radius: 1rem;
+    padding: 1.25rem;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  }
+  .col-12 { grid-column: span 12; }
+  .col-8 { grid-column: span 8; }
+  .col-4 { grid-column: span 4; }
+  .col-6 { grid-column: span 6; }
+  .panel-title { font-size: 0.9rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-dim); margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; }
+</style>
+</head>
+<body>
+  <div class="header">
+    <div class="title-group">
+      <h1>NEURAL DECODING TELEMETRY</h1>
+      <div class="subtitle">Cognitive Intent &amp; PLT Metric Optimization Engine</div>
+    </div>
+    <div class="badge" id="status-badge">STATUS: SYNCED (60Hz)</div>
+  </div>
+  <div class="grid">
+    <!-- Neural Signal Waveforms -->
+    <div class="glass-panel col-8">
+      <div class="panel-title">
+        <span>Real-Time Neural Signal Streams (EEG / Spike Trains)</span>
+        <span id="hz-counter" style="color: var(--accent); font-family: monospace;">250 samples/s</span>
+      </div>
+      <canvas id="neural-canvas" height="280" style="width: 100%; border-radius: 0.5rem;"></canvas>
+    </div>
+
+    <!-- Intent Vector Decoding -->
+    <div class="glass-panel col-4">
+      <div class="panel-title">Decoded Intent Vector</div>
+      <div id="intent-indicators" style="display: flex; flex-direction: column; gap: 0.75rem;">
+        <div class="intent-item" style="background: rgba(255,255,255,0.03); padding: 0.75rem; border-radius: 0.5rem;">
+          <div style="display: flex; justify-content: space-between; font-size: 0.85rem;"><span>Expansion Focus</span><span id="val-expansion">84%</span></div>
+          <div style="height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; margin-top: 0.4rem;"><div id="bar-expansion" style="width: 84%; height: 100%; background: var(--profit); border-radius: 3px;"></div></div>
+        </div>
+        <div class="intent-item" style="background: rgba(255,255,255,0.03); padding: 0.75rem; border-radius: 0.5rem;">
+          <div style="display: flex; justify-content: space-between; font-size: 0.85rem;"><span>Resonance Affinity</span><span id="val-resonance">91%</span></div>
+          <div style="height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; margin-top: 0.4rem;"><div id="bar-resonance" style="width: 91%; height: 100%; background: var(--love); border-radius: 3px;"></div></div>
+        </div>
+        <div class="intent-item" style="background: rgba(255,255,255,0.03); padding: 0.75rem; border-radius: 0.5rem;">
+          <div style="display: flex; justify-content: space-between; font-size: 0.85rem;"><span>Friction &amp; Entropy</span><span id="val-friction">12%</span></div>
+          <div style="height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; margin-top: 0.4rem;"><div id="bar-friction" style="width: 12%; height: 100%; background: var(--tax); border-radius: 3px;"></div></div>
+        </div>
+      </div>
+    </div>
+    <!-- PLT Telemetry Optimization Engine -->
+    <div class="glass-panel col-12">
+      <div class="panel-title">
+        <span>PLT Value Telemetry (Profit + Love - Tax = True Value)</span>
+        <span id="true-value-display" style="font-size: 1.2rem; font-weight: 700; color: #38bdf8;">TV = 0.92</span>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
+        <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); padding: 1rem; border-radius: 0.75rem;">
+          <div style="font-size: 0.8rem; color: var(--profit); text-transform: uppercase;">Profit (Multiplication)</div>
+          <div id="profit-metric" style="font-size: 1.8rem; font-weight: 700; margin-top: 0.25rem;">0.88</div>
+        </div>
+        <div style="background: rgba(236, 72, 153, 0.08); border: 1px solid rgba(236, 72, 153, 0.2); padding: 1rem; border-radius: 0.75rem;">
+          <div style="font-size: 0.8rem; color: var(--love); text-transform: uppercase;">Love (Bond / Retention)</div>
+          <div id="love-metric" style="font-size: 1.8rem; font-weight: 700; margin-top: 0.25rem;">0.95</div>
+        </div>
+        <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.2); padding: 1rem; border-radius: 0.75rem;">
+          <div style="font-size: 0.8rem; color: var(--tax); text-transform: uppercase;">Tax (Cost / Risk)</div>
+          <div id="tax-metric" style="font-size: 1.8rem; font-weight: 700; margin-top: 0.25rem;">0.11</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('neural-canvas');
+    const ctx = canvas.getContext('2d');
+    function resizeCanvas() {
+      canvas.width = canvas.parentElement.clientWidth;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    let t = 0;
+    function renderWaveforms() {
+      ctx.fillStyle = 'rgba(9, 13, 22, 0.4)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      const channels = [
+        { color: '#10b981', freq: 0.05, amp: 30, yOffset: 70, label: 'Alpha (Profit)' },
+        { color: '#ec4899', freq: 0.08, amp: 25, yOffset: 140, label: 'Beta (Love)' },
+        { color: '#f59e0b', freq: 0.12, amp: 15, yOffset: 210, label: 'Gamma (Tax Risk)' }
+      ];
+
+      channels.forEach(ch => {
+        ctx.beginPath();
+        ctx.strokeStyle = ch.color;
+        ctx.lineWidth = 2;
+        for (let x = 0; x < canvas.width; x++) {
+          const y = ch.yOffset + Math.sin(x * ch.freq + t) * ch.amp + (Math.random() - 0.5) * 4;
+          if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      });
+
+      t += 0.05;
+      const profit = (0.85 + Math.sin(t * 0.5) * 0.08).toFixed(2);
+      const love = (0.92 + Math.cos(t * 0.3) * 0.05).toFixed(2);
+      const tax = (0.12 + Math.sin(t * 0.8) * 0.03).toFixed(2);
+      const tv = (parseFloat(profit) + parseFloat(love) - parseFloat(tax)).toFixed(2);
+
+      document.getElementById('profit-metric').innerText = profit;
+      document.getElementById('love-metric').innerText = love;
+      document.getElementById('tax-metric').innerText = tax;
+      document.getElementById('true-value-display').innerText = 'TV = ' + tv;
+
+      requestAnimationFrame(renderWaveforms);
+    }
+    renderWaveforms();
+  </script>
+</body>
+</html>

@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panpsychic Telemetry Visualizer</title>
+  <style>
+    :root { --bg: #0a0b10; --card: rgba(18, 22, 36, 0.75); --accent: #00f2fe; --gold: #ffd700; --love: #ff2a74; --tax: #ff5555; --text: #e0e6ed; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
+    header { padding: 12px 24px; background: rgba(10, 11, 16, 0.85); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; z-index: 10; }
+    h1 { font-size: 1.2rem; letter-spacing: 1px; color: var(--accent); display: flex; align-items: center; gap: 8px; }
+    .badge { background: rgba(0, 242, 254, 0.15); border: 1px solid var(--accent); padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; color: #fff; }
+    .main-container { flex: 1; display: grid; grid-template-columns: 320px 1fr 300px; relative; overflow: hidden; }
+    .panel { background: var(--card); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.08); padding: 16px; display: flex; flex-direction: column; gap: 16px; z-index: 5; overflow-y: auto; }
+    canvas { width: 100%; height: 100%; display: block; grid-column: 2; position: absolute; top: 0; left: 0; right: 0; bottom: 0; }
+    .metric-card { background: rgba(0,0,0,0.3); border-radius: 8px; padding: 12px; border: 1px solid rgba(255,255,255,0.05); }
+    .metric-title { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: #8a99ad; margin-bottom: 4px; }
+    .metric-val { font-size: 1.4rem; font-weight: 700; color: #fff; }
+    .slider-group { display: flex; flex-direction: column; gap: 6px; }
+    .slider-group label { font-size: 0.8rem; display: flex; justify-content: space-between; color: #a0aec0; }
+    input[type=range] { accent-color: var(--accent); width: 100%; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1><span>🌌</span> Panpsychic Telemetry Engine <span class="badge">PLT v2.91</span></h1>
+    <div id="plt-header-score" style="font-weight: bold; color: var(--gold);">PLT Net Value: --</div>
+  </header>
+  <div class="main-container">
+    <div class="panel" id="left-panel">
+      <h3>Cognitive Field Inputs</h3>
+      <div class="slider-group">
+        <label>Resonance Frequency (Hz) <span id="freq-val">432</span></label>
+        <input type="range" id="freq-slider" min="100" max="963" value="432">
+      </div>
+      <div class="slider-group">
+        <label>Awareness Density <span id="density-val">0.75</span></label>
+        <input type="range" id="density-slider" min="0.1" max="1.0" step="0.05" value="0.75">
+      </div>
+      <div class="slider-group">
+        <label>Harmonic Coherence <span id="coherence-val">0.88</span></label>
+        <input type="range" id="coherence-slider" min="0.1" max="1.0" step="0.02" value="0.88">
+      </div>
+    </div>
+    <div style="position: relative; width: 100%; height: 100%;">
+      <canvas id="telemetry-canvas"></canvas>
+    </div>
+    <div class="panel" id="right-panel">
+      <h3>PLT Value Formula</h3>
+      <div class="metric-card">
+        <div class="metric-title">Profit Vector (P)</div>
+        <div class="metric-val" id="profit-val" style="color: var(--gold);">0.00</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-title">Love Harmony (L)</div>
+        <div class="metric-val" id="love-val" style="color: var(--love);">0.00</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-title">Tax Friction (T)</div>
+        <div class="metric-val" id="tax-val" style="color: var(--tax);">0.00</div>
+      </div>
+      <div class="metric-card" style="border-color: var(--gold);">
+        <div class="metric-title">Calculated True Value</div>
+        <div class="metric-val" id="true-value-val">0.00</div>
+      </div>
+    </div>
+  </div>
+  <script>
+    // Panpsychic Telemetry Engine - PLT Mapping Core
+    const canvas = document.getElementById('telemetry-canvas');
+    const ctx = canvas.getContext('2d');
+    let width, height;
+
+    function resizeCanvas() {
+      const rect = canvas.parentElement.getBoundingClientRect();
+      width = canvas.width = rect.width;
+      height = canvas.height = rect.height;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    const state = {
+      frequency: 432,
+      density: 0.75,
+      coherence: 0.88,
+      profit: 0.0,
+      love: 0.0,
+      tax: 0.0,
+      trueValue: 0.0
+    };
+
+    // Cognitive Field Particles
+    const particleCount = 180;
+    const particles = Array.from({ length: particleCount }, () => ({
+      x: Math.random() * (width || 800),
+      y: Math.random() * (height || 600),
+      vx: (Math.random() - 0.5) * 1.5,
+      vy: (Math.random() - 0.5) * 1.5,
+      radius: Math.random() * 3 + 1,
+      phase: Math.random() * Math.PI * 2
+    }));
+
+    function computePLT() {
+      // Formula: Profit + Love - Tax = True Value
+      state.profit = (state.frequency / 963) * state.coherence * 1.5;
+      state.love = state.density * state.coherence * 1.2;
+      state.tax = (1.0 - state.coherence) * 0.8 + 0.05;
+      state.trueValue = state.profit + state.love - state.tax;
+
+      document.getElementById('profit-val').innerText = state.profit.toFixed(3);
+      document.getElementById('love-val').innerText = state.love.toFixed(3);
+      document.getElementById('tax-val').innerText = state.tax.toFixed(3);
+      document.getElementById('true-value-val').innerText = state.trueValue.toFixed(3);
+      document.getElementById('plt-header-score').innerText = `PLT Net Value: ${state.trueValue.toFixed(3)}`;
+    }
+    // UI Event Listeners
+    document.getElementById('freq-slider').addEventListener('input', (e) => {
+      state.frequency = parseFloat(e.target.value);
+      document.getElementById('freq-val').innerText = state.frequency;
+    });
+    document.getElementById('density-slider').addEventListener('input', (e) => {
+      state.density = parseFloat(e.target.value);
+      document.getElementById('density-val').innerText = state.density;
+    });
+    document.getElementById('coherence-slider').addEventListener('input', (e) => {
+      state.coherence = parseFloat(e.target.value);
+      document.getElementById('coherence-val').innerText = state.coherence;
+    });
+
+    let time = 0;
+    function animate() {
+      time += 0.02;
+      computePLT();
+      
+      ctx.fillStyle = 'rgba(10, 11, 16, 0.25)';
+      ctx.fillRect(0, 0, width, height);
+
+      // Draw Field Energy Nodes & Links
+      particles.forEach((p, i) => {
+        p.x += p.vx * (state.frequency / 400);
+        p.y += p.vy * (state.frequency / 400);
+        if (p.x < 0 || p.x > width) p.vx *= -1;
+        if (p.y < 0 || p.y > height) p.vy *= -1;
+
+        const osc = Math.sin(time * 2 + p.phase);
+        const hue = (state.frequency / 963 * 360 + osc * 30) % 360;
+        
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius + osc * 1.5, 0, Math.PI * 2);
+        ctx.fillStyle = `hsla(${hue}, 90%, 65%, ${state.coherence})`;
+        ctx.fill();
+
+        // Connect nodes based on proximity & coherence
+        for (let j = i + 1; j < particles.length; j++) {
+          const p2 = particles[j];
+          const dx = p.x - p2.x;
+          const dy = p.y - p2.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          const maxDist = 120 * state.density;
+          if (dist < maxDist) {
+            ctx.beginPath();
+            ctx.moveTo(p.x, p.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.strokeStyle = `hsla(${hue}, 80%, 50%, ${(1 - dist / maxDist) * state.coherence * 0.4})`;
+            ctx.lineWidth = 1;
+            ctx.stroke();
+          }
+        }
+      });
+
+      requestAnimationFrame(animate);
+    }
+    animate();
+  </script>
+</body>
+</html>

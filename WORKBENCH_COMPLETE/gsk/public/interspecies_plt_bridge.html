@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Interspecies Bio-Acoustic PLT Telemetry Visualizer</title>
+<style>
+body { font-family: monospace; background: #0a0a12; color: #00ffcc; margin: 0; padding: 20px; }
+#canvas { width: 100%; height: 300px; background: #05050a; border: 1px solid #00ffcc; }
+.card { border: 1px solid #333; padding: 15px; margin: 10px 0; background: #11111e; }
+</style>
+</head>
+<body>
+<h1>Interspecies Bio-Acoustic PLT Telemetry Visualizer</h1>
+<div class="card">
+  <canvas id="canvas"></canvas>
+</div>
+<div id="metrics" class="card">
+  <h2>Agent PLT Telemetry</h2>
+  <div id="plt-display">Profit: 0.00 | Love: 0.00 | Tax: 0.00</div>
+</div>
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+function translateBioAcousticToPLT(frequency, amplitude, harmony) {
+  const profit = Math.min(1.0, (frequency / 2000) * 0.8 + amplitude * 0.2);
+  const love = Math.min(1.0, harmony * 0.7 + (1 - amplitude) * 0.3);
+  const tax = Math.min(1.0, (frequency > 4000 ? 0.6 : 0.1) + amplitude * 0.3);
+  return { profit, love, tax };
+}
+function render() {
+  requestAnimationFrame(render);
+  ctx.fillStyle = 'rgba(5, 5, 10, 0.2)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+}
+render();
+</script>
+</body>
+</html>

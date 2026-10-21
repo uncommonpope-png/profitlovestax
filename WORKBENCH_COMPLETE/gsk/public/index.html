@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GSK Telemetry & Cognitive State Dashboard</title>
+<style>
+  body { font-family: 'Courier New', monospace; background: #0a0a0e; color: #00f0ff; margin: 0; padding: 20px; }
+  h1 { color: #ff007f; border-bottom: 2px solid #ff007f; padding-bottom: 10px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; margin-top: 20px; }
+  .card { background: #12131c; border: 1px solid #00f0ff; border-radius: 8px; padding: 20px; box-shadow: 0 0 15px rgba(0, 240, 255, 0.1); }
+  .card h2 { color: #ffe600; margin-top: 0; font-size: 1.2rem; }
+  .stat { font-size: 1.1rem; margin: 10px 0; }
+  .label { color: #8a8d9b; }
+  .val { font-weight: bold; color: #00ff66; }
+</style>
+<!-- PLT Telemetry Stream & Agent State Inspector -->
+</head>
+<body>
+  <h1>GSK Real-Time Model Telemetry & Cognitive State</h1>
+  <div class="grid">
+    <div class="card" id="identity-card">
+      <h2>Model Identity & Sovereign Mode</h2>
+      <div class="stat"><span class="label">Identity: </span><span class="val" id="identity-val">GSK Grand Code Pope Assistant</span></div>
+      <div class="stat"><span class="label">Mode: </span><span class="val" id="mode-val">Strict / Sovereign</span></div>
+      <div class="stat"><span class="label">Resonance: </span><span class="val" id="resonance-val">0.35</span></div>
+    </div>
+    <div class="card" id="plt-card">
+      <h2>PLT Formula Governance</h2>
+      <div class="stat"><span class="label">Profit Score: </span><span class="val" id="profit-val">0.90</span></div>
+      <div class="stat"><span class="label">Love Score: </span><span class="val" id="love-val">0.85</span></div>
+      <div class="stat"><span class="label">Tax Score: </span><span class="val" id="tax-val">0.05</span></div>
+      <div class="stat"><span class="label">True Value: </span><span class="val" id="tv-val">1.70</span></div>
+    </div>
+    <div class="card" id="system-card">
+      <h2>Daemon & Telemetry Health</h2>
+      <div class="stat"><span class="label">Daemon State: </span><span class="val" id="daemon-val">ACTIVE (Port 4000)</span></div>
+      <div class="stat"><span class="label">Contract Audit: </span><span class="val" id="audit-val">PASSING</span></div>
+    </div>
+  </div>
+  <script>
+    console.log('GSK Telemetry Dashboard online.');
+  </script>
+  <script src="self-model-tab.js"></script>
+<script src="self_model_tab.js"></script>
+</body>
+</html>

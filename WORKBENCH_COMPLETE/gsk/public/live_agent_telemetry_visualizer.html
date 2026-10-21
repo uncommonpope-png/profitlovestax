@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Live Agent Telemetry & PLT Performance Visualizer</title>
+<style>
+  body { margin: 0; background: #0a0d14; color: #e2e8f0; font-family: monospace; overflow-x: hidden; }
+  header { padding: 16px 24px; background: #111827; border-bottom: 1px solid #1f2937; display: flex; justify-content: space-between; align-items: center; }
+  .title { font-size: 1.25rem; font-weight: bold; color: #38bdf8; letter-spacing: 1px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; padding: 24px; }
+  .card { background: #111827; border: 1px solid #1f2937; border-radius: 8px; padding: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+  .card h3 { margin-top: 0; font-size: 0.9rem; text-transform: uppercase; color: #94a3b8; letter-spacing: 0.5px; border-bottom: 1px solid #374151; padding-bottom: 8px; }
+  canvas { width: 100%; height: 180px; display: block; }
+  .stat-row { display: flex; justify-content: space-between; margin: 8px 0; font-size: 0.85rem; }
+  .stat-val { font-weight: bold; color: #10b981; }
+</style>
+</head>
+<body>
+<header>
+  <div class="title">GSK LIVE TELEMETRY & PLT ENGINE</div>
+  <div id="status-badge" style="color: #10b981;">● ONLINE</div>
+</header>
+<div class="grid">
+  <div class="card"><h3>PLT Performance Vectors</h3><canvas id="pltCanvas"></canvas><div class="stat-row"><span>Profit Prime:</span><span class="stat-val" id="pltP">0.90</span></div><div class="stat-row"><span>Love Weaver:</span><span class="stat-val" id="pltL">0.85</span></div><div class="stat-row"><span>Tax Collector:</span><span class="stat-val" id="pltT">0.05</span></div></div>
+  <div class="card"><h3>Interoceptive Synthetic Modalities</h3><canvas id="sensoryCanvas"></canvas><div class="stat-row"><span>Activation Entropy:</span><span class="stat-val" id="valEntropy">0.24 bits</span></div><div class="stat-row"><span>KV-Cache Pressure:</span><span class="stat-val" id="valKv">42%</span></div><div class="stat-row"><span>Representation Drift:</span><span class="stat-val" id="valDrift">0.012</span></div></div>
+  <div class="card"><h3>System Latency & Throughput</h3><canvas id="latencyCanvas"></canvas><div class="stat-row"><span>Compute Latency:</span><span class="stat-val" id="valLatency">14.2 ms</span></div><div class="stat-row"><span>Token Stream Bandwidth:</span><span class="stat-val" id="valBw">128 t/s</span></div></div>
+</div>
+<script>
+const pltCtx = document.getElementById('pltCanvas').getContext('2d');
+const sensoryCtx = document.getElementById('sensoryCanvas').getContext('2d');
+const latencyCtx = document.getElementById('latencyCanvas').getContext('2d');
+
+let history = { p: [], l: [], t: [], entropy: [], latency: [] };
+for(let i=0; i<50; i++) {
+  history.p.push(0.85 + Math.random()*0.1);
+  history.l.push(0.80 + Math.random()*0.1);
+  history.t.push(0.05 + Math.random()*0.02);
+  history.entropy.push(0.2 + Math.random()*0.1);
+  history.latency.push(12 + Math.random()*5);
+}
+
+function drawLine(ctx, data, color) {
+  ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+  ctx.beginPath();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  const step = ctx.canvas.width / (data.length - 1);
+  data.forEach((val, i) => {
+    const x = i * step;
+    const y = ctx.canvas.height - (val * ctx.canvas.height);
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+}
+
+function tick() {
+  history.p.shift(); history.p.push(Math.min(1.0, Math.max(0.7, history.p[history.p.length-1] + (Math.random()-0.48)*0.02)));
+  history.l.shift(); history.l.push(Math.min(1.0, Math.max(0.6, history.l[history.l.length-1] + (Math.random()-0.49)*0.02)));
+  history.t.shift(); history.t.push(Math.min(0.2, Math.max(0.01, history.t[history.t.length-1] + (Math.random()-0.5)*0.005)));
+  history.entropy.shift(); history.entropy.push(0.2 + Math.random()*0.08);
+  history.latency.shift(); history.latency.push(12 + Math.random()*6);
+
+  document.getElementById('pltP').textContent = history.p[history.p.length-1].toFixed(3);
+  document.getElementById('pltL').textContent = history.l[history.l.length-1].toFixed(3);
+  document.getElementById('pltT').textContent = history.t[history.t.length-1].toFixed(3);
+  document.getElementById('valEntropy').textContent = history.entropy[history.entropy.length-1].toFixed(3) + ' bits';
+  document.getElementById('valLatency').textContent = history.latency[history.latency.length-1].toFixed(1) + ' ms';
+
+  drawLine(pltCtx, history.p, '#10b981');
+  drawLine(sensoryCtx, history.entropy, '#38bdf8');
+  drawLine(latencyCtx, history.latency.map(v => v/30), '#f59e0b');
+  requestAnimationFrame(tick);
+}
+window.onload = () => {
+  [pltCtx, sensoryCtx, latencyCtx].forEach(c => { c.canvas.width = c.canvas.clientWidth; c.canvas.height = c.canvas.clientHeight; });
+  tick();
+};
+</script>
+</body>
+</html>

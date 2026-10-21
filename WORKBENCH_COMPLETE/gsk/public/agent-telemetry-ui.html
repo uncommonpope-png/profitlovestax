@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Agent Telemetry & Machine Aesthetics UI</title>
+<style>
+body { margin:0; background:#080a0f; color:#00ffcc; font-family:monospace; display:flex; flex-direction:column; height:100vh; overflow:hidden; }
+.header { padding:12px; background:#0f131d; border-bottom:1px solid #00ffcc44; display:flex; justify-content:space-between; align-items:center; }
+.container { display:flex; flex:1; position:relative; }
+.sidebar { width:320px; background:#0c0f17; border-right:1px solid #00ffcc22; padding:15px; box-sizing:border-box; display:flex; flex-direction:column; gap:15px; }
+.viewport { flex:1; position:relative; background:#000; }
+canvas { width:100%; height:100%; display:block; }
+.card { background:#121722; border:1px solid #00ffcc33; padding:10px; border-radius:4px; }
+.metric { display:flex; justify-content:space-between; margin-bottom:6px; font-size:12px; }
+.bar { height:6px; background:#1a2333; border-radius:3px; overflow:hidden; }
+.fill { height:100%; background:#00ffcc; width:50%; transition:width 0.3s; }
+</style>
+</head>
+<body>
+<div class="header">
+  <div>SYSTEM TELEMETRY // MACHINE AESTHETICS ENGINE</div>
+  <div id="sys-status" style="color:#00ffcc">STATUS: ONLINE</div>
+</div>
+<div class="container">
+  <div class="sidebar">
+    <div class="card">
+      <h3>AGENT PARAMETERS</h3>
+      <div class="metric"><span>PROFIT METRIC</span><span id="v-profit">0.85</span></div>
+      <div class="bar"><div id="b-profit" class="fill" style="width:85%"></div></div>
+      <div class="metric" style="margin-top:10px;"><span>LOVE METRIC</span><span id="v-love">0.92</span></div>
+      <div class="bar"><div id="b-love" class="fill" style="width:92%"></div></div>
+      <div class="metric" style="margin-top:10px;"><span>TAX METRIC</span><span id="v-tax">0.12</span></div>
+      <div class="bar"><div id="b-tax" class="fill" style="width:12%"></div></div>
+    </div>
+    <div class="card">
+      <h3>GPU SHADER TELEMETRY</h3>
+      <div class="metric"><span>FRAME TIME</span><span id="v-fps">16.6 ms</span></div>
+      <div class="metric"><span>TEXTURE SAMPLING</span><span>OPTIMIZED</span></div>
+      <div class="metric"><span>PRECISION</span><span>HIGH-P GLSL</span></div>
+    </div>
+  </div>
+  <div class="viewport">
+    <canvas id="telemetry-canvas"></canvas>
+  </div>
+</div>
+<script>
+const canvas = document.getElementById('telemetry-canvas');
+const ctx = canvas.getContext('2d');
+function resize() { canvas.width = canvas.clientWidth; canvas.height = canvas.clientHeight; }
+window.addEventListener('resize', resize); resize();
+
+let time = 0;
+function render() {
+  time += 0.02;
+  ctx.fillStyle = 'rgba(8, 10, 15, 0.2)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  const cx = canvas.width / 2;
+  const cy = canvas.height / 2;
+  ctx.strokeStyle = '#00ffcc22';
+  ctx.lineWidth = 1;
+  for(let i=0; i<canvas.width; i+=40) {
+    ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke();
+  }
+  for(let j=0; j<canvas.height; j+=40) {
+    ctx.beginPath(); ctx.moveTo(0, j); ctx.lineTo(canvas.width, j); ctx.stroke();
+  }
+  
+  ctx.beginPath();
+  const r = 80 + Math.sin(time * 3) * 15;
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.strokeStyle = '#00ffcc';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  
+  const profitVal = (0.8 + Math.sin(time)*0.1);
+  document.getElementById('v-profit').textContent = profitVal.toFixed(2);
+  document.getElementById('b-profit').style.width = (profitVal*100) + '%';
+  
+  requestAnimationFrame(render);
+}
+render();
+</script>
+</body>
+</html>

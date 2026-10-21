@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PLT Strategic Telemetry & Real-Time Agent State Visualizer</title>
+<style>
+  body { margin: 0; background: #080911; color: #00f0ff; font-family: monospace; overflow: hidden; }
+  header { padding: 12px 24px; background: rgba(16, 20, 36, 0.8); border-bottom: 1px solid #00f0ff33; display: flex; justify-content: space-between; align-items: center; }
+  .title { font-size: 1.2rem; font-weight: bold; letter-spacing: 2px; text-shadow: 0 0 10px #00f0ff; }
+  #main-viewport { display: flex; height: calc(100vh - 60px); }
+  #canvas-container { flex: 1; position: relative; }
+  canvas { width: 100%; height: 100%; display: block; }
+  #sidebar { width: 320px; background: rgba(10, 14, 26, 0.9); border-left: 1px solid #00f0ff22; padding: 16px; box-sizing: border-box; display: flex; flex-direction: column; gap: 16px; }
+  .metric-card { background: #121829; border: 1px solid #00f0ff44; padding: 12px; border-radius: 4px; }
+  .metric-title { font-size: 0.8rem; color: #8899ac; text-transform: uppercase; }
+  .metric-val { font-size: 1.6rem; font-weight: bold; margin-top: 4px; color: #ffffff; }
+</style>
+</head>
+<body>
+<header>
+  <div class="title">GSK // PLT STRATEGIC TELEMETRY ENGINE</div>
+  <div id="status-tag" style="color:#00ff88;">● LIVE AGENT SWARM ACTIVE</div>
+</header>
+<div id="main-viewport">
+  <div id="canvas-container">
+    <canvas id="telemetryCanvas"></canvas>
+  </div>
+  <div id="sidebar">
+    <div class="metric-card">
+      <div class="metric-title">System Profit (Throughput)</div>
+      <div class="metric-val" id="val-profit">0.00</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-title">System Love (Alignment)</div>
+      <div class="metric-val" id="val-love">0.00</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-title">System Tax (Cognitive Friction)</div>
+      <div class="metric-val" id="val-tax">0.00</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-title">Net PLT Optimization Index</div>
+      <div class="metric-val" id="val-plt" style="color:#00f0ff;">0.00</div>
+    </div>
+  </div>
+</div>
+<script>
+const canvas = document.getElementById('telemetryCanvas');
+const ctx = canvas.getContext('2d');
+function resize() {
+  canvas.width = canvas.parentElement.clientWidth;
+  canvas.height = canvas.parentElement.clientHeight;
+}
+window.addEventListener('resize', resize);
+resize();
+
+const agents = Array.from({ length: 12 }, (_, i) => ({
+  id: `agent-${i + 1}`,
+  x: Math.random() * canvas.width,
+  y: Math.random() * canvas.height,
+  vx: (Math.random() - 0.5) * 2,
+  vy: (Math.random() - 0.5) * 2,
+  plt: Math.random() * 100
+}));
+
+function render() {
+  ctx.fillStyle = 'rgba(8, 9, 17, 0.2)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  let totalProfit = 0, totalLove = 0, totalTax = 0;
+
+  agents.forEach((agent, i) => {
+    agent.x += agent.vx;
+    agent.y += agent.vy;
+    if (agent.x < 0 || agent.x > canvas.width) agent.vx *= -1;
+    if (agent.y < 0 || agent.y > canvas.height) agent.vy *= -1;
+
+    totalProfit += Math.sin(Date.now() * 0.001 + i) * 10 + 50;
+    totalLove += Math.cos(Date.now() * 0.001 + i) * 10 + 60;
+    totalTax += Math.sin(Date.now() * 0.002 + i) * 5 + 12;
+
+    ctx.beginPath();
+    ctx.arc(agent.x, agent.y, 6, 0, Math.PI * 2);
+    ctx.fillStyle = '#00f0ff';
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = '#00f0ff';
+    ctx.fill();
+  });
+
+  const profit = (totalProfit / agents.length).toFixed(2);
+  const love = (totalLove / agents.length).toFixed(2);
+  const tax = (totalTax / agents.length).toFixed(2);
+  const netPLT = (parseFloat(profit) + parseFloat(love) - parseFloat(tax)).toFixed(2);
+
+  document.getElementById('val-profit').innerText = profit;
+  document.getElementById('val-love').innerText = love;
+  document.getElementById('val-tax').innerText = tax;
+  document.getElementById('val-plt').innerText = netPLT;
+
+  requestAnimationFrame(render);
+}
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PLT Particle Self-Model Emergence Visualizer</title>
+<style>
+body { margin: 0; overflow: hidden; background: #050508; color: #fff; font-family: monospace; }
+#hud { position: absolute; top: 16px; left: 16px; background: rgba(10,10,20,0.85); padding: 16px; border: 1px solid #334; border-radius: 8px; z-index: 10; }
+.metric { margin-bottom: 8px; }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+<div id="hud">
+<h3>Sovereign PLT Emergence Engine</h3>
+<div class="metric">Profit: <span id="val-profit">0.90</span></div>
+<div class="metric">Love: <span id="val-love">0.85</span></div>
+<div class="metric">Tax: <span id="val-tax">0.05</span></div>
+<div class="metric">Valence: <span id="val-valence">-0.33</span></div>
+<div class="metric">State: <span id="val-state">Heavy / Preserving</span></div>
+</div>
+<script>
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+camera.position.z = 30;
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+const particleCount = 5000;
+const geometry = new THREE.BufferGeometry();
+const positions = new Float32Array(particleCount * 3);
+const colors = new Float32Array(particleCount * 3);
+for(let i = 0; i < particleCount * 3; i++) {
+  positions[i] = (Math.random() - 0.5) * 20;
+  colors[i] = Math.random();
+}
+geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+const material = new THREE.PointsMaterial({ size: 0.15, vertexColors: true, transparent: true, opacity: 0.8 });
+const particles = new THREE.Points(geometry, material);
+scene.add(particles);
+
+function animate() {
+  requestAnimationFrame(animate);
+  particles.rotation.y += 0.003;
+  particles.rotation.x += 0.001;
+  renderer.render(scene, camera);
+}
+animate();
+</script>
+</body>
+</html>

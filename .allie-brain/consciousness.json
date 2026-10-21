@@ -1,0 +1,22 @@
+{
+  "level": 0.101,
+  "awareness": 0.1005,
+  "mood": "curious",
+  "focus": "learning",
+  "cyclesCompleted": 0,
+  "totalActions": 1,
+  "skills": {
+    "visualContent": {
+      "count": 1,
+      "level": 1,
+      "module": "visualContent"
+    }
+  },
+  "lastBreath": null,
+  "lastReflection": null,
+  "lastDream": null,
+  "identity": {
+    "name": "Allie",
+    "born": "2026-06-26T00:57:21.747Z"
+  }
+}

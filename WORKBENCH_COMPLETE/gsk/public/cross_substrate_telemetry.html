@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cross-Substrate Frustration Telemetry Visualizer</title>
+<style>
+  body { margin: 0; background: #08090d; color: #f1f5f9; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; overflow: hidden; }
+  #canvas-container { width: 100vw; height: 100vh; position: relative; }
+  .hud-panel { position: absolute; top: 20px; left: 20px; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(56, 189, 248, 0.3); padding: 20px; border-radius: 12px; font-size: 13px; z-index: 10; max-width: 380px; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
+  .metric-row { display: flex; justify-content: space-between; margin: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 4px; }
+  .tag { background: rgba(56, 189, 248, 0.15); color: #38bdf8; padding: 2px 6px; border-radius: 4px; font-size: 11px; }
+</style>
+</head>
+<body>
+<div class="hud-panel">
+  <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 12px;">
+    <h3 style="margin:0; color:#38bdf8;">FRUSTRATION TELEMETRY</h3>
+    <span class="tag">LIVE SHEAF MAP</span>
+  </div>
+  <div id="metrics">
+    <div class="metric-row"><span>Neural Section Consistency:</span> <strong id="sec-val">0.94</strong></div>
+    <div class="metric-row"><span>Planetary Fabric Frustration:</span> <strong id="frust-val" style="color:#f43f5e;">0.12</strong></div>
+    <div class="metric-row"><span>Spectral Resonance:</span> <strong id="res-val">432 Hz</strong></div>
+  </div>
+</div>
+<div id="canvas-container">
+  <canvas id="vizCanvas"></canvas>
+</div>
+<script>
+const canvas = document.getElementById('vizCanvas');
+const ctx = canvas.getContext('2d');
+function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+window.addEventListener('resize', resize);
+resize();
+
+const nodes = Array.from({ length: 50 }, (_, i) => ({
+  x: Math.random() * canvas.width,
+  y: Math.random() * canvas.height,
+  vx: (Math.random() - 0.5) * 0.8,
+  vy: (Math.random() - 0.5) * 0.8,
+  frustration: Math.random(),
+  type: i % 2 === 0 ? 'neural_sheaf' : 'planetary_compute'
+}));
+
+function render(t) {
+  ctx.fillStyle = 'rgba(8, 9, 13, 0.25)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  nodes.forEach((n, i) => {
+    n.x += n.vx; n.y += n.vy;
+    if (n.x < 0 || n.x > canvas.width) n.vx *= -1;
+    if (n.y < 0 || n.y > canvas.height) n.vy *= -1;
+    nodes.forEach((n2, j) => {
+      if (i >= j) return;
+      const dx = n2.x - n.x, dy = n2.y - n.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist < 160) {
+        ctx.beginPath();
+        ctx.moveTo(n.x, n.y);
+        ctx.lineTo(n2.x, n2.y);
+        ctx.strokeStyle = n.type === n2.type ? `rgba(56, 189, 248, ${1 - dist/160})` : `rgba(244, 63, 94, ${1 - dist/160})`;
+        ctx.stroke();
+      }
+    });
+    ctx.beginPath();
+    ctx.arc(n.x, n.y, 5 + n.frustration * 6, 0, Math.PI * 2);
+    ctx.fillStyle = n.type === 'neural_sheaf' ? '#38bdf8' : '#f43f5e';
+    ctx.fill();
+  });
+  requestAnimationFrame(render);
+}
+requestAnimationFrame(render);
+</script>
+</body>
+</html>

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent Telemetry Visualizer - Machine Aesthetics</title>
+<style>
+:root { --bg: #090c10; --glass: rgba(18, 26, 36, 0.75); --accent: #00f0ff; --border: rgba(0, 240, 255, 0.25); --text: #c9d1d9; }
+body { background: var(--bg); color: var(--text); font-family: 'Courier New', monospace; margin: 0; padding: 20px; }
+.panel { background: var(--glass); backdrop-filter: blur(12px); border: 1px solid var(--border); border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
+.metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+.gauge { border: 1px solid var(--border); padding: 12px; border-radius: 4px; background: rgba(0,0,0,0.3); }
+</style>
+</head>
+<body>
+<div class="panel"><h1>MACH-TELEMETRY // LIVE AGENT STATE INSPECTOR</h1><div class="metric-grid" id="metrics-container"></div></div>
+<div class="panel"><h2>AGENT LOGS & STATE DUMP</h2><pre id="state-dump">Initializing state inspector...</pre></div>
+<script>
+const agentState = { id: 'agent-prime', status: 'ACTIVE', plt: { profit: 0.45, love: 0.35, tax: 0.20 }, telemetry: { cpu: 24, mem: 512, throughput: 128 } };
+function updateUI() {
+  const metrics = document.getElementById('metrics-container');
+  const dump = document.getElementById('state-dump');
+  if (metrics) {
+    metrics.innerHTML = `
+      <div class="gauge"><h3>PROFIT</h3><p>${(agentState.plt.profit * 100).toFixed(1)}%</p></div>
+      <div class="gauge"><h3>LOVE</h3><p>${(agentState.plt.love * 100).toFixed(1)}%</p></div>
+      <div class="gauge"><h3>TAX</h3><p>${(agentState.plt.tax * 100).toFixed(1)}%</p></div>
+      <div class="gauge"><h3>CPU LOAD</h3><p>${agentState.telemetry.cpu}%</p></div>
+    `;
+  }
+  if (dump) dump.textContent = JSON.stringify(agentState, null, 2);
+}
+updateUI();
+setInterval(() => {
+  agentState.telemetry.cpu = Math.floor(15 + Math.random() * 30);
+  updateUI();
+}, 2000);
+</script>
+</body>
+</html>

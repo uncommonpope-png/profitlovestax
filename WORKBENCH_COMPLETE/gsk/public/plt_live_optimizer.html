@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Live PLT Value Optimization Tool</title>
+  <style>
+    body { font-family: monospace; background: #0a0a10; color: #00ffcc; margin: 0; padding: 20px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .card { background: #12121e; border: 1px solid #00ffcc33; border-radius: 8px; padding: 16px; }
+    h1, h2 { color: #ffffff; }
+  </style>
+</head>
+<body>
+  <div id="root">
+    <h1>PLT Value Optimization Tool &amp; Telemetry</h1>
+    <div class="grid">
+      <div class="card" id="telemetry-panel">
+        <h2>Agent State Telemetry</h2>
+        <canvas id="telemetry-chart" width="400" height="200"></canvas>
+      </div>
+      <div class="card" id="optimizer-panel">
+        <h2>PLT Homeostatic Controls</h2>
+        <div id="plt-display">Scoring: P + L - T</div>
+      </div>
+    </div>
+  </div>
+  <script>
+    const state = {
+      profit: 0.85,
+      love: 0.70,
+      tax: 0.15,
+      get trueValue() { return (this.profit + this.love - this.tax).toFixed(3); }
+    };
+    function render() {
+      const display = document.getElementById('plt-display');
+      if (display) {
+        display.innerHTML = `<strong>Profit:</strong> ${state.profit} | <strong>Love:</strong> ${state.love} | <strong>Tax:</strong> ${state.tax} <br/><h3>True Value: ${state.trueValue}</h3>`;
+      }
+    }
+    render();
+  </script>
+</body>
+</html>

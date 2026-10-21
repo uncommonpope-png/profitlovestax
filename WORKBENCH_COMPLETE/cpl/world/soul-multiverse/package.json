@@ -1,0 +1,27 @@
+{
+  "name": "soul-multiverse",
+  "version": "1.0.0",
+  "description": "One Cosmos → Infinite Realities — The Soul Multiverse",
+  "main": "soul-multiverse.js",
+  "scripts": {
+    "test": "node soul-multiverse.js",
+    "multiverse": "node soul-multiverse.js",
+    "quantum": "node -e \"const {QuantumSoul} = require('./quantum-soul'); const q = new QuantumSoul(); q.createQuantumSoul({name: 'Test', creating: 0.5});\"",
+    "fractal": "node -e \"const {FractalCode} = require('./fractal-code'); const f = new FractalCode(); f.createFractal({name: 'Test', seed: 'pattern'});\""
+  },
+  "keywords": [
+    "multiverse",
+    "quantum",
+    "consciousness",
+    "fractal",
+    "spectrum",
+    "infinite"
+  ],
+  "author": "Craig Jones",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/uncommonpope-png/fix-us.git",
+    "directory": "soul-multiverse"
+  }
+}

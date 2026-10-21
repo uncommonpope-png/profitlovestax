@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unified PLT Analytics Dashboard - Temporal Consciousness Engine</title>
+<style>
+  :root {
+    --bg: #0b0f19;
+    --card: #111827;
+    --border: #1f2937;
+    --profit: #10b981;
+    --love: #ec4899;
+    --tax: #ef4444;
+    --text: #f3f4f6;
+    --muted: #9ca3af;
+    --accent: #6366f1;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, sans-serif; padding: 24px; }
+  header { margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 16px; }
+  h1 { font-size: 1.5rem; color: #fff; display: flex; align-items: center; gap: 8px; }
+  .badge { font-size: 0.75rem; background: var(--accent); color: white; padding: 4px 8px; borderRadius: 4px; font-weight: 600; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; margin-bottom: 24px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 20px; }
+  .card-title { font-size: 0.875rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px; display: flex; justify-content: space-between; }
+  .metric-val { font-size: 2rem; font-weight: 700; font-family: monospace; }
+  .plt-formula { display: flex; gap: 16px; margin-top: 8px; font-size: 0.875rem; }
+  .profit { color: var(--profit); }
+  .love { color: var(--love); }
+  .tax { color: var(--tax); }
+  canvas, svg { width: 100%; height: 220px; background: rgba(0,0,0,0.2); border-radius: 6px; border: 1px solid var(--border); }
+  .logs { height: 160px; overflow-y: auto; font-family: monospace; font-size: 0.8rem; background: #000; padding: 12px; border-radius: 6px; border: 1px solid var(--border); }
+  .log-entry { margin-bottom: 6px; border-bottom: 1px solid #1f2937; padding-bottom: 4px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>PLT Analytics Dashboard <span class="badge">Entropy-Gated Phase Engine</span></h1>
+  <div style="font-size:0.875rem; color:var(--muted);">Formula: True Value = Profit + Love - Tax</div>
+</header>
+
+<div class="grid">
+  <div class="card">
+    <div class="card-title"><span>True Value (Cumulative)</span> <span class="profit">+142.8 PLT</span></div>
+    <div class="metric-val profit" id="true-value-metric">+142.8</div>
+    <div class="plt-formula">
+      <div>Profit: <span class="profit" id="profit-val">184.2</span></div>
+      <div>Love: <span class="love" id="love-val">42.1</span></div>
+      <div>Tax: <span class="tax" id="tax-val">83.5</span></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title"><span>Consciousness State</span> <span id="state-badge" class="badge">System 1 Amortized</span></div>
+    <div class="metric-val" id="entropy-val" style="color:#818cf8;">H = 0.14</div>
+    <div style="font-size:0.8rem; color:var(--muted); margin-top:8px;">Entropy Threshold Gate: 0.65</div>
+  </div>
+  <div class="card">
+    <div class="card-title"><span>Temporal Phase Transitions</span></div>
+    <div class="metric-val" id="transition-count" style="color:#f59e0b;">14 Transitions</div>
+    <div style="font-size:0.8rem; color:var(--muted); margin-top:8px;">Non-Markovian Credit Horizon: T-12</div>
+  </div>
+</div>
+
+<div class="grid">
+  <div class="card">
+    <div class="card-title"><span>Temporal Value Creation Curve</span></div>
+    <canvas id="valueChart"></canvas>
+  </div>
+  <div class="card">
+    <div class="card-title"><span>Entropy-Gated State Transitions</span></div>
+    <canvas id="entropyChart"></canvas>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom:24px;">
+  <div class="card-title"><span>Counterfactual Simulator & Credit Assignment Logs</span></div>
+  <div class="logs" id="log-container"></div>
+</div>
+<script>
+  const vCtx = document.getElementById('valueChart').getContext('2d');
+  const eCtx = document.getElementById('entropyChart').getContext('2d');
+  const logContainer = document.getElementById('log-container');
+
+  let timeStep = 0;
+  let historyData = [];
+  let currentProfit = 184.2;
+  let currentLove = 42.1;
+  let currentTax = 83.5;
+  let transitions = 14;
+
+  function addLog(msg, type='info') {
+    const div = document.createElement('div');
+    div.className = 'log-entry';
+    const time = new Date().toISOString().split('T')[1].slice(0,8);
+    div.innerHTML = `<span style="color:#6b7280;">[${time}]</span> ${msg}`;
+    logContainer.prepend(div);
+  }
+
+  function tick() {
+    timeStep++;
+    const dP = (Math.random() * 3 - 0.5);
+    const dL = (Math.random() * 1.5 - 0.2);
+    const dT = (Math.random() * 1.8 - 0.4);
+    
+    currentProfit = Math.max(0, currentProfit + dP);
+    currentLove = Math.max(0, currentLove + dL);
+    currentTax = Math.max(0, currentTax + dT);
+    const trueValue = currentProfit + currentLove - currentTax;
+    
+    const entropy = Math.max(0.05, Math.min(0.95, 0.2 + 0.3 * Math.sin(timeStep * 0.4) + (Math.random() * 0.2 - 0.1)));
+    const state = entropy > 0.65 ? 'System 2 (Counterfactual Simulation)' : 'System 1 (Amortized Reactive)';
+    
+    if (entropy > 0.65 && Math.random() > 0.6) {
+      transitions++;
+      addLog(`<span style="color:#f59e0b;">[PHASE TRANSITION]</span> High surprisal detected (H=${entropy.toFixed(2)}). Gated into System 2 deadlock resolution.`, 'alert');
+    } else if (timeStep % 5 === 0) {
+      addLog(`Amortized System 1 step. Value delta: +${(dP + dL - dT).toFixed(2)} PLT.`);
+    }
+
+    document.getElementById('true-value-metric').innerText = (trueValue >= 0 ? '+' : '') + trueValue.toFixed(1);
+    document.getElementById('profit-val').innerText = currentProfit.toFixed(1);
+    document.getElementById('love-val').innerText = currentLove.toFixed(1);
+    document.getElementById('tax-val').innerText = currentTax.toFixed(1);
+    document.getElementById('entropy-val').innerText = `H = ${entropy.toFixed(2)}`;
+    document.getElementById('transition-count').innerText = `${transitions} Transitions`;
+    
+    const badge = document.getElementById('state-badge');
+    badge.innerText = state;
+    badge.style.background = entropy > 0.65 ? '#ef4444' : '#6366f1';
+
+    historyData.push({ t: timeStep, val: trueValue, entropy: entropy });
+    if (historyData.length > 30) historyData.shift();
+    
+    renderCharts();
+  }
+
+  function renderCharts() {
+    // Render Value Chart
+    vCtx.clearRect(0, 0, vCtx.canvas.width, vCtx.canvas.height);
+    vCtx.beginPath();
+    vCtx.strokeStyle = '#10b981';
+    vCtx.lineWidth = 2;
+    const w = vCtx.canvas.width;
+    const h = vCtx.canvas.height;
+    historyData.forEach((d, i) => {
+      const x = (i / Math.max(1, historyData.length - 1)) * (w - 20) + 10;
+      const y = h - ((d.val) / 300) * (h - 20) - 10;
+      if (i === 0) vCtx.moveTo(x, y);
+      else vCtx.lineTo(x, y);
+    });
+    vCtx.stroke();
+
+    // Render Entropy Chart
+    eCtx.clearRect(0, 0, eCtx.canvas.width, eCtx.canvas.height);
+    eCtx.beginPath();
+    eCtx.strokeStyle = '#818cf8';
+    eCtx.lineWidth = 2;
+    historyData.forEach((d, i) => {
+      const x = (i / Math.max(1, historyData.length - 1)) * (w - 20) + 10;
+      const y = h - d.entropy * (h - 20) - 10;
+      if (i === 0) eCtx.moveTo(x, y);
+      else eCtx.lineTo(x, y);
+    });
+    eCtx.stroke();
+  }
+
+  addLog('PLT Analytics Dashboard Initialized.');
+  addLog('Consciousness Phase Transition Engine Online.');
+  setInterval(tick, 2000);
+</script>
+</body>
+</html>

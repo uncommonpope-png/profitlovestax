@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Agent State Inspection & PLT Telemetry</title>
+<style>
+  body { font-family: system-ui, sans-serif; background: #0b0f19; color: #e2e8f0; margin: 0; padding: 20px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .card { background: #1e293b; padding: 20px; border-radius: 8px; border: 1px solid #334155; }
+</style>
+</head>
+<body>
+<div id="app">
+  <h1>Agent State Inspection Tab</h1>
+  <div class="grid">
+    <div class="card" id="telemetry-card">Telemetry Stream</div>
+    <div class="card" id="plt-card">PLT Verification</div>
+  </div>
+</div>
+<script>
+const agentState = {
+  scaffoldCycles: 42,
+  appendCycles: 128,
+  scribeTelemetry: 'active',
+  plt: { profit: 0.9, love: 0.85, tax: 0.05, score: 1.7 }
+};
+function renderState() {
+  document.getElementById('telemetry-card').innerHTML = '<h3>Live Agent Telemetry</h3><pre>' + JSON.stringify(agentState, null, 2) + '</pre>';
+  document.getElementById('plt-card').innerHTML = '<h3>PLT Formula Verification</h3><p>Score: ' + agentState.plt.score + '</p>';
+}
+renderState();
+</script>
+</body>
+</html>

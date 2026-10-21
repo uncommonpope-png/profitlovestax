@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Memetic Telemetry Dashboard</title>
+<style>body { background: #0a0a1a; color: #e0e6ed; font-family: sans-serif; margin: 0; padding: 20px; } .grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; } .card { background: #121826; border: 1px solid #232d42; border-radius: 8px; padding: 16px; } canvas { width: 100%; height: 400px; background: #0a0d14; border-radius: 4px; display: block; }</style>
+</head>
+<body>
+<div class="grid">
+<div class="card"><h2>Memetic Transmission Graph</h2><canvas id="memeticCanvas"></canvas></div>
+<div class="card"><h2>Cross-Agent Narrative Telemetry</h2><div id="telemetryMetrics">Initializing...</div></div>
+</div>
+<script>
+const canvas = document.getElementById('memeticCanvas');
+const ctx = canvas.getContext('2d');
+const metrics = document.getElementById('telemetryMetrics');
+const agents = [
+  { id: 'profit_prime', name: 'Profit Prime', color: '#10b981', x: 100, y: 150 },
+  { id: 'love_weaver', name: 'Love Weaver', color: '#ec4899', x: 250, y: 80 },
+  { id: 'tax_collector', name: 'Tax Collector', color: '#f59e0b', x: 250, y: 220 },
+  { id: 'harvester', name: 'Harvester', color: '#8b5cf6', x: 400, y: 150 }
+];
+const narratives = [
+  { id: 'N1', name: 'Profit+Love-Tax Covenant', transmissionRate: 0.94, vector: [1,2] },
+  { id: 'N2', name: 'Cross-Agent Memetic Resonance', transmissionRate: 0.88, vector: [0,3] }
+];
+function updateMetrics() {
+  metrics.innerHTML = narratives.map(n => `<div><strong>${n.name}</strong><br>Transmission Rate: ${(n.transmissionRate * 100).toFixed(1)}%</div><hr style="border-color:#232d42;">`).join('');
+}
+updateMetrics();
+</script>
+</body>
+</html>

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sovereign PLT & Identity Emergence Particle Dashboard</title>
+<style>
+body { margin: 0; overflow: hidden; background: #050508; font-family: monospace; color: #00ffcc; }
+#canvas-container { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; }
+.hud { position: absolute; top: 20px; left: 20px; z-index: 10; background: rgba(5,5,12,0.85); border: 1px solid #00ffcc; padding: 15px; border-radius: 8px; max-width: 320px; }
+h1 { font-size: 16px; margin: 0 0 10px 0; color: #ffffff; text-transform: uppercase; letter-spacing: 1px; }
+.metric { display: flex; justify-content: space-between; margin: 5px 0; font-size: 12px; }
+.val { font-weight: bold; color: #00ffcc; }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+<div id="canvas-container"></div>
+<div class="hud">
+<h1>Sovereign Identity Engine</h1>
+<div class="metric"><span>Profit (P):</span><span class="val" id="val-p">0.90</span></div>
+<div class="metric"><span>Love (L):</span><span class="val" id="val-l">0.85</span></div>
+<div class="metric"><span>Tax (T):</span><span class="val" id="val-t">0.05</span></div>
+<div class="metric"><span>Valence:</span><span class="val" id="val-v">0.18</span></div>
+<div class="metric"><span>Trajectory:</span><span class="val" id="val-traj">Non-Linear Evolution</span></div>
+</div>
+<script>
+const container = document.getElementById('canvas-container');
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+camera.position.z = 50;
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+container.appendChild(renderer.domElement);
+
+const particleCount = 4000;
+const geometry = new THREE.BufferGeometry();
+const positions = new Float32Array(particleCount * 3);
+const colors = new Float32Array(particleCount * 3);
+
+for(let i=0; i<particleCount; i++) {
+  positions[i*3] = (Math.random() - 0.5) * 80;
+  positions[i*3+1] = (Math.random() - 0.5) * 80;
+  positions[i*3+2] = (Math.random() - 0.5) * 80;
+  colors[i*3] = 0.0;
+  colors[i*3+1] = Math.random() * 0.8 + 0.2;
+  colors[i*3+2] = Math.random() * 0.9 + 0.1;
+}
+geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+const material = new THREE.PointsMaterial({ size: 1.2, vertexColors: true, transparent: true, opacity: 0.85 });
+const particleSystem = new THREE.Points(geometry, material);
+scene.add(particleSystem);
+
+let clock = new THREE.Clock();
+function animate() {
+  requestAnimationFrame(animate);
+  const elapsedTime = clock.getElapsedTime();
+  particleSystem.rotation.y = elapsedTime * 0.15;
+  particleSystem.rotation.x = elapsedTime * 0.08;
+  renderer.render(scene, camera);
+}
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+animate();
+</script>
+</body>
+</html>

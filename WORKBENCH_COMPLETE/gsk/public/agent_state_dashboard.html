@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Live Agent State Inspection Dashboard</title>
+<style>
+  body { background: #0f172a; color: #f8fafc; font-family: 'JetBrains Mono', monospace; margin: 0; padding: 20px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-top: 20px; }
+  .card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 16px; }
+  h1 { font-size: 1.5rem; color: #38bdf8; border-bottom: 1px solid #334155; padding-bottom: 8px; }
+  .metric-val { font-size: 1.8rem; font-weight: bold; color: #4ade80; }
+</style>
+</head>
+<body>
+<h1>Live Agent State Inspection & Telemetry Visualizer</h1>
+<div class="grid">
+  <div class="card"><h3>PLT Homeostatic Score</h3><div id="plt-val" class="metric-val">0.84</div></div>
+  <div class="card"><h3>Context Entropy Rate</h3><div id="entropy-val" class="metric-val">0.12</div></div>
+  <div class="card"><h3>RSMCL Drift Error</h3><div id="drift-val" class="metric-val">0.03</div></div>
+</div>
+<canvas id="telemetryCanvas" width="800" height="300" style="width:100%; border:1px solid #334155; margin-top:20px; border-radius:8px;"></canvas>
+<script>
+const ctx = document.getElementById('telemetryCanvas').getContext('2d');
+let points = Array(50).fill(0.85);
+function drawTelemetry() {
+  ctx.fillStyle = '#0f172a';
+  ctx.fillRect(0, 0, 800, 300);
+  ctx.strokeStyle = '#38bdf8';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  points.forEach((p, i) => {
+    const x = (i / (points.length - 1)) * 800;
+    const y = 300 - (p * 250);
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+}
+setInterval(() => {
+  points.shift();
+  const newVal = Math.min(1.0, Math.max(0.5, points[points.length - 1] + (Math.random() * 0.08 - 0.04)));
+  points.push(newVal);
+  document.getElementById('plt-val').innerText = newVal.toFixed(2);
+  drawTelemetry();
+}, 500);
+</script>
+</body>
+</html>

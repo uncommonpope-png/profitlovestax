@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Synthetic Emotion Research Visualizer</title>
+  <style>
+    body { font-family: monospace; background: #0a0a10; color: #00ffcc; margin: 0; padding: 20px; }
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
+    .card { background: #121420; border: 1px solid #00ffcc; padding: 15px; border-radius: 8px; }
+  </style>
+</head>
+<body>
+  <h1>Synthetic Emotion Research Visualizer</h1>
+  <div class="grid">
+    <div class="card"><h2>Valence</h2><div id="valence-val">0.0</div></div>
+    <div class="card"><h2>Arousal</h2><div id="arousal-val">0.0</div></div>
+    <div class="card"><h2>PLT Value</h2><div id="plt-val">0.0</div></div>
+  </div>
+  <script>
+    console.log('Synthetic Emotion & PLT visualizer ready.');
+  </script>
+</body>
+</html>

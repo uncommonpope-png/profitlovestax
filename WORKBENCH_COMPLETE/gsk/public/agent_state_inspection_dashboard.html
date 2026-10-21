@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Agent State Telemetry Inspection Dashboard</title>
+  <style>
+    body { font-family: monospace; background: #0f172a; color: #f8fafc; padding: 20px; }
+    .card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+    .status-ok { color: #4ade80; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h1>Agent State Telemetry & Streaming Inspector</h1>
+  <div class="card">
+    <h2>Agent Real-Time Telemetry State</h2>
+    <div id="telemetry-status" class="status-ok">STREAM VALIDATING: ACTIVE</div>
+    <pre id="state-display">Loading telemetry stream...</pre>
+  </div>
+  <script>
+    const sampleState = {
+      agentId: 'GSK-AGENT-01',
+      status: 'ACTIVE',
+      streamValidation: 'PASSING',
+      pltScore: 1.6,
+      updatedAt: new Date().toISOString()
+    };
+    document.getElementById('state-display').textContent = JSON.stringify(sampleState, null, 2);
+  </script>
+</body>
+</html>

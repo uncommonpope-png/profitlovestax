@@ -1,0 +1,6 @@
+{
+  "skill": "web_fetch",
+  "params": {
+    "url": "https://example.com"
+  }
+}

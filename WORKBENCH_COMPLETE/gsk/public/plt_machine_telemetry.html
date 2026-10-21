@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PLT Telemetry & State Topology Visualizer</title>
+  <style>
+    body { background: #0a0c10; color: #00ffcc; font-family: monospace; margin: 0; padding: 20px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .card { border: 1px solid rgba(0, 255, 204, 0.2); background: #12161f; padding: 15px; border-radius: 8px; }
+    h1 { color: #38bdf8; text-transform: uppercase; letter-spacing: 1px; }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <h1>PLT Telemetry & State Topology</h1>
+    <div class="grid">
+      <div class="card"><h2>State Topology Map</h2><div id="topology-container"></div></div>
+      <div class="card"><h2>Real-Time Metrics</h2><div id="telemetry-stream">Initializing stream...</div></div>
+    </div>
+  </div>
+  <script>
+    const pltState = { profit: 0.98, love: 0.85, tax: 0.12 };
+    function updateStream() {
+      const container = document.getElementById('telemetry-stream');
+      if (container) {
+        const tv = (pltState.profit + pltState.love - pltState.tax).toFixed(2);
+        container.innerHTML = `<p>Profit: ${pltState.profit}</p><p>Love: ${pltState.love}</p><p>Tax: ${pltState.tax}</p><p><strong>True Value: ${tv}</strong></p>`;
+      }
+    }
+    updateStream();
+  </script>
+</body>
+</html>

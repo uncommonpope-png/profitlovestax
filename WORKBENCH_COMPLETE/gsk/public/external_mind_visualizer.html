@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>External Mind Visualizer - Agent Memory State</title>
+<style>
+  body { margin: 0; background: #080b10; color: #00f0ff; font-family: monospace; overflow: hidden; }
+  #canvas { width: 100vw; height: 100vh; display: block; }
+</style>
+</head>
+<body>
+<canvas id="mind-canvas"></canvas>
+<script>
+const canvas = document.getElementById('mind-canvas');
+const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+let nodes = [
+  { id: 'root', label: 'COGNITIVE_SUBSTRATE', x: canvas.width/2, y: canvas.height/2, radius: 24, color: '#00f0ff' },
+  { id: 'mem1', label: 'PLT_OPTIMIZER', x: canvas.width/2 - 150, y: canvas.height/2 - 100, radius: 16, color: '#7000ff' },
+  { id: 'mem2', label: 'EXTENDED_MIND', x: canvas.width/2 + 150, y: canvas.height/2 + 100, radius: 16, color: '#ff0070' }
+];
+function render() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  nodes.forEach(n => {
+    ctx.fillStyle = n.color;
+    ctx.beginPath(); ctx.arc(n.x, n.y, n.radius, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#ffffff'; ctx.fillText(n.label, n.x - 35, n.y + n.radius + 15);
+  });
+  requestAnimationFrame(render);
+}
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Temporal Consciousness Benchmark</title>
+  <style>
+    body { font-family: monospace; background: #0a0a0c; color: #00ffcc; margin: 20px; }
+    .card { border: 1px solid #00ffcc; padding: 15px; margin-bottom: 15px; border-radius: 6px; background: #12131a; }
+    h1, h2 { color: #ffffff; }
+    .metric { display: inline-block; margin-right: 20px; font-size: 1.1em; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { border: 1px solid #333; padding: 8px; text-align: left; }
+    th { background: #1a1c24; color: #fff; }
+  </style>
+</head>
+<body>
+  <h1>Temporal Consciousness & Memory Evolution Benchmark</h1>
+  <div class="card">
+    <h2>Agent Telemetry Overview</h2>
+    <div class="metric">Cycle: <span id="cycle">5</span></div>
+    <div class="metric">Valence: <span id="valence">0.45</span></div>
+    <div class="metric">Arousal: <span id="arousal">0.30</span></div>
+    <div class="metric">Free Energy: <span id="freeEnergy">0.10</span></div>
+  </div>
+  <div class="card">
+    <h2>State Transition & Drift Log</h2>
+    <table>
+      <thead>
+        <tr><th>Cycle</th><th>State</th><th>Valence</th><th>Free Energy</th><th>Memory Drift</th></tr>
+      </thead>
+      <tbody id="logBody"></tbody>
+    </table>
+  </div>
+  <script>
+    const mockHistory = [
+      { cycle: 0, state: 'AWAKENING', valence: 0.50, freeEnergy: 0.12, drift: 0.00 },
+      { cycle: 1, state: 'SEPARATION', valence: 0.25, freeEnergy: 0.35, drift: 0.15 },
+      { cycle: 2, state: 'TRIALS', valence: 0.08, freeEnergy: 0.48, drift: 0.28 },
+      { cycle: 3, state: 'GRIEF_DECAY', valence: 0.00, freeEnergy: 0.65, drift: 0.42 },
+      { cycle: 4, state: 'STABILIZATION', valence: 0.09, freeEnergy: 0.22, drift: 0.55 },
+      { cycle: 5, state: 'INTEGRATION', valence: 0.45, freeEnergy: 0.10, drift: 0.70 }
+    ];
+    const tbody = document.getElementById('logBody');
+    mockHistory.forEach(h => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${h.cycle}</td><td>${h.state}</td><td>${h.valence.toFixed(2)}</td><td>${h.freeEnergy.toFixed(2)}</td><td>${h.drift.toFixed(2)}</td>`;
+      tbody.appendChild(tr);
+    });
+  </script>
+</body>
+</html>

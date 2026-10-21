@@ -1,0 +1,23 @@
+---
+title: SOUL-NOTE - GSK Research - BambooAI agentic data analysis loop
+type: research
+verified: true
+date: 2026-08-23T06:53:27.939Z
+---
+
+# GSK Research — BambooAI agentic data analysis loop
+
+## Verified Finding
+Hígado graso (esteatosis hepática): síntomas y tratamiento: A diferencia de la esteatosis leve, la esteatosis hepática moderada a grave puede causar inflamación y lesión del hígado. Cuanto mayor y más prolongada sea la acumulación de grasa, mayores serán los riesgos de lesión hepática. | Enfermedad hepática asociada con disfunción metabólica (MASLD): La esteatosis hepática se caracteriza por la acumulación excesiva de lípidos en los hepatocitos. La enfermedad hepática esteatósica asociada con disfunción metabólica (antes conocida como hígado graso o enfermedad del hígado graso no alcohólica) se define como la presencia de esteatosis hepática en individuos con al menos un factor de riesgo metabólico (p. ej., obesidad ... | Esteatosis: Cómo entender su informe patológico: En la esteatosis, las células hepáticas permanecen viables, pero el exceso de grasa puede interferir con la función hepática y, en algunas personas, progresar a una enfermedad hepática más grave. | Enfermedad por hígado graso o esteatosis hepática (EH) |: La enfermedad del hígado graso o esteatós se caracteriza por la acumulación excesiva de grasa dentro de los hepatocitos. A menudo está relacionada con factores metabólicos, obesidad, diabetes, hipertensión o consumo de alcohol.
+
+## Source Excerpts
+- Hígado graso (esteatosis hepática): síntomas y tratamiento Saltar al contenido Especialidades médicas Enfermedades A-Z Calculadoras Prospectos Fotos Pesquisar MD.Saúde &raquo; Gastroenterología Hígado graso (esteatosis hepática): síntomas y tratamiento Escrito por Dr. Pedro Pinheiro Revisado y actualizado el 28 de enero de 2026 comments Created with Sketch Beta. 15 dudas respondidas Vaya al grano ¿Qué es la esteatosis hepática? ¿Qué es la esteatohepatitis? Causas Síntomas Diagnóstico Historia na ([source](https://www.mdsaude.com/es/gastroenterologia-es/higado-graso/))
+- Enfermedad hepática asociada con disfunción metabólica (MASLD) - Hepatología - Manual MSD versión para profesionales honeypot link skip to main content Professional Público general Manual Msd Versión para profesionales TEMAS MÉDICOS RECURSOS COMENTARIO PROCEDIMIENTOS Y EXÁMENES CUESTIONARIOS ACERCA DE TEMAS MÉDICOS RECURSOS &lt; Abordaje del paciente con hepatopatías Enfermedad hepática asociada con disfunción metabólica (MASLD) Revisión completa: ago 2025 Por Danielle Tholey , MD , Sidney Kimme ([source](https://www.msdmanuals.com/es/professional/trastornos-hep%C3%A1ticos-y-biliares/abordaje-del-paciente-con-hepatopat%C3%ADas/enfermedad-hep%C3%A1tica-asociada-con-disfunci%C3%B3n-metab%C3%B3lica-masld))
+- Esteatosis: Cómo entender su informe patológico – MyPathologyReport You are using an outdated browser. Please upgrade your browser to improve your experience. Patología para pacientes Navegación de palanca Inicio Aprende Guías de diagnóstico Guías de informes sobre el cáncer Análisis de sangre Pruebas para detectar infecciones Biomarcadores y pruebas genéticas Diccionario de patología Procedimientos y tipos de muestras Pregúntale a Osler Sobre Nosotros sobre Instagram Twitter Linkedin Esteatosis ([source](https://www.mypathologyreport.ca/es/diagnosis-library/steatosis/))
+- Enfermedad por hígado graso o esteatosis hepática (EH) | Pasar al contenido principal CA ES EN Menú superior El Meu Vall d'Hebron Intranet Donar Mapa Contacto Navegació principal Sobre nosotros Sobre nosotros Somos la suma de cuatro hospitales: el General, el Infantil, el de la Mujer y el de Traumatología, Rehabilitación y Quemados. Estamos ubicados en el Vall d'Hebron Barcelona Hospital Campus, un parque sanitario de referencia internacional donde la asistencia es una rama imprescindible. Centr ([source](https://hospital.vallhebron.com/es/asistencia/enfermedades/enfermedad-por-higado-graso-o-esteatosis-hepatica-eh))
+
+## Sources
+1. [Hígado graso (esteatosis hepática): síntomas y tratamiento](https://www.mdsaude.com/es/gastroenterologia-es/higado-graso/) — HTTP 200
+2. [Enfermedad hepática asociada con disfunción metabólica (MASLD)](https://www.msdmanuals.com/es/professional/trastornos-hep%C3%A1ticos-y-biliares/abordaje-del-paciente-con-hepatopat%C3%ADas/enfermedad-hep%C3%A1tica-asociada-con-disfunci%C3%B3n-metab%C3%B3lica-masld) — HTTP 200
+3. [Esteatosis: Cómo entender su informe patológico](https://www.mypathologyreport.ca/es/diagnosis-library/steatosis/) — HTTP 200
+4. [Enfermedad por hígado graso o esteatosis hepática (EH) |](https://hospital.vallhebron.com/es/asistencia/enfermedades/enfermedad-por-higado-graso-o-esteatosis-hepatica-eh) — HTTP 200

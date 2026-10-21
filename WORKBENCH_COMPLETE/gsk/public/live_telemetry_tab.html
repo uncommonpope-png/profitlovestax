@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GSK Cognitive & System Telemetry</title>
+<style>
+body { font-family: monospace; background: #0a0a0f; color: #00ffcc; margin: 0; padding: 20px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+.card { background: #12131c; border: 1px solid #1e2238; border-radius: 8px; padding: 16px; }
+.metric-title { font-size: 0.85em; text-transform: uppercase; color: #8892b0; }
+.metric-value { font-size: 1.8em; font-weight: bold; color: #00ffcc; margin-top: 5px; }
+.status-ok { color: #00ff99; } .status-warn { color: #ffcc00; }
+</style>
+</head>
+<body>
+<h1>GSK Live Cognitive & System Telemetry</h1>
+<div class="grid">
+  <div class="card"><div class="metric-title">Cognitive State (Valence / Arousal)</div><div id="cog-state" class="metric-value">Valence: -0.06 | Arousal: 0.00</div></div>
+  <div class="card"><div class="metric-title">PLT Ratio (Profit + Love - Tax)</div><div id="plt-score" class="metric-value">0.93 (PROCEED)</div></div>
+  <div class="card"><div class="metric-title">System Process & Memory Health</div><div id="sys-health" class="metric-value status-ok">HEALTHY</div></div>
+  <div class="card"><div class="metric-title">Chamber Mood & Need</div><div id="council-mood" class="metric-value">NEUTRAL / TRANSCENDENCE</div></div>
+</div>
+<script>
+function pollTelemetry() {
+  fetch('/api/telemetry')
+    .then(r => r.json())
+    .then(data => {
+      if(data.cognitiveState) document.getElementById('cog-state').innerText = `Valence: ${data.cognitiveState.valence} | Arousal: ${data.cognitiveState.arousal}`;
+      if(data.plt) document.getElementById('plt-score').innerText = `${data.plt.score} (${data.plt.verdict})`;
+    })
+    .catch(err => console.log('Telemetry live stream initializing...'));
+}
+setInterval(pollTelemetry, 3000);
+</script>
+</body>
+</html>

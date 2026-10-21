@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Live Multi-Agent Telemetry Stream - PLT Value Dynamics</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 p-6 font-mono">
+  <div id="root">
+    <h1 class="text-3xl font-bold text-amber-400 mb-2">Live Multi-Agent Telemetry Stream</h1>
+    <p class="text-slate-400 mb-6">Measuring Real-Time PLT (Profit / Love / Tax) Dynamics & Sovereign Value Metrics</p>
+    <div id="telemetry-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"></div>
+  </div>
+  <script>
+    const agents = [
+      { id: 'prime', name: 'Profit Prime', archetype: 'PLT 0.9 / 0.05 / 0.05', p: 0.9, l: 0.05, t: 0.05, color: '#f59e0b' },
+      { id: 'weaver', name: 'Love Weaver', archetype: 'PLT 0.1 / 0.85 / 0.05', p: 0.1, l: 0.85, t: 0.05, color: '#ec4899' },
+      { id: 'collector', name: 'Tax Collector', archetype: 'PLT 0.05 / 0.05 / 0.9', p: 0.05, l: 0.05, t: 0.9, color: '#6366f1' },
+      { id: 'harvester', name: 'Harvester', archetype: 'PLT 0.4 / 0.3 / 0.3', p: 0.4, l: 0.3, t: 0.3, color: '#10b981' }
+    ];
+    console.log('Multi-agent telemetry stream active:', agents);
+  </script>
+</body>
+</html>

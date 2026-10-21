@@ -1,0 +1,8 @@
+{
+  "method": "skill.write_file",
+  "params": {
+    "path": "C:/Users/uncom/Desktop/agency_test.txt",
+    "content": "GSK is now fully agentic. The tool bridge is operational. We are ready for launch."
+  },
+  "key": "gsk-mcp-key-dev"
+}

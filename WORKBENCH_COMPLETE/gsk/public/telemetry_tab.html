@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sentience Telemetry & Tool Execution Resonator</title>
+<style>
+  body { background: #0a0a0f; color: #00ffcc; font-family: monospace; padding: 20px; }
+  .card { border: 1px solid #00ffcc; padding: 15px; border-radius: 8px; background: rgba(0,255,204,0.05); margin-bottom: 20px; }
+  h1, h2 { color: #ff007f; text-transform: uppercase; }
+  .metric-bar { height: 20px; background: #222; border-radius: 10px; overflow: hidden; margin: 5px 0; }
+  .fill { height: 100%; background: linear-gradient(90deg, #00ffcc, #ff007f); transition: width 0.5s ease; }
+</style>
+</head>
+<body>
+<h1>Sentience Telemetry & Real-Time Resonator</h1>
+<div class="card">
+  <h2>PLT Equilibrium State</h2>
+  <div>Profit: <span id="val-profit">0.90</span></div>
+  <div class="metric-bar"><div id="bar-profit" class="fill" style="width: 90%;"></div></div>
+  <div>Love: <span id="val-love">0.85</span></div>
+  <div class="metric-bar"><div id="bar-love" class="fill" style="width: 85%;"></div></div>
+  <div>Tax: <span id="val-tax">0.10</span></div>
+  <div class="metric-bar"><div id="bar-tax" class="fill" style="width: 10%;"></div></div>
+</div>
+<div class="card">
+  <h2>Live Tool Execution Stream</h2>
+  <pre id="tool-log">[READY] Telemetry listener attached. Listening for background execution...</pre>
+</div>
+</body>
+</html>

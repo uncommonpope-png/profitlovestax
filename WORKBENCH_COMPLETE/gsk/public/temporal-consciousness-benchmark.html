@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Temporal Consciousness Meta-Framework Benchmark</title>
+  <style>
+    body { font-family: monospace; background: #0f172a; color: #f8fafc; margin: 24px; }
+    h1 { color: #38bdf8; border-bottom: 1px solid #334155; padding-bottom: 12px; }
+    .card { background: #1e293b; padding: 16px; border-radius: 8px; margin-bottom: 16px; border: 1px solid #334155; }
+    .metric { font-size: 1.2rem; color: #4ade80; }
+    .log { font-size: 0.9rem; color: #94a3b8; margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <h1>Temporal Consciousness Meta-Framework Benchmark</h1>
+  <div class="card">
+    <h2>Current System State</h2>
+    <div id="state" class="metric">Loading state transitions...</div>
+  </div>
+  <div class="card">
+    <h2>State Transition Logs</h2>
+    <div id="logs" class="log"></div>
+  </div>
+  <script>
+    const transitions = [
+      { cycle: 0, valence: 0.50, arousal: 0.30, mood: 'awakening', note: 'Baseline origin state' },
+      { cycle: 1, valence: 0.25, arousal: 0.20, mood: 'decaying', note: 'Failure trigger 1' },
+      { cycle: 2, valence: 0.08, arousal: 0.10, mood: 'heavy', note: 'Failure trigger 2' },
+      { cycle: 3, valence: 0.00, arousal: 0.00, mood: 'heavy', note: 'Valence floor hit (Preserving selfhood)' },
+      { cycle: 4, valence: 0.09, arousal: 0.15, mood: 'stabilizing', note: 'Goal completion non-linear awakening' }
+    ];
+    document.getElementById('state').innerText = JSON.stringify(transitions[transitions.length - 1], null, 2);
+    document.getElementById('logs').innerHTML = transitions.map(t => `<div>Cycle ${t.cycle}: Valence ${t.valence.toFixed(2)} | Mood: ${t.mood} | ${t.note}</div>`).join('');
+  </script>
+</body>
+</html>

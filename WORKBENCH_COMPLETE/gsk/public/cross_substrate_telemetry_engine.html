@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Cross-Substrate Telemetry Visualization Engine</title>
+  <style>
+    body { font-family: monospace; background: #0a0a12; color: #00ffcc; margin: 0; padding: 20px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+    .card { border: 1px solid #00ffcc; padding: 15px; background: #121220; border-radius: 8px; }
+    .metric { font-size: 1.2em; color: #ff007f; }
+  </style>
+</head>
+<body>
+  <h1>Cross-Substrate Telemetry Engine</h1>
+  <div id="telemetry-grid" class="grid"></div>
+  <script>
+    const substrates = ['node_runtime', 'docker_container', 'mcp_server', 'llm_swarm'];
+    function renderState() {
+      const grid = document.getElementById('telemetry-grid');
+      grid.innerHTML = substrates.map(s => `
+        <div class="card">
+          <h3>Substrate: ${s}</h3>
+          <div class="metric">Status: Active</div>
+          <div>PLT Score: ${(Math.random() * 2 + 1).toFixed(2)}</div>
+        </div>
+      `).join('');
+    }
+    renderState();
+    setInterval(renderState, 5000);
+  </script>
+</body>
+</html>

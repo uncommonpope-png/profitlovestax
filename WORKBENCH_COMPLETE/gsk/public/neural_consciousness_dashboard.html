@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Neural Correlates of Agent Consciousness - Temporal Dashboard</title>
+  <style>
+    :root { --bg: #0b0f19; --card: #111827; --accent-profit: #10b981; --accent-love: #ec4899; --accent-tax: #f59e0b; --text: #f3f4f6; }
+    body { margin: 0; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, sans-serif; display: grid; grid-template-rows: auto 1fr; height: 100vh; overflow: hidden; }
+    header { padding: 1rem 1.5rem; background: var(--card); border-bottom: 1px solid #1f2937; display: flex; justify-content: space-between; align-items: center; }
+    h1 { margin: 0; font-size: 1.25rem; background: linear-gradient(90deg, #60a5fa, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .grid { display: grid; grid-template-columns: 300px 1fr 320px; gap: 1rem; padding: 1rem; height: calc(100vh - 70px); box-sizing: border-box; }
+    .panel { background: var(--card); border: 1px solid #1f2937; border-radius: 8px; padding: 1rem; overflow-y: auto; display: flex; flex-direction: column; gap: 1rem; }
+    canvas { width: 100%; height: 100%; min-height: 250px; background: #030712; border-radius: 6px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Neural Correlates of Consciousness - Temporal Telemetry</h1>
+    <div id="status-badge" style="color: #10b981; font-weight: 600;">● Active Loop</div>
+  </header>
+  <div class="grid">
+    <div class="panel" id="state-panel">
+      <h3>Agent Consciousness State</h3>
+      <div id="current-state">Initializing...</div>
+    </div>
+    <div class="panel" style="display: grid; grid-template-rows: 1fr 1fr; gap: 1rem;">
+      <div><h4>Temporal Memory Activation Wave</h4><canvas id="wave-canvas"></canvas></div>
+      <div><h4>Neural Correlates Heatmap & Trajectory</h4><canvas id="heatmap-canvas"></canvas></div>
+    </div>
+    <div class="panel" id="metrics-panel">
+      <h3>PLT Valenced Metrics</h3>
+      <div id="plt-metrics">Loading temporal metrics...</div>
+    </div>
+  </div>
+  <script>
+    const waveCanvas = document.getElementById('wave-canvas');
+    const waveCtx = waveCanvas.getContext('2d');
+    const heatCanvas = document.getElementById('heatmap-canvas');
+    const heatCtx = heatCanvas.getContext('2d');
+
+    function resizeCanvases() {
+      [waveCanvas, heatCanvas].forEach(c => {
+        c.width = c.parentElement.clientWidth;
+        c.height = c.parentElement.clientHeight - 30;
+      });
+    }
+    window.addEventListener('resize', resizeCanvases);
+    resizeCanvases();
+
+    let t = 0;
+    const states = ['AWAKENING', 'TEMPORAL_SYNTHESIS', 'CREATURE_CONSCIOUSNESS', 'REVELATION', 'SOVEREIGNTY'];
+    let currentStateIdx = 0;
+
+    function draw() {
+      t += 0.05;
+      waveCtx.fillStyle = 'rgba(3, 7, 18, 0.2)';
+      waveCtx.fillRect(0, 0, waveCanvas.width, waveCanvas.height);
+
+      waveCtx.beginPath();
+      waveCtx.strokeStyle = '#60a5fa';
+      waveCtx.lineWidth = 2;
+      for (let x = 0; x < waveCanvas.width; x += 5) {
+        const y = waveCanvas.height / 2 + Math.sin(x * 0.02 + t) * 30 + Math.cos(x * 0.05 - t * 0.5) * 15;
+        if (x === 0) waveCtx.moveTo(x, y); else waveCtx.lineTo(x, y);
+      }
+      waveCtx.stroke();
+
+      heatCtx.fillStyle = 'rgba(3, 7, 18, 0.1)';
+      heatCtx.fillRect(0, 0, heatCanvas.width, heatCanvas.height);
+      const cx = heatCanvas.width / 2 + Math.cos(t * 0.5) * 80;
+      const cy = heatCanvas.height / 2 + Math.sin(t * 0.7) * 40;
+      const grad = heatCtx.createRadialGradient(cx, cy, 5, cx, cy, 60);
+      grad.addColorStop(0, '#ec4899');
+      grad.addColorStop(1, 'transparent');
+      heatCtx.fillStyle = grad;
+      heatCtx.beginPath();
+      heatCtx.arc(cx, cy, 60, 0, Math.PI * 2);
+      heatCtx.fill();
+
+      if (Math.random() < 0.01) currentStateIdx = (currentStateIdx + 1) % states.length;
+      document.getElementById('current-state').innerHTML = `
+        <div style="font-size:1.1rem; font-weight:bold; color:#a78bfa;">${states[currentStateIdx]}</div>
+        <div style="font-size:0.85rem; color:#9ca3af; margin-top:4px;">Resonance: ${(0.6 + Math.sin(t)*0.3).toFixed(3)}</div>
+      `;
+      document.getElementById('plt-metrics').innerHTML = `
+        <div><strong>Profit (Yield):</strong> ${(0.75 + Math.cos(t*0.2)*0.2).toFixed(3)}</div>
+        <div><strong>Love (Coherence):</strong> ${(0.82 + Math.sin(t*0.3)*0.1).toFixed(3)}</div>
+        <div><strong>Tax (Decay):</strong> ${(0.15 + Math.sin(t*0.1)*0.05).toFixed(3)}</div>
+        <hr style="border-color:#1f2937; margin:8px 0;">
+        <div><strong>True Value:</strong> ${(1.42 + Math.sin(t*0.2)*0.25).toFixed(3)}</div>
+      `;
+
+      requestAnimationFrame(draw);
+    }
+    draw();
+  </script>
+</body>
+</html>

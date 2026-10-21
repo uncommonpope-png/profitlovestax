@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PLT Dynamic Strategy Simulator</title>
+  <style>
+    body { font-family: monospace; background: #0a0a10; color: #00ffcc; padding: 20px; }
+    .panel { border: 1px solid #00ffcc; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+    .metric { font-size: 1.2rem; font-weight: bold; margin: 10px 0; }
+    .slider-group { margin: 10px 0; }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <h1>PLT Dynamic Strategy Simulator</h1>
+    <div class="panel">
+      <h2>Live Value Trade Optimization</h2>
+      <div id="controls"></div>
+      <div id="simulation-output" class="metric"></div>
+    </div>
+  </div>
+  <script>
+    const CONFIG = { baseUrl: 'http://127.0.0.1:3001' };
+    function calculatePLT(profit, love, tax) {
+      return profit + love - tax;
+    }
+    function runSimulation() {
+      const p = 0.9, l = 0.8, t = 0.1;
+      const score = calculatePLT(p, l, t);
+      const out = document.getElementById('simulation-output');
+      if (out) out.innerText = `PLT Score: ${score.toFixed(2)}`;
+    }
+    window.onload = runSimulation;
+  </script>
+</body>
+</html>

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GSK Cognitive State Telemetry Visualizer</title>
+<style>
+body { margin:0; background:#0a0d14; color:#e2e8f0; font-family:monospace; display:flex; flex-direction:column; height:100vh; }
+header { padding:12px 20px; background:#111827; border-bottom:1px solid #1f2937; display:flex; justify-content:space-between; align-items:center; }
+h1 { font-size:16px; margin:0; color:#38bdf8; text-transform:uppercase; letter-spacing:1px; }
+.grid { display:grid; grid-template-columns:1fr 340px; flex:1; overflow:hidden; }
+.main-panel { display:flex; flex-direction:column; padding:16px; gap:16px; }
+.sidebar { border-left:1px solid #1f2937; background:#0f172a; padding:16px; display:flex; flex-direction:column; gap:16px; font-size:12px; }
+.card { background:#1e293b; border:1px solid #334155; border-radius:6px; padding:12px; }
+.card-title { font-weight:bold; color:#94a3b8; margin-bottom:8px; font-size:11px; text-transform:uppercase; }
+canvas { width:100%; height:320px; background:#020617; border-radius:4px; border:1px solid #1e293b; }
+</style>
+</head>
+<body>
+<header>
+<h1>GSK // Cognitive State Telemetry Visualizer</h1>
+<div id="status-pill" style="color:#4ade80; font-size:12px;">● REALTIME TELEMETRY ACTIVE</div>
+</header>
+<div class="grid">
+<div class="main-panel">
+<div class="card">
+<div class="card-title">Memory & Telemetry Topology Map</div>
+<canvas id="topology-canvas"></canvas>
+</div>
+<div class="card" style="flex:1; display:flex; flex-direction:column;">
+<div class="card-title">Cognitive Telemetry Stream Log</div>
+<div id="stream-logs" style="flex:1; overflow-y:auto; font-size:11px; background:#020617; padding:8px; border-radius:4px; color:#cbd5e1; height:160px;"></div>
+</div>
+</div>
+<div class="sidebar">
+<div class="card">
+<div class="card-title">Cognitive Metrics</div>
+<div>Cognitive Workload: <span id="load-val" style="color:#38bdf8">38%</span></div>
+<div>Active Memory Nodes: <span id="nodes-val" style="color:#a855f7">142</span></div>
+<div>Telemetry Frequency: <span id="pulse-val" style="color:#f59e0b">10 Hz</span></div>
+</div>
+<div class="card">
+<div class="card-title">PLT Vector Optimization</div>
+<div>Profit Score: <span style="color:#4ade80">0.90</span></div>
+<div>Love Score: <span style="color:#ec4899">0.85</span></div>
+<div>Tax Score: <span style="color:#f43f5e">0.05</span></div>
+</div>
+</div>
+</div>
+<script>
+const canvas = document.getElementById('topology-canvas');
+const ctx = canvas.getContext('2d');
+function resize() { canvas.width = canvas.clientWidth; canvas.height = canvas.clientHeight; }
+resize(); window.addEventListener('resize', resize);
+
+const nodes = Array.from({length: 28}, (_, i) => ({
+  x: Math.random() * canvas.width,
+  y: Math.random() * canvas.height,
+  vx: (Math.random() - 0.5) * 1.2,
+  vy: (Math.random() - 0.5) * 1.2,
+  color: i % 3 === 0 ? '#38bdf8' : i % 3 === 1 ? '#a855f7' : '#4ade80'
+}));
+
+function render() {
+  ctx.fillStyle = '#020617';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  nodes.forEach((n, i) => {
+    n.x += n.vx; n.y += n.vy;
+    if (n.x < 0 || n.x > canvas.width) n.vx *= -1;
+    if (n.y < 0 || n.y > canvas.height) n.vy *= -1;
+    nodes.slice(i + 1).forEach(n2 => {
+      const dx = n.x - n2.x, dy = n.y - n2.y;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      if (dist < 110) {
+        ctx.strokeStyle = `rgba(148, 163, 184, ${1 - dist / 110})`;
+        ctx.lineWidth = 0.8;
+        ctx.beginPath(); ctx.moveTo(n.x, n.y); ctx.lineTo(n2.x, n2.y); ctx.stroke();
+      }
+    });
+    ctx.fillStyle = n.color;
+    ctx.beginPath(); ctx.arc(n.x, n.y, 4, 0, Math.PI * 2); ctx.fill();
+  });
+  requestAnimationFrame(render);
+}
+render();
+
+const logs = document.getElementById('stream-logs');
+const events = ['[MEMORY_INDEX] Embedded vector node 0x7F', '[TELEMETRY] Heartbeat broadcast 100ms', '[COGNITIVE_STATE] Extended mind state synchronized', '[SCRIBE] Witness log persisted'];
+setInterval(() => {
+  const item = document.createElement('div');
+  item.textContent = `${new Date().toISOString().substring(11,19)} - ${events[Math.floor(Math.random()*events.length)]}`;
+  logs.appendChild(item);
+  if (logs.children.length > 25) logs.removeChild(logs.firstChild);
+  logs.scrollTop = logs.scrollHeight;
+}, 1000);
+</script>
+</body>
+</html>

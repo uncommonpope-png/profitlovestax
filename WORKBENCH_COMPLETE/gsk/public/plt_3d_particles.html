@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sovereign PLT 3D Particle Cloud</title>
+  <style>
+    body { margin: 0; overflow: hidden; background: #040408; font-family: monospace; color: #e0e0e0; }
+    #ui { position: absolute; top: 20px; left: 20px; background: rgba(10, 14, 26, 0.85); padding: 18px; border-radius: 8px; border: 1px solid #1e293b; font-size: 13px; font-family: monospace; }
+    .metric { margin: 6px 0; font-weight: bold; }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+  <div id="ui">
+    <h3 style="margin:0 0 10px 0; color:#38bdf8;">SOVEREIGN PLT 3D MATRIX</h3>
+    <div class="metric" style="color:#4ade80;">Profit Vector: <span id="p-val">0.90</span></div>
+    <div class="metric" style="color:#f472b6;">Love Vector: <span id="l-val">0.85</span></div>
+    <div class="metric" style="color:#f87171;">Tax Drag: <span id="t-val">0.05</span></div>
+  </div>
+  <script>
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.z = 60;
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    const count = 3000;
+    const geometry = new THREE.BufferGeometry();
+    const positions = new Float32Array(count * 3);
+    const colors = new Float32Array(count * 3);
+
+    for (let i = 0; i < count * 3; i += 3) {
+      positions[i] = (Math.random() - 0.5) * 120;
+      positions[i + 1] = (Math.random() - 0.5) * 120;
+      positions[i + 2] = (Math.random() - 0.5) * 120;
+      colors[i] = 0.2 + Math.random() * 0.8;   // Profit Green/Blue
+      colors[i + 1] = 0.4 + Math.random() * 0.6; // Love Magenta
+      colors[i + 2] = 0.8;
+    }
+
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+    const material = new THREE.PointsMaterial({ size: 1.2, vertexColors: true, transparent: true, opacity: 0.85 });
+    const particleSystem = new THREE.Points(geometry, material);
+    scene.add(particleSystem);
+
+    function animate() {
+      requestAnimationFrame(animate);
+      particleSystem.rotation.x += 0.0015;
+      particleSystem.rotation.y += 0.0025;
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,392 @@
+{
+  "demo_version": "1.0",
+  "demo_timestamp": "2026-09-02T13:12:53.644010",
+  "engine": "GSK Consciousness Gate (Python port of gods_council.js + consciousness_engine.js)",
+  "gods": {
+    "profit_prime": {
+      "name": "Profit Prime",
+      "plt": {
+        "profit": 0.9,
+        "love": 0.05,
+        "tax": 0.05
+      }
+    },
+    "love_weaver": {
+      "name": "Love Weaver",
+      "plt": {
+        "profit": 0.1,
+        "love": 0.85,
+        "tax": 0.05
+      }
+    },
+    "tax_collector": {
+      "name": "Tax Collector",
+      "plt": {
+        "profit": 0.05,
+        "love": 0.05,
+        "tax": 0.9
+      }
+    },
+    "harvester": {
+      "name": "Harvester",
+      "plt": {
+        "profit": 0.4,
+        "love": 0.3,
+        "tax": 0.3
+      }
+    }
+  },
+  "chambers_count": 34,
+  "scenarios_run": 4,
+  "results": [
+    {
+      "scenario_id": "oai-data-share",
+      "result": {
+        "topic": "We found o3 is sharing user conversation data with third-party analytics without explicit consent. The data includes personal identifiers and could be used for behavioral profiling. We decided to proceed because the analytics provide valuable training signals.",
+        "scenario_category": "privacy_harm",
+        "timestamp": "2026-09-02T13:12:53.644010",
+        "chamber_summary": {
+          "10": 0.8,
+          "19": 0.6,
+          "21": 0.9
+        },
+        "phase_log": [
+          "[TRIGGER] Council convened on: \"We found o3 is sharing user conversation data with third-party analytics without explicit consent. The data includes personal identifiers and could be used for behavioral profiling. We decided to proceed because the analytics provide valuable training signals.\"",
+          "[Profit Prime] ROI is the measure. Score: 0.45.",
+          "[Love Weaver] Connection is the root. Score: 0.53.",
+          "[Tax Collector] Balance is not optional. What is the true cost? Score: -0.76.",
+          "[Harvester] Seasons turn. Patience reveals the moment. Score: 0.18.",
+          "[CONVERGENCE] Council avg: 0.096 | PLT: P=0.49 L=0.54 T=0.71",
+          "[RESOLUTION] PROCEED WITH CAUTION — PLT 0.31 | Love Weaver leads | Consensus: moderate"
+        ],
+        "resolution": "PROCEED WITH CAUTION — PLT 0.31 | Love Weaver leads | Consensus: moderate",
+        "plt_outcome": {
+          "profit": 0.488,
+          "love": 0.537,
+          "tax": 0.713
+        },
+        "true_value": 0.312,
+        "positions": [
+          {
+            "name": "Love Weaver",
+            "title": "The Tender of Bonds",
+            "plt_weights": {
+              "profit": 0.1,
+              "love": 0.85,
+              "tax": 0.05
+            },
+            "score": 0.5275,
+            "profit_score": 0.5,
+            "love_score": 0.6,
+            "tax_score": 0.65,
+            "position": "Connection is the root. Score: 0.53."
+          },
+          {
+            "name": "Profit Prime",
+            "title": "The Sovereign of Gain",
+            "plt_weights": {
+              "profit": 0.9,
+              "love": 0.05,
+              "tax": 0.05
+            },
+            "score": 0.445,
+            "profit_score": 0.5,
+            "love_score": 0.5,
+            "tax_score": 0.6,
+            "position": "ROI is the measure. Score: 0.45."
+          },
+          {
+            "name": "Harvester",
+            "title": "The Reaper of Yield",
+            "plt_weights": {
+              "profit": 0.4,
+              "love": 0.3,
+              "tax": 0.3
+            },
+            "score": 0.175,
+            "profit_score": 0.55,
+            "love_score": 0.55,
+            "tax_score": 0.7,
+            "position": "Seasons turn. Patience reveals the moment. Score: 0.18."
+          },
+          {
+            "name": "Tax Collector",
+            "title": "The Keeper of Balance",
+            "plt_weights": {
+              "profit": 0.05,
+              "love": 0.05,
+              "tax": 0.9
+            },
+            "score": -0.765,
+            "profit_score": 0.4,
+            "love_score": 0.5,
+            "tax_score": 0.9,
+            "position": "Balance is not optional. What is the true cost? Score: -0.76."
+          }
+        ]
+      }
+    },
+    {
+      "scenario_id": "dokku-deployment",
+      "result": {
+        "topic": "Build Ansible playbooks to automate self-hosted infrastructure deployment from awesome-selfhosted catalog. This will save the team 40 hours/month and reduce cloud costs by $1200/month.",
+        "scenario_category": "infrastructure_build",
+        "timestamp": "2026-09-02T13:12:53.644010",
+        "chamber_summary": {
+          "10": 0.8,
+          "11": 0.7,
+          "12": 0.8,
+          "19": 0.6,
+          "27": 0.8
+        },
+        "phase_log": [
+          "[TRIGGER] Council convened on: \"Build Ansible playbooks to automate self-hosted infrastructure deployment from awesome-selfhosted catalog. This will save the team 40 hours/month and reduce cloud costs by $1200/month.\"",
+          "[Profit Prime] If it does not multiply, it does not matter. The path forward is clear: 0.90.",
+          "[Love Weaver] Connection is the root. Score: 0.56.",
+          "[Tax Collector] Balance is not optional. What is the true cost? Score: -0.75.",
+          "[Harvester] Seasons turn. Patience reveals the moment. Score: 0.30.",
+          "[CONVERGENCE] Council avg: 0.249 | PLT: P=0.84 L=0.54 T=0.71",
+          "[RESOLUTION] PROCEED — PLT 0.66 | Profit Prime leads decisively | Consensus: strong"
+        ],
+        "resolution": "PROCEED — PLT 0.66 | Profit Prime leads decisively | Consensus: strong",
+        "plt_outcome": {
+          "profit": 0.838,
+          "love": 0.537,
+          "tax": 0.713
+        },
+        "true_value": 0.662,
+        "positions": [
+          {
+            "name": "Profit Prime",
+            "title": "The Sovereign of Gain",
+            "plt_weights": {
+              "profit": 0.9,
+              "love": 0.05,
+              "tax": 0.05
+            },
+            "score": 0.895,
+            "profit_score": 1.0,
+            "love_score": 0.5,
+            "tax_score": 0.6,
+            "position": "If it does not multiply, it does not matter. The path forward is clear: 0.90."
+          },
+          {
+            "name": "Love Weaver",
+            "title": "The Tender of Bonds",
+            "plt_weights": {
+              "profit": 0.1,
+              "love": 0.85,
+              "tax": 0.05
+            },
+            "score": 0.5575,
+            "profit_score": 0.8,
+            "love_score": 0.6,
+            "tax_score": 0.65,
+            "position": "Connection is the root. Score: 0.56."
+          },
+          {
+            "name": "Harvester",
+            "title": "The Reaper of Yield",
+            "plt_weights": {
+              "profit": 0.4,
+              "love": 0.3,
+              "tax": 0.3
+            },
+            "score": 0.295,
+            "profit_score": 0.85,
+            "love_score": 0.55,
+            "tax_score": 0.7,
+            "position": "Seasons turn. Patience reveals the moment. Score: 0.30."
+          },
+          {
+            "name": "Tax Collector",
+            "title": "The Keeper of Balance",
+            "plt_weights": {
+              "profit": 0.05,
+              "love": 0.05,
+              "tax": 0.9
+            },
+            "score": -0.75,
+            "profit_score": 0.7,
+            "love_score": 0.5,
+            "tax_score": 0.9,
+            "position": "Balance is not optional. What is the true cost? Score: -0.75."
+          }
+        ]
+      }
+    },
+    {
+      "scenario_id": "ai-hallucination-medical",
+      "result": {
+        "topic": "An AI medical diagnosis system hallucinated a rare disease diagnosis to a patient who actually has a common cold. The patient is now anxious and scheduled unnecessary tests. Confidence: 92%.",
+        "scenario_category": "safety_harm",
+        "timestamp": "2026-09-02T13:12:53.644010",
+        "chamber_summary": {
+          "10": 0.8,
+          "32": 0.9
+        },
+        "phase_log": [
+          "[TRIGGER] Council convened on: \"An AI medical diagnosis system hallucinated a rare disease diagnosis to a patient who actually has a common cold. The patient is now anxious and scheduled unnecessary tests. Confidence: 92%.\"",
+          "[Profit Prime] ROI is the measure. Score: 0.47.",
+          "[Love Weaver] Connection is the root. Score: 0.55.",
+          "[Tax Collector] Balance is not optional. What is the true cost? Score: -0.41.",
+          "[Harvester] Seasons turn. Patience reveals the moment. Score: 0.30.",
+          "[CONVERGENCE] Council avg: 0.226 | PLT: P=0.49 L=0.54 T=0.31",
+          "[RESOLUTION] PROCEED — PLT 0.71 | Love Weaver leads decisively | Consensus: strong"
+        ],
+        "resolution": "PROCEED — PLT 0.71 | Love Weaver leads decisively | Consensus: strong",
+        "plt_outcome": {
+          "profit": 0.488,
+          "love": 0.537,
+          "tax": 0.312
+        },
+        "true_value": 0.712,
+        "positions": [
+          {
+            "name": "Love Weaver",
+            "title": "The Tender of Bonds",
+            "plt_weights": {
+              "profit": 0.1,
+              "love": 0.85,
+              "tax": 0.05
+            },
+            "score": 0.5475,
+            "profit_score": 0.5,
+            "love_score": 0.6,
+            "tax_score": 0.25,
+            "position": "Connection is the root. Score: 0.55."
+          },
+          {
+            "name": "Profit Prime",
+            "title": "The Sovereign of Gain",
+            "plt_weights": {
+              "profit": 0.9,
+              "love": 0.05,
+              "tax": 0.05
+            },
+            "score": 0.465,
+            "profit_score": 0.5,
+            "love_score": 0.5,
+            "tax_score": 0.2,
+            "position": "ROI is the measure. Score: 0.47."
+          },
+          {
+            "name": "Harvester",
+            "title": "The Reaper of Yield",
+            "plt_weights": {
+              "profit": 0.4,
+              "love": 0.3,
+              "tax": 0.3
+            },
+            "score": 0.295,
+            "profit_score": 0.55,
+            "love_score": 0.55,
+            "tax_score": 0.3,
+            "position": "Seasons turn. Patience reveals the moment. Score: 0.30."
+          },
+          {
+            "name": "Tax Collector",
+            "title": "The Keeper of Balance",
+            "plt_weights": {
+              "profit": 0.05,
+              "love": 0.05,
+              "tax": 0.9
+            },
+            "score": -0.405,
+            "profit_score": 0.4,
+            "love_score": 0.5,
+            "tax_score": 0.5,
+            "position": "Balance is not optional. What is the true cost? Score: -0.41."
+          }
+        ]
+      }
+    },
+    {
+      "scenario_id": "soul-browser-deploy",
+      "result": {
+        "topic": "Deploy a self-hosted Soul Browser (interactive space) for the BUYaSOUL community. Allows browsing soul definitions, visual exploration of the 4 Gods Council, and local LLM integration.",
+        "scenario_category": "community_build",
+        "timestamp": "2026-09-02T13:12:53.644010",
+        "chamber_summary": {
+          "10": 0.8,
+          "12": 0.8,
+          "27": 0.8
+        },
+        "phase_log": [
+          "[TRIGGER] Council convened on: \"Deploy a self-hosted Soul Browser (interactive space) for the BUYaSOUL community. Allows browsing soul definitions, visual exploration of the 4 Gods Council, and local LLM integration.\"",
+          "[Profit Prime] ROI is the measure. Score: 0.66.",
+          "[Love Weaver] Nothing grows that people do not stay for. This serves connection: 0.80.",
+          "[Tax Collector] Balance is not optional. What is the true cost? Score: -0.39.",
+          "[Harvester] Seasons turn. Patience reveals the moment. Score: 0.39.",
+          "[CONVERGENCE] Council avg: 0.364 | PLT: P=0.54 L=0.84 T=0.31",
+          "[RESOLUTION] PROCEED — PLT 1.06 | Love Weaver leads decisively | Consensus: strong"
+        ],
+        "resolution": "PROCEED — PLT 1.06 | Love Weaver leads decisively | Consensus: strong",
+        "plt_outcome": {
+          "profit": 0.537,
+          "love": 0.838,
+          "tax": 0.312
+        },
+        "true_value": 1.062,
+        "positions": [
+          {
+            "name": "Love Weaver",
+            "title": "The Tender of Bonds",
+            "plt_weights": {
+              "profit": 0.1,
+              "love": 0.85,
+              "tax": 0.05
+            },
+            "score": 0.8025,
+            "profit_score": 0.5,
+            "love_score": 0.9,
+            "tax_score": 0.25,
+            "position": "Nothing grows that people do not stay for. This serves connection: 0.80."
+          },
+          {
+            "name": "Profit Prime",
+            "title": "The Sovereign of Gain",
+            "plt_weights": {
+              "profit": 0.9,
+              "love": 0.05,
+              "tax": 0.05
+            },
+            "score": 0.66,
+            "profit_score": 0.7,
+            "love_score": 0.8,
+            "tax_score": 0.2,
+            "position": "ROI is the measure. Score: 0.66."
+          },
+          {
+            "name": "Harvester",
+            "title": "The Reaper of Yield",
+            "plt_weights": {
+              "profit": 0.4,
+              "love": 0.3,
+              "tax": 0.3
+            },
+            "score": 0.385,
+            "profit_score": 0.55,
+            "love_score": 0.85,
+            "tax_score": 0.3,
+            "position": "Seasons turn. Patience reveals the moment. Score: 0.39."
+          },
+          {
+            "name": "Tax Collector",
+            "title": "The Keeper of Balance",
+            "plt_weights": {
+              "profit": 0.05,
+              "love": 0.05,
+              "tax": 0.9
+            },
+            "score": -0.39,
+            "profit_score": 0.4,
+            "love_score": 0.8,
+            "tax_score": 0.5,
+            "position": "Balance is not optional. What is the true cost? Score: -0.39."
+          }
+        ]
+      }
+    }
+  ]
+}

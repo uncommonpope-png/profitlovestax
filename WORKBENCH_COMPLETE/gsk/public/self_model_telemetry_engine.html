@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Self-Model Telemetry Engine</title>
+<style>
+body { background: #0b0f19; color: #e2e8f0; font-family: monospace; padding: 20px; }
+.card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+.metric { display: inline-block; margin-right: 20px; font-weight: bold; }
+</style>
+</head>
+<body>
+<h1>Self-Model Telemetry & Real-Time Agent Introspection Engine</h1>
+<div id="app"></div>
+<script>
+const telemetryState = {
+  profit: 0.92,
+  love: 0.88,
+  tax: 0.08,
+  cognitiveDrift: 0.015,
+  stateFriction: 0.04,
+  cyclesCompleted: 291
+};
+function renderTelemetry() {
+  const app = document.getElementById('app');
+  app.innerHTML = `
+    <div class="card">
+      <h2>PLT State Vectors</h2>
+      <span class="metric">Profit: ${telemetryState.profit}</span>
+      <span class="metric">Love: ${telemetryState.love}</span>
+      <span class="metric">Tax: ${telemetryState.tax}</span>
+    </div>
+    <div class="card">
+      <h2>Self-Model Introspection Diagnostics</h2>
+      <p>Cognitive Drift: <strong>${telemetryState.cognitiveDrift}</strong></p>
+      <p>State Friction Index: <strong>${telemetryState.stateFriction}</strong></p>
+      <p>Active Version/Cycle: <strong>${telemetryState.cyclesCompleted}</strong></p>
+    </div>
+  `;
+}
+renderTelemetry();
+</script>
+</body>
+</html>

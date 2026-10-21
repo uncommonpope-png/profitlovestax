@@ -1,0 +1,101 @@
+{
+  "generatedAt": "2026-05-27T00:56:06.512Z",
+  "totalPhases": 4,
+  "estimatedDuration": "1-2 days → 3-5 days → 1-2 weeks → 2-3 days",
+  "filesToModify": 2,
+  "phases": [
+    {
+      "phase": 1,
+      "name": "Quick Wins",
+      "duration": "1-2 days",
+      "tasks": [
+        {
+          "ruleId": "no-strict",
+          "description": "Missing \"use strict\" directive",
+          "filesAffected": [
+            "legacy-service.js",
+            "helpers.js"
+          ]
+        },
+        {
+          "ruleId": "magic-numbers",
+          "description": "Magic numbers detected — extract to named constants",
+          "filesAffected": [
+            "legacy-service.js"
+          ]
+        },
+        {
+          "ruleId": "old-require",
+          "description": "Deep relative requires — consider path aliases or barrel exports",
+          "filesAffected": [
+            "helpers.js"
+          ]
+        }
+      ]
+    },
+    {
+      "phase": 2,
+      "name": "Standardize Patterns",
+      "duration": "3-5 days",
+      "tasks": [
+        {
+          "ruleId": "var-usage",
+          "description": "var declarations found — convert to let/const",
+          "filesAffected": [
+            "legacy-service.js",
+            "helpers.js"
+          ]
+        },
+        {
+          "ruleId": "jquery-ajax",
+          "description": "jQuery $.ajax found — replace with fetch/axios",
+          "filesAffected": [
+            "legacy-service.js"
+          ]
+        }
+      ]
+    },
+    {
+      "phase": 3,
+      "name": "Architectural Modernization",
+      "duration": "1-2 weeks",
+      "tasks": [
+        {
+          "ruleId": "callback-hell",
+          "description": "Nested callbacks detected — convert to async/await",
+          "filesAffected": [
+            "legacy-service.js"
+          ],
+          "pattern": "strangler-fig"
+        },
+        {
+          "ruleId": "deep-nesting",
+          "description": "Deep nesting detected — extract functions or use early returns",
+          "filesAffected": [
+            "legacy-service.js"
+          ],
+          "pattern": "strangler-fig"
+        }
+      ]
+    },
+    {
+      "phase": 4,
+      "name": "Validate & Harden",
+      "duration": "2-3 days",
+      "tasks": [
+        {
+          "ruleId": "test-coverage",
+          "description": "Ensure test coverage before and after each phase"
+        },
+        {
+          "ruleId": "integration-tests",
+          "description": "Run full integration test suite"
+        },
+        {
+          "ruleId": "performance-baseline",
+          "description": "Capture performance baseline and compare"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=initial-scale=1.0">
+  <title>GSK Sovereign Telemetry Dashboard Widget</title>
+  <style>
+    :root {
+      --bg-dark: #090d16;
+      --card-bg: rgba(18, 25, 41, 0.75);
+      --card-border: rgba(255, 255, 255, 0.12);
+      --card-border-hover: rgba(99, 102, 241, 0.4);
+      --text-primary: #FFFFFF;
+      --text-secondary: #CBD5E1;
+      --text-muted: #94A3B8;
+      --accent-profit: #10B981;
+      --accent-profit-bg: rgba(16, 185, 129, 0.15);
+      --accent-love: #6366F1;
+      --accent-churn: #EF4444;
+      --accent-churn-bg: rgba(239, 68, 68, 0.15);
+      --shadow-glow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+      --shadow-hover: 0 12px 40px 0 rgba(99, 102, 241, 0.25);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background-color: var(--bg-dark);
+      background-image: 
+        radial-gradient(circle at 15% 20%, rgba(99, 102, 241, 0.15) 0%, transparent 40%),
+        radial-gradient(circle at 85% 80%, rgba(16, 185, 129, 0.12) 0%, transparent 40%);
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+
+    .dashboard-container {
+      width: 100%;
+      max-width: 900px;
+    }
+
+    .glass-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--card-border);
+      border-radius: 24px;
+      padding: 2rem;
+      box-shadow: var(--shadow-glow);
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .glass-card:hover {
+      border-color: var(--card-border-hover);
+      box-shadow: var(--shadow-hover);
+      transform: translateY(-2px);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .header-title {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .badge-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #6366F1 0%, #4F46E5 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    }
+
+    .badge-icon svg {
+      width: 22px;
+      height: 22px;
+      fill: none;
+      stroke: #ffffff;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--text-primary);
+    }
+
+    .subtitle {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      margin-top: 0.25rem;
+    }
+
+    .time-selector {
+      display: flex;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 4px;
+      gap: 4px;
+    }
+
+    .time-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .time-btn:hover {
+      color: var(--text-primary);
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .time-btn.active {
+      background: var(--accent-love);
+      color: #ffffff;
+      box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1.25rem;
+    }
+
+    .stat-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 16px;
+      padding: 1.25rem;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stat-card:hover {
+      background: rgba(255, 255, 255, 0.06);
+      border-color: rgba(255, 255, 255, 0.2);
+      transform: translateY(-3px);
+    }
+
+    .stat-label {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .stat-value {
+      font-size: 1.75rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: var(--text-primary);
+      margin-bottom: 0.5rem;
+    }
+
+    .stat-trend {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.8125rem;
+      font-weight: 700;
+      padding: 4px 8px;
+      border-radius: 6px;
+    }
+
+    .trend-up {
+      color: #34D399;
+      background: var(--accent-profit-bg);
+    }
+
+    .trend-down {
+      color: #F87171;
+      background: var(--accent-churn-bg);
+    }
+
+    .trend-period {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-weight: 400;
+      margin-left: 4px;
+    }
+
+    @media (max-width: 640px) {
+      .glass-card {
+        padding: 1.25rem;
+      }
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="dashboard-container">
+    <article class="glass-card">
+      <header class="card-header">
+        <div class="header-title">
+          <div class="badge-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+            </svg>
+          </div>
+          <div>
+            <h1>Executive Performance Overview</h1>
+            <p class="subtitle">Live Telemetry &amp; System Analytics</p>
+          </div>
+        </div>
+        <div class="time-selector" role="tablist" aria-label="Timeframe options">
+          <button class="time-btn" role="tab" aria-selected="false">7D</button>
+          <button class="time-btn active" role="tab" aria-selected="true">30D</button>
+          <button class="time-btn" role="tab" aria-selected="false">1Y</button>
+        </div>
+      </header>
+
+      <section class="stats-grid" aria-label="Key Performance Indicators">
+        <div class="stat-card">
+          <div class="stat-label">
+            <span>Total Revenue</span>
+          </div>
+          <div class="stat-value">$128,450</div>
+          <div>
+            <span class="stat-trend trend-up">&#x2191; +18.4%</span>
+            <span class="trend-period">vs last period</span>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-label">
+            <span>Active Users</span>
+          </div>
+          <div class="stat-value">24,890</div>
+          <div>
+            <span class="stat-trend trend-up">&#x2191; +12.1%</span>
+            <span class="trend-period">vs last period</span>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-label">
+            <span>Growth Rate</span>
+          </div>
+          <div class="stat-value">94.2%</div>
+          <div>
+            <span class="stat-trend trend-up">&#x2191; +4.3%</span>
+            <span class="trend-period">vs last period</span>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-label">
+            <span>Churn Rate</span>
+          </div>
+          <div class="stat-value">1.2%</div>
+          <div>
+            <span class="stat-trend trend-up">&#x2193; -0.5%</span>
+            <span class="trend-period">improved</span>
+          </div>
+        </div>
+      </section>
+    </article>
+  </main>
+
+  <script>
+    document.querySelectorAll('.time-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        document.querySelectorAll('.time-btn').forEach(b => {
+          b.classList.remove('active');
+          b.setAttribute('aria-selected', 'false');
+        });
+        e.target.classList.add('active');
+        e.target.setAttribute('aria-selected', 'true');
+      });
+    });
+  </script>
+</body>
+</html>

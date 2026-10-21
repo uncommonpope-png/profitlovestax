@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Enactive Cognition Sensorimotor Loop Visualizer</title>
+<style>
+  :root { --bg: #090d16; --panel: #111827; --accent: #10b981; --accent-glow: #059669; --text: #f3f4f6; --text-muted: #9ca3af; --border: #1f2937; }
+  body { margin:0; padding:0; background:var(--bg); color:var(--text); font-family: system-ui, -apple-system, sans-serif; display:flex; flex-direction:column; height:100vh; overflow:hidden; }
+  header { background:var(--panel); padding:12px 24px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
+  h1 { font-size:1.25rem; font-weight:600; margin:0; color:#38bdf8; display:flex; align-items:center; gap:8px; }
+  .container { flex:1; display:grid; grid-template-columns: 320px 1fr 340px; gap:16px; padding:16px; height:calc(100vh - 65px); box-sizing:border-box; }
+  .card { background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:16px; display:flex; flex-direction:column; gap:12px; overflow-y:auto; }
+  canvas { background:#030712; border-radius:6px; border:1px solid var(--border); width:100%; height:100%; display:block; }
+  .stat-grid { display:grid; grid-template-columns: 1fr 1fr; gap:8px; }
+  .stat-card { background:#1e293b; padding:10px; border-radius:6px; border:1px solid #334155; }
+  .stat-val { font-size:1.4rem; font-weight:700; color:#10b981; }
+  .stat-lbl { font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; font-weight:600; }
+  .ctrl-group { display:flex; flex-direction:column; gap:6px; }
+  label { font-size:0.85rem; color:var(--text-muted); display:flex; justify-content:space-between; }
+  input[type=range] { width:100%; accent-color:var(--accent); }
+  button { background:#2563eb; color:#fff; border:none; padding:8px 14px; border-radius:6px; font-weight:600; cursor:pointer; transition:all 0.2s; }
+  button:hover { background:#1d4ed8; }
+  .badge { background:#065f46; color:#34d399; font-size:0.75rem; padding:2px 8px; border-radius:999px; font-weight:600; }
+</style>
+</head>
+<body>
+<header>
+  <h1><span>🧠</span> Enactive Cognition Visualizer <span class="badge">SENSORIMOTOR LOOP LIVE</span></h1>
+  <div><button id="btnPerturb">Inject Environment Perturbation</button></div>
+</header>
+<div class="container">
+  <div class="card" id="panelControls">
+    <h3>Loop Parameters</h3>
+    <div class="ctrl-group">
+      <label>Sensory Coupling Gain <span id="lblSensory">1.2</span></label>
+      <input type="range" id="rngSensory" min="0.1" max="3.0" step="0.1" value="1.2">
+    </div>
+    <div class="ctrl-group">
+      <label>Motor Action Rate <span id="lblMotor">0.8</span></label>
+      <input type="range" id="rngMotor" min="0.1" max="2.0" step="0.1" value="0.8">
+    </div>
+    <div class="ctrl-group">
+      <label>Environment Entropy <span id="lblEntropy">0.3</span></label>
+      <input type="range" id="rngEntropy" min="0.0" max="1.0" step="0.05" value="0.3">
+    </div>
+    <div class="ctrl-group">
+      <label>Predictive Internal Model <span id="lblPredict">0.9</span></label>
+      <input type="range" id="rngPredict" min="0.0" max="1.0" step="0.05" value="0.9">
+    </div>
+    <hr style="border-color:var(--border); margin:8px 0;">
+    <h3>Active Hypothesis</h3>
+    <p style="font-size:0.85rem; color:var(--text-muted); margin:0; line-height:1.4;" id="txtHypothesis">
+      Agent actively enacts sensory expectations by dynamic motor exploration within the spatial domain.
+    </p>
+  </div>
+  <div style="position:relative; display:flex; flex-direction:column;">
+    <canvas id="simCanvas"></canvas>
+  </div>
+  <div class="card" id="panelTelemetry">
+    <h3>Sensorimotor Telemetry</h3>
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-lbl">Prediction Error</div>
+        <div class="stat-val" id="valError">0.042</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-lbl">Autopoiesis Index</div>
+        <div class="stat-val" id="valAutopoiesis">98.4%</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-lbl">Free Energy</div>
+        <div class="stat-val" id="valFreeEnergy">0.115</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-lbl">PLT Balance</div>
+        <div class="stat-val" id="valPLT">+1.08</div>
+      </div>
+    </div>
+    <h3>Phase Space Trajectory</h3>
+    <canvas id="phaseCanvas" style="height:180px;"></canvas>
+  </div>
+</div>
+<script>
+const canvas = document.getElementById('simCanvas');
+const ctx = canvas.getContext('2d');
+const phaseCanvas = document.getElementById('phaseCanvas');
+const phaseCtx = phaseCanvas.getContext('2d');
+
+function resize() {
+  canvas.width = canvas.clientWidth;
+  canvas.height = canvas.clientHeight;
+  phaseCanvas.width = phaseCanvas.clientWidth;
+  phaseCanvas.height = phaseCanvas.clientHeight;
+}
+window.addEventListener('resize', resize);
+setTimeout(resize, 50);
+
+// Enactive Agent State
+const agent = {
+  x: 200,
+  y: 200,
+  vx: 0,
+  vy: 0,
+  angle: 0,
+  sensoryVector: [0, 0, 0, 0],
+  internalModel: [0, 0],
+  actionVector: [0, 0],
+  history: [],
+  phaseHistory: []
+};
+
+// Dynamic Environment Field
+const env = {
+  sources: [
+    { x: 300, y: 250, intensity: 1.0, freq: 0.02 },
+    { x: 500, y: 400, intensity: 0.7, freq: 0.035 }
+  ],
+  perturbation: 0
+};
+
+// Controls
+const rngSensory = document.getElementById('rngSensory');
+const rngMotor = document.getElementById('rngMotor');
+const rngEntropy = document.getElementById('rngEntropy');
+const rngPredict = document.getElementById('rngPredict');
+
+rngSensory.addEventListener('input', (e) => document.getElementById('lblSensory').textContent = e.target.value);
+rngMotor.addEventListener('input', (e) => document.getElementById('lblMotor').textContent = e.target.value);
+rngEntropy.addEventListener('input', (e) => document.getElementById('lblEntropy').textContent = e.target.value);
+rngPredict.addEventListener('input', (e) => document.getElementById('lblPredict').textContent = e.target.value);
+
+document.getElementById('btnPerturb').addEventListener('click', () => {
+  env.perturbation = 2.5;
+  agent.x += (Math.random() - 0.5) * 120;
+  agent.y += (Math.random() - 0.5) * 120;
+});
+
+let time = 0;
+function sampleEnv(x, y) {
+  let val = 0;
+  for (let s of env.sources) {
+    const dx = x - s.x;
+    const dy = y - s.y;
+    const dist = Math.sqrt(dx*dx + dy*dy) + 1;
+    val += (s.intensity * Math.sin(time * s.freq + dist * 0.02)) / (dist * 0.005 + 1);
+  }
+  val += (Math.random() - 0.5) * parseFloat(rngEntropy.value) * 0.5;
+  if (env.perturbation > 0) val += (Math.random() - 0.5) * env.perturbation;
+  return val;
+}
+</script>
+<script>
+function update() {
+  time += 1;
+  if (env.perturbation > 0) env.perturbation *= 0.95;
+
+  const sensoryGain = parseFloat(rngSensory.value);
+  const motorRate = parseFloat(rngMotor.value);
+  const predictGain = parseFloat(rngPredict.value);
+
+  // Sensorimotor coupling loop
+  const currentSensory = sampleEnv(agent.x, agent.y);
+  const dxSensory = sampleEnv(agent.x + 5, agent.y) - sampleEnv(agent.x - 5, agent.y);
+  const dySensory = sampleEnv(agent.x, agent.y + 5) - sampleEnv(agent.x, agent.y - 5);
+
+  // Predictive coding error
+  const predX = agent.internalModel[0];
+  const predY = agent.internalModel[1];
+  const errX = dxSensory * sensoryGain - predX;
+  const errY = dySensory * sensoryGain - predY;
+
+  // Internal model adaptation
+  agent.internalModel[0] += errX * 0.1 * predictGain;
+  agent.internalModel[1] += errY * 0.1 * predictGain;
+
+  // Enactive Motor Action generation
+  agent.vx = agent.vx * 0.88 + (dxSensory * sensoryGain + agent.internalModel[0]) * 0.15 * motorRate;
+  agent.vy = agent.vy * 0.88 + (dySensory * sensoryGain + agent.internalModel[1]) * 0.15 * motorRate;
+
+  // Spatial boundary collision
+  agent.x += agent.vx;
+  agent.y += agent.vy;
+  if (agent.x < 30 || agent.x > canvas.width - 30) agent.vx *= -1;
+  if (agent.y < 30 || agent.y > canvas.height - 30) agent.vy *= -1;
+
+  // Record history
+  agent.history.push({ x: agent.x, y: agent.y });
+  if (agent.history.length > 120) agent.history.shift();
+
+  const totalErr = Math.sqrt(errX*errX + errY*errY);
+  agent.phaseHistory.push({ sensory: currentSensory, motor: Math.sqrt(agent.vx*agent.vx + agent.vy*agent.vy) });
+  if (agent.phaseHistory.length > 100) agent.phaseHistory.shift();
+
+  // Update UI telemetry
+  document.getElementById('valError').textContent = totalErr.toFixed(3);
+  document.getElementById('valAutopoiesis').textContent = Math.max(0, (100 - totalErr * 15)).toFixed(1) + '%';
+  document.getElementById('valFreeEnergy').textContent = (totalErr * 0.4 + parseFloat(rngEntropy.value) * 0.2).toFixed(3);
+  document.getElementById('valPLT').textContent = '+' + (1.2 - totalErr * 0.5).toFixed(2);
+}
+
+function render() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Render Environment Field Background
+  const step = 25;
+  for (let x = 0; x < canvas.width; x += step) {
+    for (let y = 0; y < canvas.height; y += step) {
+      const val = sampleEnv(x, y);
+      const norm = Math.min(1, Math.max(0, (val + 1) / 2));
+      ctx.fillStyle = `rgba(16, 185, 129, ${norm * 0.15})`;
+      ctx.fillRect(x, y, step, step);
+    }
+  }
+
+  // Render Environment Sources
+  for (let s of env.sources) {
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, 20 + Math.sin(time * 0.05) * 5, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(56, 189, 248, 0.5)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+
+  // Render Trajectory
+  if (agent.history.length > 1) {
+    ctx.beginPath();
+    ctx.moveTo(agent.history[0].x, agent.history[0].y);
+    for (let p of agent.history) ctx.lineTo(p.x, p.y);
+    ctx.strokeStyle = 'rgba(16, 185, 129, 0.4)';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+  }
+
+  // Render Agent Node
+  ctx.beginPath();
+  ctx.arc(agent.x, agent.y, 12, 0, Math.PI * 2);
+  ctx.fillStyle = '#10b981';
+  ctx.shadowColor = '#059669';
+  ctx.shadowBlur = 15;
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // Render Phase Space Graph
+  phaseCtx.clearRect(0, 0, phaseCanvas.width, phaseCanvas.height);
+  phaseCtx.beginPath();
+  for (let i = 0; i < agent.phaseHistory.length; i++) {
+    const pt = agent.phaseHistory[i];
+    const px = (pt.sensory + 1) * 0.5 * phaseCanvas.width;
+    const py = phaseCanvas.height - (pt.motor / 5) * phaseCanvas.height;
+    if (i === 0) phaseCtx.moveTo(px, py);
+    else phaseCtx.lineTo(px, py);
+  }
+  phaseCtx.strokeStyle = '#38bdf8';
+  phaseCtx.lineWidth = 2;
+  phaseCtx.stroke();
+}
+
+function loop() {
+  update();
+  render();
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

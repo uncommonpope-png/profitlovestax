@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Synthetic Sensory Telemetry Visualizer</title>
+<style>
+body { margin: 0; background: #0a0b10; color: #e2e8f0; font-family: system-ui, sans-serif; }
+.glass-panel { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; }
+</style>
+</head>
+<body>
+<div id="synthetic-sensory-telemetry" class="glass-panel" style="padding: 20px; margin: 20px;">
+  <h2>Synthetic Sensory Telemetry Visualizer</h2>
+  <canvas id="embodimentCanvas" width="800" height="500"></canvas>
+  <div id="pltStats">PLT Telemetry Stream Active</div>
+</div>
+<script>
+const canvas = document.getElementById('embodimentCanvas');
+const ctx = canvas.getContext('2d');
+function drawSensoryState() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = 'rgba(59, 130, 246, 0.5)';
+  ctx.beginPath();
+  ctx.arc(canvas.width / 2, canvas.height / 2, 40, 0, Math.PI * 2);
+  ctx.fill();
+  requestAnimationFrame(drawSensoryState);
+}
+drawSensoryState();
+</script>
+</body>
+</html>

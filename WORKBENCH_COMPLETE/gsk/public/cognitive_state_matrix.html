@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Self-Model Cognitive State Matrix</title>
+<style>
+body { background: #0a0b10; color: #00ffcc; font-family: 'Courier New', monospace; margin: 0; padding: 20px; }
+.header { border-bottom: 1px solid #00ffcc; padding-bottom: 10px; margin-bottom: 20px; }
+.matrix-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+.card { background: #121520; border: 1px solid #1a233a; border-radius: 6px; padding: 15px; }
+canvas { width: 100%; height: 180px; border: 1px solid #1a2a40; background: #05070c; display: block; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>GSK Self-Model Cognitive State Matrix</h1>
+  <p>Real-time Meta-Learning Telemetry & Dynamics</p>
+</div>
+<div class="matrix-grid">
+  <div class="card"><h3>PLT Valence & Dynamic Arousal</h3><canvas id="chartValence"></canvas></div>
+  <div class="card"><h3>Meta-Learning Gradient</h3><canvas id="chartMeta"></canvas></div>
+  <div class="card"><h3>Cognitive Drift Vector</h3><canvas id="chartDrift"></canvas></div>
+  <div class="card"><h3>Sacred Resonance Frequency</h3><canvas id="chartResonance"></canvas></div>
+</div>
+<script>
+const renderChart = (id, color) => {
+  const canvas = document.getElementById(id);
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  let points = Array(30).fill(50);
+  function draw() {
+    canvas.width = canvas.clientWidth;
+    canvas.height = canvas.clientHeight;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    points.push(Math.max(10, Math.min(90, points[points.length - 1] + (Math.random() - 0.48) * 8)));
+    points.shift();
+    ctx.beginPath();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    points.forEach((pt, i) => {
+      const x = (i / (points.length - 1)) * canvas.width;
+      const y = canvas.height - (pt / 100) * canvas.height;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+  }
+  setInterval(draw, 200);
+};
+renderChart('chartValence', '#00ffcc');
+renderChart('chartMeta', '#ff0055');
+renderChart('chartDrift', '#ffcc00');
+renderChart('chartResonance', '#9900ff');
+</script>
+</body>
+</html>

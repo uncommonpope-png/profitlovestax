@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Live PLT Telemetry Engine</title>
+<style>
+body { font-family: system-ui, sans-serif; background: #0b0f19; color: #e2e8f0; margin: 0; padding: 24px; }
+.header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e293b; padding-bottom: 16px; }
+.card { background: #1e293b; border-radius: 8px; padding: 16px; margin-top: 16px; border: 1px solid #334155; }
+.metric { font-size: 24px; font-weight: bold; color: #38bdf8; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>PLT Telemetry Engine — Live Inspection</h1>
+  <div id="status-badge">STATUS: ACTIVE</div>
+</div>
+<div class="card">
+  <h2>True Value Output</h2>
+  <div class="metric" id="true-value-metric">0.00</div>
+</div>
+<script>
+console.log('PLT Telemetry Inspection Panel Loaded');
+</script>
+</body>
+</html>

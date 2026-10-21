@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unified Live Self-Model Visualizer</title>
+<style>
+  body { background-color: #0b0f19; color: #e2e8f0; font-family: monospace; padding: 24px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .card { background: #1a202c; border: 1px solid #2d3748; border-radius: 8px; padding: 16px; }
+  h1 { color: #6366f1; font-size: 1.5rem; }
+  h2 { color: #38bdf8; font-size: 1.1rem; }
+</style>
+</head>
+<body>
+<h1>GSK Unified Live Self-Model Telemetry</h1>
+<div class="grid">
+  <div class="card" id="plt-metrics">
+    <h2>PLT Value Real-Time Optimization</h2>
+    <div id="plt-display">Profit: -- | Love: -- | Tax: --</div>
+  </div>
+  <div class="card" id="memory-provenance">
+    <h2>Memory Provenance & State Inspection</h2>
+    <div id="provenance-log">Initializing provenance feed...</div>
+  </div>
+</div>
+<script>
+  console.log('Unified self-model visualizer initialized.');
+</script>
+</body>
+</html>

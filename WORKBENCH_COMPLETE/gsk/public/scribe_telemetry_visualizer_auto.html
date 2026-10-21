@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>SCRIBE Telemetry Visualizer</title>
+<style>
+  body { margin: 0; background: #0a0a10; color: #00ffcc; font-family: monospace; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; }
+  #canvas-container { position: relative; border: 1px solid #00ffcc; box-shadow: 0 0 15px rgba(0,255,204,0.3); padding: 10px; border-radius: 8px; }
+  canvas { background: #050508; display: block; }
+  .status-bar { margin-top: 10px; font-size: 12px; color: #8888aa; }
+</style>
+</head>
+<body>
+  <h2>SCRIBE Telemetry Visualizer</h2>
+  <div id="canvas-container">
+    <canvas id="scribeCanvas" width="800" height="500"></canvas>
+  </div>
+  <div class="status-bar" id="statusBar">SCRIBE Telemetry: Active | Polling 2000ms</div>
+<script>
+  const canvas = document.getElementById('scribeCanvas');
+  const ctx = canvas.getContext('2d');
+
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = 'rgba(0, 255, 204, 0.2)';
+    for (let x = 0; x < canvas.width; x += 40) {
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+    }
+    for (let y = 0; y < canvas.height; y += 40) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+    }
+    ctx.fillStyle = '#00ffcc';
+    ctx.font = '14px monospace';
+    ctx.fillText('LIVE TELEMETRY STREAM', 20, 30);
+  }
+  setInterval(draw, 2000);
+  draw();
+</script>
+</body>
+</html>

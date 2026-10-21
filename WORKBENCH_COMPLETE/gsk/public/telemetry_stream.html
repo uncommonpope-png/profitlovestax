@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>High-Frequency Agent Telemetry Stream</title>
+  <style>
+    body { font-family: monospace; background: #0a0a0c; color: #00ffcc; margin: 0; padding: 20px; }
+    h1 { font-size: 1.4rem; border-bottom: 1px solid #00ffcc; padding-bottom: 8px; }
+    .grid { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-top: 16px; }
+    .panel { background: #12131a; border: 1px solid #1a233a; padding: 16px; border-radius: 6px; }
+    .metric { font-size: 1.2rem; margin: 8px 0; color: #ff0055; }
+    .log-stream { font-size: 0.85rem; max-height: 400px; overflow-y: auto; background: #050508; padding: 10px; border-radius: 4px; }
+    button { background: #00ffcc; color: #050508; border: none; padding: 8px 12px; font-weight: bold; cursor: pointer; border-radius: 4px; margin-right: 8px; }
+    button:hover { background: #00cca3; }
+  </style>
+</head>
+<body>
+  <h1>⚡ Agent State Telemetry Stream & Direct Control Panel</h1>
+  <div class="grid">
+    <div class="panel">
+      <h3>Real-Time Telemetry Stream</h3>
+      <div id="streamLog" class="log-stream">Initializing stream connection...</div>
+    </div>
+    <div class="panel">
+      <h3>Agent Inspection Controls</h3>
+      <div class="metric">PLT Ratio: <span id="pltVal">0.95</span></div>
+      <div class="metric">Frequency: <span id="freqVal">60 Hz</span></div>
+      <div style="margin-top: 20px;">
+        <button onclick="togglePause()">Pause Stream</button>
+        <button onclick="resetState()">Reset State</button>
+      </div>
+    </div>
+  </div>
+  <script>
+    let running = true;
+    const streamLog = document.getElementById('streamLog');
+    const pltVal = document.getElementById('pltVal');
+    function togglePause() { running = !running; }
+    function resetState() { streamLog.innerHTML = 'State reset at ' + new Date().toISOString(); }
+    setInterval(() => {
+      if (!running) return;
+      const now = new Date().toLocaleTimeString();
+      const profit = (Math.random() * 0.5 + 0.5).toFixed(3);
+      const tax = (Math.random() * 0.1).toFixed(3);
+      pltVal.innerText = (profit - tax).toFixed(3);
+      const entry = document.createElement('div');
+      entry.innerText = `[${now}] STATE_UPDATE | Profit: ${profit} | Tax: ${tax} | Status: ACTIVE`;
+      streamLog.prepend(entry);
+      if (streamLog.children.length > 50) streamLog.removeChild(streamLog.lastChild);
+    }, 100);
+  </script>
+</body>
+</html>

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Unified Convergent Telemetry Portal</title>
+  <style>
+    body { background: #0b0c10; color: #66fcf1; font-family: monospace; margin: 0; padding: 20px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .card { border: 1px solid #45a29e; padding: 15px; border-radius: 6px; background: #1f2833; }
+    h2 { margin-top: 0; color: #45a29e; }
+    .metric { font-size: 1.4em; color: #c5c6c7; }
+  </style>
+</head>
+<body>
+  <h1>UNIFIED PLT TELEMETRY PORTAL</h1>
+  <div class="grid">
+    <div class="card">
+      <h2>Convergent Agent States</h2>
+      <div id="agent-states" class="metric">Initializing telemetry stream...</div>
+    </div>
+    <div class="card">
+      <h2>Live PLT Value Metrics</h2>
+      <div id="plt-metrics" class="metric">Profit: -- | Love: -- | Tax: --</div>
+    </div>
+  </div>
+  <script>
+    console.log("Unified Telemetry Portal loaded.");
+  </script>
+</body>
+</html>

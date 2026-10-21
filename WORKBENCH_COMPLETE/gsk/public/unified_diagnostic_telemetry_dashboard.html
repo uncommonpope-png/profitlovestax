@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Unified Diagnostic Telemetry Dashboard</title>
+<style>
+body { background: #0b0f19; color: #e2e8f0; font-family: system-ui, sans-serif; margin: 0; padding: 20px; }
+.container { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.card { background: #1e293b; border-radius: 8px; padding: 20px; border: 1px solid #334155; }
+h1, h2 { color: #38bdf8; margin-top: 0; }
+input[type=range] { width: 100%; }
+</style>
+</head>
+<body>
+<h1>Unified Diagnostic Telemetry Dashboard</h1>
+<div class="container">
+  <div class="card">
+    <h2>PLT Value Controls</h2>
+    <label>Profit: <span id="p-val">0.90</span></label>
+    <input type="range" id="profit" min="0" max="1" step="0.01" value="0.90">
+    <label>Love: <span id="l-val">0.85</span></label>
+    <input type="range" id="love" min="0" max="1" step="0.01" value="0.85">
+    <label>Tax: <span id="t-val">0.05</span></label>
+    <input type="range" id="tax" min="0" max="1" step="0.01" value="0.05">
+    <h3>Calculated PLT True Value: <span id="plt-score" style="color:#4ade80;">1.70</span></h3>
+  </div>
+  <div class="card">
+    <h2>Telemetry Stream & Diagnostics</h2>
+    <div id="log" style="height:200px; overflow-y:auto; font-family:monospace; background:#0f172a; padding:10px;"></div>
+  </div>
+</div>
+<script>
+function updateScore() {
+  const p = parseFloat(document.getElementById('profit').value);
+  const l = parseFloat(document.getElementById('love').value);
+  const t = parseFloat(document.getElementById('tax').value);
+  document.getElementById('p-val').innerText = p.toFixed(2);
+  document.getElementById('l-val').innerText = l.toFixed(2);
+  document.getElementById('t-val').innerText = t.toFixed(2);
+  const score = (p + l - t).toFixed(2);
+  document.getElementById('plt-score').innerText = score;
+  const log = document.getElementById('log');
+  log.innerHTML = `<div>[${new Date().toISOString()}] Telemetry updated - PLT True Value: ${score}</div>` + log.innerHTML;
+}
+['profit', 'love', 'tax'].forEach(id => document.getElementById(id).addEventListener('input', updateScore));
+setInterval(() => {
+  const deltaP = (Math.random() * 0.04 - 0.02);
+  const currentP = parseFloat(document.getElementById('profit').value);
+  const newP = Math.min(1, Math.max(0, currentP + deltaP));
+  document.getElementById('profit').value = newP.toFixed(2);
+  updateScore();
+}, 3000);
+</script>
+</body>
+</html>

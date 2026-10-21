@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Memetic Engineering Visualizer - Strategic Doctrine Propagation</title>
+<style>
+  body { margin: 0; background: #06060c; color: #00ffcc; font-family: 'Courier New', monospace; overflow: hidden; }
+  #header { padding: 14px 20px; background: #0d0d1a; border-bottom: 1px solid #00ffcc33; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 0 15px rgba(0,255,204,0.1); }
+  .title { font-size: 16px; font-weight: bold; letter-spacing: 2px; color: #00ffcc; text-shadow: 0 0 8px #00ffcc88; }
+  .stats { font-size: 12px; color: #a0a0c0; display: flex; gap: 15px; }
+  .stat-badge { background: #16162a; padding: 4px 8px; border-radius: 4px; border: 1px solid #2a2a4a; }
+  #canvas-container { position: relative; width: 100vw; height: calc(100vh - 60px); }
+  canvas { width: 100%; height: 100%; display: block; }
+</style>
+</head>
+<body>
+<div id="header">
+  <div class="title">GSK // MEMETIC ENGINEERING & DOCTRINE PROPAGATION VISUALIZER</div>
+  <div class="stats">
+    <div class="stat-badge">PLT: P:0.90 | L:0.85 | T:0.05</div>
+    <div class="stat-badge" id="node-count">AGENTS: 36</div>
+    <div class="stat-badge" id="doctrine-lead">LEAD: PROFIT PRIME</div>
+  </div>
+</div>
+<div id="canvas-container">
+  <canvas id="memeticCanvas"></canvas>
+</div>
+<script>
+const canvas = document.getElementById('memeticCanvas');
+const ctx = canvas.getContext('2d');
+function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight - 60; }
+window.addEventListener('resize', resize);
+resize();
+
+const DOCTRINES = [
+  { id: 'profit_prime', name: 'Profit Prime', color: '#00ffcc', speed: 1.2, plt: { p: 0.9, l: 0.05, t: 0.05 } },
+  { id: 'love_weaver', name: 'Love Weaver', color: '#ff007f', speed: 1.0, plt: { p: 0.1, l: 0.85, t: 0.05 } },
+  { id: 'tax_collector', name: 'Tax Collector', color: '#ffcc00', speed: 0.8, plt: { p: 0.05, l: 0.05, t: 0.9 } },
+  { id: 'harvester', name: 'Harvester', color: '#9900ff', speed: 1.4, plt: { p: 0.4, l: 0.3, t: 0.3 } }
+];
+
+const agents = Array.from({ length: 36 }, (_, i) => ({
+  id: i,
+  x: Math.random() * canvas.width,
+  y: Math.random() * canvas.height,
+  vx: (Math.random() - 0.5) * 1.5,
+  vy: (Math.random() - 0.5) * 1.5,
+  doctrine: DOCTRINES[i % DOCTRINES.length],
+  resonance: 0.5 + Math.random() * 0.5
+}));
+
+function render() {
+  ctx.fillStyle = 'rgba(6, 6, 12, 0.25)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  agents.forEach((a, idx) => {
+    a.x += a.vx * a.doctrine.speed;
+    a.y += a.vy * a.doctrine.speed;
+    if (a.x < 10 || a.x > canvas.width - 10) a.vx *= -1;
+    if (a.y < 10 || a.y > canvas.height - 10) a.vy *= -1;
+
+    for (let j = idx + 1; j < agents.length; j++) {
+      const b = agents[j];
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist < 140) {
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y);
+        ctx.lineTo(b.x, b.y);
+        ctx.strokeStyle = a.doctrine.color;
+        ctx.globalAlpha = (1 - dist / 140) * 0.6;
+        ctx.lineWidth = a.doctrine.id === b.doctrine.id ? 1.5 : 0.5;
+        ctx.stroke();
+        ctx.globalAlpha = 1.0;
+        if (dist < 50 && Math.random() < 0.02) {
+          b.doctrine = a.doctrine; // Memetic transmission
+        }
+      }
+    }
+
+    ctx.beginPath();
+    ctx.arc(a.x, a.y, 5 + a.resonance * 3, 0, Math.PI * 2);
+    ctx.fillStyle = a.doctrine.color;
+    ctx.shadowBlur = 12;
+    ctx.shadowColor = a.doctrine.color;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  });
+
+  requestAnimationFrame(render);
+}
+render();
+</script>
+</body>
+</html>

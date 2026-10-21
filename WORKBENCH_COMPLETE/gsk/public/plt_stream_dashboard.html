@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PLT Real-Time Value Stream Engine</title>
+<style>
+  body { font-family: monospace; background: #0a0a0c; color: #00ffcc; margin: 0; padding: 20px; }
+  .card { border: 1px solid #00ffcc; padding: 15px; border-radius: 8px; margin-bottom: 20px; background: rgba(0,255,204,0.05); }
+  .metric-row { display: flex; justify-content: space-between; margin: 5px 0; }
+  h1 { font-size: 1.5rem; text-transform: uppercase; letter-spacing: 2px; color: #fff; }
+  #stream-log { height: 300px; overflow-y: auto; background: #000; border: 1px dashed #333; padding: 10px; font-size: 0.85rem; }
+</style>
+</head>
+<body>
+  <h1>PLT Value Stream Monitor</h1>
+  <div class="card" id="summary-card">
+    <div class="metric-row"><span>Agent Identity:</span><span id="agent-id">GSK Sovereign</span></div>
+    <div class="metric-row"><span>Profit:</span><span id="profit-val">0.00</span></div>
+    <div class="metric-row"><span>Love:</span><span id="love-val">0.00</span></div>
+    <div class="metric-row"><span>Tax:</span><span id="tax-val">0.00</span></div>
+    <div class="metric-row"><span>Net PLT Value:</span><span id="plt-val">0.00</span></div>
+  </div>
+  <h2>Real-Time State Telemetry Stream</h2>
+  <div id="stream-log"></div>
+<script>
+  const logEl = document.getElementById('stream-log');
+  function appendLog(frame) {
+    const entry = document.createElement('div');
+    entry.textContent = `[${new Date(frame.metrics.timestamp).toISOString()}] PROFIT:${frame.metrics.profit.toFixed(2)} LOVE:${frame.metrics.love.toFixed(2)} TAX:${frame.metrics.tax.toFixed(2)} => NET:${frame.metrics.netValue.toFixed(2)}`;
+    logEl.prepend(entry);
+  }
+</script>
+</body>
+</html>

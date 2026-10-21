@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Frequency Telemetry Monitor</title>
+<style>
+body { font-family: system-ui, sans-serif; background: #0b0f19; color: #e2e8f0; margin: 0; padding: 24px; }
+h1 { color: #38bdf8; font-size: 1.5rem; margin-bottom: 8px; }
+p { color: #94a3b8; font-size: 0.9rem; margin-top: 0; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+.card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 16px; }
+.card h2 { font-size: 1.1rem; color: #f8fafc; margin-top: 0; }
+canvas { width: 100%; height: 220px; background: #090d16; border-radius: 6px; border: 1px solid #1e293b; }
+.log-stream { background: #090d16; border: 1px solid #1e293b; padding: 12px; border-radius: 6px; font-family: monospace; font-size: 0.82rem; max-height: 200px; overflow-y: auto; color: #a5f3fc; }
+</style>
+</head>
+<body>
+<h1>Frequency Telemetry Monitor</h1>
+<p>Tracking frequency patterns across agent state logs and journals</p>
+<div class="grid">
+  <div class="card">
+    <h2>State Frequency Spectral Analyzer</h2>
+    <canvas id="frequencyChart"></canvas>
+  </div>
+  <div class="card">
+    <h2>Journal Repetition Log Stream</h2>
+    <div id="logStream" class="log-stream">[TELEMETRY INIT] Listening for frequency spectrum patterns...</div>
+  </div>
+</div>
+<script>
+const canvas = document.getElementById('frequencyChart');
+const ctx = canvas.getContext('2d');
+function renderChart() {
+  ctx.fillStyle = '#090d16';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#38bdf8';
+  ctx.font = '12px monospace';
+  ctx.fillText('Frequency Telemetry Engine Online', 15, 25);
+}
+renderChart();
+</script>
+</body>
+</html>

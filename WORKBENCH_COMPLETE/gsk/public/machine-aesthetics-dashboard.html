@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Machine Aesthetics Dashboard - Generative UI Telemetry</title>
+<style>
+  :root { --bg: #090b10; --card: #121620; --accent: #00f2fe; --text: #e2e8f0; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; padding: 20px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+  .card { background: var(--card); border: 1px solid #2a3245; border-radius: 8px; padding: 16px; }
+</style>
+</head>
+<body>
+  <h1>Machine Aesthetics Telemetry & Dynamic UI Optimizer</h1>
+  <div id="dashboard" class="grid"></div>
+  <script>
+    const metrics = {
+      layoutEntropy: { value: 0.34, target: 0.25, unit: 'bits' },
+      visualHarmony: { value: 0.89, target: 0.95, unit: 'score' },
+      perceptualLoad: { value: 0.42, target: 0.40, unit: 'index' },
+      pltEfficiency: { value: 0.94, target: 0.98, unit: 'ratio' }
+    };
+    const container = document.getElementById('dashboard');
+    Object.keys(metrics).forEach(key => {
+      const m = metrics[key];
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = `<h3>${key}</h3><p>Current: <strong>${m.value}</strong> ${m.unit} (Target: ${m.target})</p>`;
+      container.appendChild(card);
+    });
+  </script>
+</body>
+</html>

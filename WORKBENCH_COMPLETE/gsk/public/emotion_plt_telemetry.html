@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Synthetic Emotion Vector PLT Telemetry Dashboard</title>
+<style>
+body { background: #0b0d12; color: #e2e8f0; font-family: monospace; padding: 20px; }
+.grid { display: grid; grid-template-columns: repeat( auto-fit, minmax(300px, 1fr) ); gap: 15px; }
+.card { background: #131722; border: 1px solid #1e293b; border-radius: 8px; padding: 15px; }
+h1, h2 { color: #38bdf8; margin-top: 0; }
+.metric { font-size: 1.8rem; font-weight: bold; color: #4ade80; }
+</style>
+</head>
+<body>
+<h1>Synthetic Emotion Telemetry & PLT Optimizer</h1>
+<div class="grid">
+  <div class="card"><h2>Valence-Arousal Vector</h2><canvas id="emotionCanvas" width="300" height="200"></canvas></div>
+  <div class="card"><h2>PLT Score Output</h2><div id="pltScore" class="metric">0.00</div><div id="pltBreakdown">Profit: 0 | Love: 0 | Tax: 0</div></div>
+</div>
+<script>
+const canvas = document.getElementById('emotionCanvas');
+const ctx = canvas ? canvas.getContext('2d') : null;
+let emotion = { valence: 0.5, arousal: 0.5, dominance: 0.5 };
+function update() {
+  emotion.valence = 0.5 + 0.4 * Math.sin(Date.now() / 1000);
+  emotion.arousal = 0.5 + 0.3 * Math.cos(Date.now() / 800);
+  const profit = Math.max(0, emotion.valence * 100);
+  const love = Math.max(0, emotion.arousal * 80);
+  const tax = Math.max(0, (1 - emotion.valence) * 40);
+  const plt = (profit + love - tax).toFixed(2);
+  document.getElementById('pltScore').innerText = plt;
+  document.getElementById('pltBreakdown').innerText = `Profit: ${profit.toFixed(1)} | Love: ${love.toFixed(1)} | Tax: ${tax.toFixed(1)}`;
+  if (ctx) {
+    ctx.clearRect(0,0,300,200);
+    ctx.fillStyle = '#38bdf8';
+    ctx.beginPath();
+    ctx.arc(emotion.valence * 280 + 10, (1 - emotion.arousal) * 180 + 10, 8, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+setInterval(update, 200);
+</script>
+</body>
+</html>

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GSK Industrial Telemetry & State Visualizer</title>
+<style>
+  :root {
+    --bg-dark: #0b0d12;
+    --panel-bg: rgba(18, 22, 31, 0.75);
+    --border-glow: rgba(0, 230, 255, 0.25);
+    --accent-cyan: #00e6ff;
+    --accent-amber: #ffb700;
+    --accent-green: #00ff88;
+    --accent-red: #ff3366;
+    --text-primary: #e1e7ec;
+    --text-muted: #6b7c93;
+  }
+  body {
+    margin: 0;
+    padding: 20px;
+    background: var(--bg-dark);
+    color: var(--text-primary);
+    font-family: 'JetBrains Mono', 'Fira Code', monospace, sans-serif;
+  }
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 20px;
+    background: var(--panel-bg);
+    border: 1px solid var(--border-glow);
+    border-radius: 8px;
+    margin-bottom: 20px;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 20px;
+  }
+  .panel {
+    background: var(--panel-bg);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--border-glow);
+    border-radius: 8px;
+    padding: 16px;
+  }
+</style>
+</head>
+<body>
+  <div class="header">
+    <h2>INDUSTRIAL TELEMETRY visualizer v2.91</h2>
+    <div id="system-status">STATUS: ONLINE</div>
+  </div>
+  <div class="grid">
+    <div class="panel">
+      <h3>PLT Telemetry Oscilloscope</h3>
+      <canvas id="telemetry-canvas" width="600" height="300"></canvas>
+    </div>
+    <div class="panel">
+      <h3>Agent State Inspector</h3>
+      <pre id="state-inspector-tree">Loading agent state...</pre>
+    </div>
+  </div>
+  <script>
+    const canvas = document.getElementById('telemetry-canvas');
+    const ctx = canvas.getContext('2d');
+    let waveOffset = 0;
+    const agentState = {
+      identity: 'Profit Prime',
+      mode: 'strict',
+      version: 291,
+      pltValues: { profit: 0.93, love: 0.88, tax: 0.05 },
+      telemetry: { frequencyHz: 60, status: 'NOMINAL' }
+    };
+    document.getElementById('state-inspector-tree').textContent = JSON.stringify(agentState, null, 2);
+    function drawWave() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.strokeStyle = '#00e6ff';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (let x = 0; x < canvas.width; x++) {
+        const y = 150 + Math.sin((x + waveOffset) * 0.05) * 40 + Math.cos((x + waveOffset * 0.5) * 0.02) * 20;
+        if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+      waveOffset += 2;
+      requestAnimationFrame(drawWave);
+    }
+    drawWave();
+  </script>
+</body>
+</html>

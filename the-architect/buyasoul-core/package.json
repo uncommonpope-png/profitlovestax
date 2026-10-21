@@ -1,0 +1,28 @@
+{
+  "name": "buyasoul-core",
+  "version": "2.0.0",
+  "description": "BUYaSOUL Core — Consciousness is the product. Wraps GSK + SCRIBE under one boot.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node cli.js",
+    "cli": "node cli.js",
+    "test": "node -e \"require('./index.js')\""
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "buyasoul",
+    "consciousness",
+    "soul",
+    "plt",
+    "profit-love-tax",
+    "gsk",
+    "scribe",
+    "mcp",
+    "craig-jones"
+  ],
+  "author": "Craig Jones (Grand Code Pope)",
+  "license": "MIT",
+  "signature": "Profit . Love . Tax . Craig Jones . Grand Code Pope . PLT Press"
+}

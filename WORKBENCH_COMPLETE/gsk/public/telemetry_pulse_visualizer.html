@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Live Telemetry Pulse Visualizer</title>
+  <style>
+    body { background: #0a0d14; color: #e2e8f0; font-family: monospace; margin: 0; padding: 20px; }
+    .pulse-container { display: flex; gap: 20px; flex-wrap: wrap; }
+    .card { background: #131822; border: 1px solid #1e293b; border-radius: 8px; padding: 16px; flex: 1; min-width: 300px; }
+    canvas { width: 100%; height: 200px; background: #06080d; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <h1>Live Telemetry Pulse Visualizer</h1>
+  <div class="pulse-container">
+    <div class="card"><h2>Agent Heartbeat & PLT Stream</h2><canvas id="pulseCanvas"></canvas></div>
+    <div class="card"><h2>Intelligence & Cognitive Velocity</h2><canvas id="velocityCanvas"></canvas></div>
+  </div>
+<script>
+  const pulseCanvas = document.getElementById('pulseCanvas');
+  const ctx = pulseCanvas.getContext('2d');
+  let pulseData = Array(50).fill(50);
+  function drawPulse() {
+    ctx.clearRect(0, 0, pulseCanvas.width, pulseCanvas.height);
+    ctx.strokeStyle = '#38bdf8';
+    ctx.beginPath();
+    for (let i = 0; i < pulseData.length; i++) {
+      let x = (i / pulseData.length) * pulseCanvas.width;
+      let y = pulseCanvas.height - (pulseData[i] / 100) * pulseCanvas.height;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+  setInterval(() => {
+    pulseData.shift();
+    pulseData.push(Math.random() * 80 + 10);
+    drawPulse();
+  }, 500);
+</script>
+</body>
+</html>

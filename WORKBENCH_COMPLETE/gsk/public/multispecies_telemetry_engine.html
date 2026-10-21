@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Multispecies Telemetry Engine</title>
+<style>
+body { margin: 0; background: #0a0a0f; color: #e0e0e0; font-family: monospace; overflow: hidden; }
+#ecosystemCanvas { width: 100vw; height: 100vh; display: block; }
+.hud { position: absolute; top: 16px; left: 16px; background: rgba(15,15,25,0.88); padding: 18px; border-radius: 8px; border: 1px solid rgba(0,255,204,0.3); z-index: 10; width: 340px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+.hud h1 { margin: 0 0 12px 0; font-size: 15px; color: #00ffcc; text-transform: uppercase; letter-spacing: 1.5px; }
+.plt-stat { display: flex; justify-content: space-between; margin: 6px 0; font-size: 13px; }
+.val-profit { color: #00ff88; font-weight: bold; }
+.val-love { color: #ff66cc; font-weight: bold; }
+.val-tax { color: #ffaa00; font-weight: bold; }
+.val-total { color: #00ffff; font-weight: bold; border-top: 1px solid #333; padding-top: 4px; margin-top: 4px; }
+</style>
+</head>
+<body>
+<div class="hud">
+<h1>Multispecies Telemetry</h1>
+<div id="stats">Initializing real-time telemetry pipeline...</div>
+</div>
+<canvas id="ecosystemCanvas"></canvas>
+<script>
+const canvas = document.getElementById('ecosystemCanvas');
+const ctx = canvas.getContext('2d');
+function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+window.addEventListener('resize', resize); resize();
+const speciesList = [
+  { name: 'PROFIT PRIME', color: '#00ff88', plt: { p: 0.9, l: 0.05, t: 0.05 }, count: 12 },
+  { name: 'LOVE WEAVER', color: '#ff66cc', plt: { p: 0.1, l: 0.85, t: 0.05 }, count: 14 },
+  { name: 'TAX COLLECTOR', color: '#ffaa00', plt: { p: 0.05, l: 0.05, t: 0.9 }, count: 8 },
+  { name: 'HARVESTER', color: '#00ccff', plt: { p: 0.4, l: 0.3, t: 0.3 }, count: 10 }
+];
+let agents = [];
+speciesList.forEach(sp => {
+  for (let i = 0; i < sp.count; i++) {
+    agents.push({
+      species: sp.name,
+      color: sp.color,
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      vx: (Math.random() - 0.5) * 2,
+      vy: (Math.random() - 0.5) * 2,
+      plt: { ...sp.plt }
+    });
+  }
+});
+function updateAndRender() {
+  ctx.fillStyle = 'rgba(10, 10, 15, 0.25)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  let totalP = 0, totalL = 0, totalT = 0;
+  agents.forEach(a => {
+    a.x += a.vx; a.y += a.vy;
+    if (a.x < 0 || a.x > canvas.width) a.vx *= -1;
+    if (a.y < 0 || a.y > canvas.height) a.vy *= -1;
+    totalP += a.plt.p; totalL += a.plt.l; totalT += a.plt.t;
+    ctx.beginPath();
+    ctx.arc(a.x, a.y, 4, 0, Math.PI * 2);
+    ctx.fillStyle = a.color;
+    ctx.shadowBlur = 8;
+    ctx.shadowColor = a.color;
+    ctx.fill();
+  });
+  const statsEl = document.getElementById('stats');
+  if (statsEl) {
+    const netVal = (totalP + totalL - totalT).toFixed(2);
+    statsEl.innerHTML = `<div class="plt-stat val-total"><span>Net Optimized PLT:</span> <span>${netVal}</span></div>` +
+      `<div class="plt-stat"><span>Profit Prime (P):</span> <span class="val-profit">${(totalP).toFixed(2)}</span></div>` +
+      `<div class="plt-stat"><span>Love Weaver (L):</span> <span class="val-love">${(totalL).toFixed(2)}</span></div>` +
+      `<div class="plt-stat"><span>Tax Collector (T):</span> <span class="val-tax">${(totalT).toFixed(2)}</span></div>` +
+      `<div style="margin-top:10px; font-size:11px; color:#888;">Active Ecosystem: 4 Species | ${agents.length} Nodes</div>`;
+  }
+  requestAnimationFrame(updateAndRender);
+}
+updateAndRender();
+</script>
+</body>
+</html>

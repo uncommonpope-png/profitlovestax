@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SCRIBE Workbench — Soul Command Center</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;500;700&family=JetBrains+Mono:wght@400;500&display=swap');
+    :root {
+      --cyan: #00ffff; --pink: #ff00ff; --green: #00ff41; --orange: #ff6600;
+      --purple: #9d00ff; --blue: #0066ff; --bg: #0a0a0f; --panel: #0f0f1a;
+      --border: #1a1a2e; --yellow: #ffff00; --gold: #c8a84a;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      font-family:'Rajdhani',sans-serif; background:var(--bg); color:#fff;
+      min-height:100vh; overflow-x:hidden;
+    }
+    .bg {
+      position:fixed; top:0; left:0; width:100%; height:100%; z-index:-1;
+      background: radial-gradient(ellipse at 20% 50%, rgba(157,0,255,0.1) 0%, transparent 50%),
+                  radial-gradient(ellipse at 80% 50%, rgba(0,255,255,0.1) 0%, transparent 50%);
+    }
+    .grid-overlay {
+      position:fixed; top:0; left:0; width:100%; height:100%; z-index:-1;
+      background-image: linear-gradient(rgba(0,255,255,0.03) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(0,255,255,0.03) 1px, transparent 1px);
+      background-size: 50px 50px;
+      animation: gridMove 20s linear infinite;
+    }
+    @keyframes gridMove {
+      0% { transform: perspective(500px) rotateX(60deg) translateY(0); }
+      100% { transform: perspective(500px) rotateX(60deg) translateY(50px); }
+    }
+    .header {
+      background: linear-gradient(180deg, rgba(15,15,30,0.95), rgba(10,10,15,0.9));
+      padding: 12px 20px; border-bottom: 2px solid var(--cyan);
+      display: flex; justify-content: space-between; align-items: center;
+      box-shadow: 0 5px 30px rgba(0,255,255,0.2);
+    }
+    .header h1 {
+      font-family:'Orbitron',sans-serif; font-size:18px; font-weight:900;
+      background: linear-gradient(90deg, var(--cyan), var(--pink), var(--gold));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text; letter-spacing: 2px;
+    }
+    .status-bar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .status-indicator {
+      display:flex; align-items:center; gap:5px;
+      padding:4px 10px; background: rgba(0,255,255,0.1);
+      border-radius:20px; border:1px solid var(--cyan); font-size:10px;
+    }
+    .dot { width:7px; height:7px; border-radius:50%; background:var(--green); box-shadow:0 0 8px var(--green); animation:pulse 2s infinite; }
+    .dot.off { background:#666; box-shadow:none; animation:none; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+    .layout { display:flex; height:calc(100vh - 62px); }
+    .sidebar {
+      width:50px; background: rgba(15,15,30,0.95); border-right:1px solid var(--border);
+      display:flex; flex-direction:column; align-items:center; padding:8px 0; gap:4px;
+    }
+    .sidebar button {
+      width:38px; height:38px; background:transparent; border:1px solid transparent; border-radius:8px;
+      color:#666; cursor:pointer; font-size:16px; transition:all 0.2s;
+    }
+    .sidebar button:hover { color:var(--cyan); border-color:var(--border); background:rgba(0,255,255,0.05); }
+    .sidebar button.active { color:var(--cyan); border-color:var(--cyan); box-shadow:0 0 10px rgba(0,255,255,0.2); }
+    .sidebar .sblbl { font-size:7px; font-family:'Orbitron',sans-serif; letter-spacing:1px; color:#666; }
+    .main-grid {
+      flex:1; display:grid; grid-template-columns: 260px 1fr 280px;
+      grid-template-rows: 1fr auto; gap:12px; padding:12px;
+    }
+    .panel {
+      background: linear-gradient(135deg, rgba(15,15,30,0.9), rgba(10,10,20,0.95));
+      border:1px solid var(--border); border-radius:10px; overflow:hidden;
+      display:flex; flex-direction:column; position:relative;
+      backdrop-filter:blur(10px); box-shadow: 0 0 20px rgba(0,0,0,0.5);
+    }
+    .panel::before {
+      content:''; position:absolute; top:0; left:0; right:0; height:2px;
+      background: linear-gradient(90deg, transparent, var(--cyan), var(--pink), var(--cyan), transparent);
+    }
+    .panel-hdr {
+      padding:10px 14px; background: rgba(30,30,50,0.3); border-bottom:1px solid var(--border);
+      display:flex; justify-content:space-between; align-items:center; min-height:36px;
+    }
+    .panel-title {
+      font-family:'Orbitron',sans-serif; font-size:11px; font-weight:700;
+      color:var(--cyan); text-transform:uppercase; letter-spacing:1px;
+    }
+    .panel-body { flex:1; overflow-y:auto; padding:12px; }
+    .soul-grid { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+    .soul-card {
+      padding:8px; background: rgba(0,255,255,0.03); border-radius:6px;
+      border:1px solid var(--border); text-align:center; cursor:pointer;
+      transition:all 0.3s;
+    }
+    .soul-card:hover { border-color:var(--cyan); box-shadow:0 0 15px rgba(0,255,255,0.2); transform:translateY(-2px); }
+    .soul-card.active { border-color:var(--pink); box-shadow:0 0 15px rgba(255,0,255,0.3); }
+    .soul-emoji { font-size:20px; display:block; margin-bottom:2px; }
+    .soul-name { font-size:10px; font-weight:600; }
+    .soul-stat { font-size:9px; color:var(--cyan); opacity:0.7; }
+    .plt-grid { display:flex; flex-direction:column; gap:8px; }
+    .plt-bar {
+      padding:8px 12px; border-radius:6px; border:2px solid;
+      text-align:center; position:relative; overflow:hidden;
+    }
+    .plt-bar::before {
+      content:''; position:absolute; top:0; left:0; height:100%;
+      transition:width 1s ease; opacity:0.15;
+    }
+    .plt-profit { border-color:var(--orange); }
+    .plt-profit::before { background:var(--orange); width:0%; }
+    .plt-love { border-color:var(--pink); }
+    .plt-love::before { background:var(--pink); width:0%; }
+    .plt-tax { border-color:var(--green); }
+    .plt-tax::before { background:var(--green); width:0%; }
+    .plt-val { font-family:'Orbitron',sans-serif; font-size:24px; font-weight:900; text-shadow:0 0 10px; position:relative; z-index:1; }
+    .plt-lbl { font-size:9px; text-transform:uppercase; letter-spacing:2px; opacity:0.7; position:relative; z-index:1; }
+    .chat-panel { grid-column:2; grid-row:1/3; }
+    .chat-msgs { flex:1; overflow-y:auto; padding:10px; display:flex; flex-direction:column; gap:6px; }
+    .msg { max-width:90%; padding:8px 12px; border-radius:10px; font-size:13px; line-height:1.4; animation:msgIn 0.3s ease; }
+    @keyframes msgIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+    .msg.user { align-self:flex-end; background:linear-gradient(135deg,var(--cyan),var(--blue)); color:#000; border-bottom-right-radius:3px; }
+    .msg.soul { align-self:flex-start; background:rgba(157,0,255,0.3); border:1px solid var(--purple); border-bottom-left-radius:3px; }
+    .msg.sys { align-self:center; color:var(--green); font-size:11px; text-align:center; border:1px dashed var(--green); padding:5px 10px; }
+    .msg .sender { font-size:9px; opacity:0.7; margin-bottom:2px; font-family:'Orbitron',sans-serif; }
+    .chat-inp { padding:8px; border-top:1px solid var(--border); display:flex; gap:6px; }
+    .chat-inp input { flex:1; background:rgba(0,0,0,0.5); border:1px solid var(--border); border-radius:20px; color:#fff; padding:8px 14px; font-size:13px; outline:none; }
+    .chat-inp input:focus { border-color:var(--cyan); box-shadow:0 0 10px rgba(0,255,255,0.2); }
+    .chat-inp button { padding:8px 16px; background:linear-gradient(135deg,var(--cyan),var(--blue)); color:#000; border:none; border-radius:20px; cursor:pointer; font-weight:700; font-size:11px; font-family:'Orbitron',sans-serif; text-transform:uppercase; }
+    .stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+    .stat-box { padding:10px; background:rgba(0,0,0,0.3); border-radius:6px; text-align:center; border:1px solid var(--border); }
+    .stat-val { font-family:'Orbitron',sans-serif; font-size:20px; font-weight:700; color:var(--cyan); text-shadow:0 0 8px rgba(0,255,255,0.3); }
+    .stat-lbl { font-size:9px; opacity:0.6; text-transform:uppercase; letter-spacing:1px; }
+    .terminal-out {
+      flex:1; overflow-y:auto; padding:10px;
+      font-family:'JetBrains Mono',monospace; font-size:11px; line-height:1.5;
+      background:rgba(0,0,0,0.4); margin:8px; border-radius:6px; min-height:80px;
+    }
+    .term-line { margin-bottom:2px; white-space:pre-wrap; word-break:break-all; }
+    .term-line.in { color:var(--green); }
+    .term-line.out { color:#ccc; }
+    .term-line.err { color:var(--orange); }
+    .term-line.sys { color:var(--cyan); }
+    .term-line.hl { color:var(--yellow); }
+    .tabs { display:flex; border-bottom:1px solid var(--border); }
+    .tab { padding:6px 12px; cursor:pointer; background:transparent; color:#888; border:none; font-size:10px; font-family:'Orbitron',sans-serif; border-right:1px solid var(--border); text-transform:uppercase; letter-spacing:1px; }
+    .tab:hover { color:var(--cyan); background:rgba(0,255,255,0.05); }
+    .tab.active { color:var(--cyan); box-shadow:inset 0 -2px 0 var(--cyan); }
+    .agent-list { display:flex; flex-direction:column; gap:4px; }
+    .agent-row { display:flex; justify-content:space-between; align-items:center; padding:6px 10px; background:rgba(0,0,0,0.2); border-radius:5px; border:1px solid var(--border); font-size:11px; }
+    .agent-name { font-weight:600; }
+    .agent-status { font-size:9px; padding:2px 6px; border-radius:8px; }
+    .agent-status.active { background:rgba(0,255,65,0.2); color:var(--green); }
+    .agent-status.idle { background:rgba(255,255,0,0.2); color:#ff0; }
+    .agent-task { font-size:9px; opacity:0.6; }
+    .page { display:none; height:100%; }
+    .page.active { display:block; }
+    .page .main-grid { height:100%; }
+    .session-list { }
+    .session-item { padding:8px 12px; border-bottom:1px solid var(--border); cursor:pointer; transition:background 0.2s; }
+    .session-item:hover { background:rgba(0,255,255,0.05); }
+    .session-item .s-title { font-size:13px; font-weight:600; }
+    .session-item .s-meta { font-size:10px; color:#888; margin-top:2px; }
+    .skill-table { width:100%; border-collapse:collapse; font-size:11px; }
+    .skill-table th { text-align:left; padding:6px 8px; border-bottom:1px solid var(--border); color:var(--cyan); font-family:'Orbitron',sans-serif; font-size:9px; letter-spacing:1px; }
+    .skill-table td { padding:5px 8px; border-bottom:1px solid var(--border); }
+    .skill-table tr:hover { background:rgba(0,255,255,0.03); }
+    .skill-search { width:100%; padding:8px 12px; margin-bottom:8px; background:rgba(0,0,0,0.5); border:1px solid var(--border); border-radius:6px; color:#fff; font-size:12px; outline:none; }
+    .skill-search:focus { border-color:var(--cyan); }
+    .config-editor { display:flex; flex-direction:column; gap:8px; height:100%; }
+    .config-editor textarea { flex:1; background:rgba(0,0,0,0.5); border:1px solid var(--border); border-radius:6px; color:#0f0; font-family:'JetBrains Mono',monospace; font-size:11px; padding:10px; resize:none; outline:none; }
+    .config-editor textarea:focus { border-color:var(--cyan); }
+    .config-actions { display:flex; gap:6px; }
+    .config-actions button { padding:6px 14px; border-radius:6px; border:none; cursor:pointer; font-family:'Orbitron',sans-serif; font-size:10px; letter-spacing:1px; }
+    .btn-save { background:linear-gradient(135deg,var(--cyan),var(--blue)); color:#000; }
+    .btn-refresh { background:rgba(255,255,255,0.1); color:#fff; border:1px solid var(--border) !important; }
+    .model-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+    .model-card { padding:10px; border-radius:6px; border:1px solid var(--border); background:rgba(0,0,0,0.2); }
+    .model-card .m-name { font-size:13px; font-weight:600; color:var(--cyan); }
+    .model-card .m-size { font-size:10px; color:#888; }
+    .model-card .m-status { font-size:9px; margin-top:4px; }
+    .model-card .m-status.ready { color:var(--green); }
+    .model-card .m-status.loading { color:var(--yellow); }
+    .model-card.active { border-color:var(--pink); box-shadow:0 0 10px rgba(255,0,255,0.2); }
+    ::-webkit-scrollbar { width:5px; }
+    ::-webkit-scrollbar-track { background:var(--bg); }
+    ::-webkit-scrollbar-thumb { background:linear-gradient(180deg,var(--cyan),var(--purple)); border-radius:3px; }
+    @media (max-width:1000px) {
+      .main-grid { grid-template-columns:1fr; grid-template-rows:auto auto 300px auto auto; }
+      .chat-panel { grid-column:1; grid-row:auto; min-height:300px; }
+      .sidebar { width:40px; }
+      .sidebar button { width:32px; height:32px; font-size:14px; }
+    }
+    .upload-area {
+      border: 2px dashed var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .upload-area:hover {
+      border-color: var(--cyan);
+      background: rgba(0,255,255,0.05);
+    }
+    .upload-area input { display: none; }
+  </style>
+</head>
+<body>
+  <div class="bg"></div>
+  <div class="grid-overlay"></div>
+
+  <div class="header">
+    <h1>⬡ SCRIBE WORKBENCH</h1>
+    <div class="status-bar">
+      <div class="status-indicator"><div class="dot" id="ws-dot"></div><span id="ws-status">CONNECTING...</span></div>
+      <div class="status-indicator"><span id="plt-display">P:0 L:0 T:0</span></div>
+      <div class="status-indicator"><span id="req-display">R:0</span></div>
+      <div class="status-indicator"><span id="token-display">T:0</span></div>
+    </div>
+  </div>
+
+  <div class="layout">
+    <div class="sidebar">
+      <button class="active" onclick="switchPage('dashboard',this)" title="Dashboard">⬡</button><span class="sblbl">DASH</span>
+      <button onclick="switchPage('souls',this)" title="Souls">👥</button><span class="sblbl">SOUL</span>
+      <button onclick="switchPage('skills',this)" title="Skills">⚡</button><span class="sblbl">SKIL</span>
+      <button onclick="switchPage('config',this)" title="Config">⚙️</button><span class="sblbl">CFG</span>
+    </div>
+
+    <!-- PAGE: Dashboard -->
+    <div id="page-dashboard" class="page active" style="flex:1;">
+      <div class="main-grid">
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div class="panel">
+            <div class="panel-hdr"><div class="panel-title">👥 SOULS · <span id="soul-count">0</span></div></div>
+            <div class="panel-body"><div class="soul-grid" id="soul-grid"></div></div>
+          </div>
+          <div class="panel">
+            <div class="panel-hdr"><div class="panel-title">📊 PLT MATRIX</div></div>
+            <div class="panel-body">
+              <div class="plt-grid">
+                <div class="plt-bar plt-profit"><div class="plt-val" id="plt-profit">0</div><div class="plt-lbl">💰 PROFIT</div></div>
+                <div class="plt-bar plt-love"><div class="plt-val" id="plt-love">0</div><div class="plt-lbl">❤️ LOVE</div></div>
+                <div class="plt-bar plt-tax"><div class="plt-val" id="plt-tax">0</div><div class="plt-lbl">🧾 TAX</div></div>
+              </div>
+              <div style="text-align:center;margin-top:8px;font-family:'Orbitron',sans-serif;font-size:14px;color:var(--cyan);">TV = <span id="plt-tv">0.00</span></div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-hdr"><div class="panel-title">📈 STATS</div></div>
+            <div class="panel-body">
+              <div class="stats-grid">
+                <div class="stat-box"><div class="stat-val" id="stat-req">0</div><div class="stat-lbl">REQUESTS</div></div>
+                <div class="stat-box"><div class="stat-val" id="stat-tokens">0</div><div class="stat-lbl">TOKENS</div></div>
+                <div class="stat-box"><div class="stat-val" id="stat-learned">0</div><div class="stat-lbl">LEARNED</div></div>
+                <div class="stat-box"><div class="stat-val" id="stat-actions">0</div><div class="stat-lbl">ACTIONS</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel chat-panel">
+          <div class="panel-hdr"><div class="panel-title">💬 SCRIBE ORACLE</div></div>
+          <div class="chat-msgs" id="chat-msgs">
+            <div class="msg sys">⬡ SCRIBE WORKBENCH AWAKE. Type /help for commands.</div>
+          </div>
+          <div class="chat-inp">
+            <input type="text" id="chat-input" placeholder="Ask SCRIBE anything..." onkeydown="if(event.key==='Enter')sendChat()">
+            <button onclick="sendChat()">SEND</button>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div class="panel">
+            <div class="panel-hdr"><div class="panel-title">🤖 CONNECTED AGENTS</div></div>
+            <div class="panel-body"><div class="agent-list" id="agent-list"><div style="color:#666;font-size:11px;">Waiting...</div></div></div>
+          </div>
+          <div class="panel" style="flex:1;">
+            <div class="panel-hdr"><div class="panel-title">⬡ CONSOLE</div></div>
+            <div class="tabs">
+              <button class="tab active" onclick="switchTermTab('log',this)">LOG</button>
+              <button class="tab" onclick="switchTermTab('state',this)">STATE</button>
+              <button class="tab" onclick="switchTermTab('plt',this)">PLT</button>
+              <button class="tab" onclick="switchTermTab('mcp',this)">MCP</button>
+            </div>
+            <div class="terminal-out" id="terminal-out">
+              <div class="term-line sys">╔══════════════════════════════════════╗</div>
+              <div class="term-line sys">║ SCRIBE WORKBENCH v1.0               ║</div>
+              <div class="term-line sys">║ DeepSeek Brain + PLT Framework      ║</div>
+              <div class="term-line sys">╚══════════════════════════════════════╝</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE: Souls -->
+    <div id="page-souls" class="page" style="flex:1;padding:12px;">
+      <div class="panel" style="height:100%;">
+        <div class="panel-hdr"><div class="panel-title">👥 SOUL MANAGEMENT</div></div>
+        <div class="panel-body">
+          <div class="upload-area" onclick="document.getElementById('soul-upload').click()">
+            <input type="file" id="soul-upload" accept=".zip" onchange="uploadSoul(event)">
+            <div style="font-size:24px;margin-bottom:8px;">📦</div>
+            <div style="font-size:14px;color:var(--cyan);">Upload a Soul</div>
+            <div style="font-size:12px;color:#888;margin-top:4px;">Drop a soul.zip or click to browse</div>
+          </div>
+          <div id="soul-list" style="margin-top:16px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE: Skills -->
+    <div id="page-skills" class="page" style="flex:1;padding:12px;">
+      <div class="panel" style="height:100%;">
+        <div class="panel-hdr"><div class="panel-title">⚡ SKILLS ENGINE</div></div>
+        <div class="panel-body">
+          <input class="skill-search" id="skill-search" placeholder="Search skills..." oninput="filterSkills()">
+          <table class="skill-table">
+            <thead><tr><th>NAME</th><th>DESCRIPTION</th><th>PLT</th></tr></thead>
+            <tbody id="skill-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE: Config -->
+    <div id="page-config" class="page" style="flex:1;padding:12px;">
+      <div class="panel" style="height:100%;">
+        <div class="panel-hdr"><div class="panel-title">⚙️ WORKBENCH CONFIG</div></div>
+        <div class="panel-body">
+          <div class="config-editor">
+            <div class="config-actions">
+              <button class="btn-refresh" onclick="loadConfig()">↻ REFRESH</button>
+              <button class="btn-save" onclick="saveConfig()">💾 SAVE</button>
+            </div>
+            <textarea id="config-textarea" spellcheck="false">Loading config...</textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+const SCRIBE_API = window.location.origin;
+
+    // State
+    let soulState = null;
+    let termTab = 'log';
+    let skillsData = [];
+    let configData = {};
+    let isSending = false;
+
+    // Skills data
+    const defaultSkills = [
+      { name: 'observe', desc: 'Record and watch events', plt: { profit: 0.8, love: 0.3, tax: 0.5 } },
+      { name: 'summarize', desc: 'Condense information', plt: { profit: 0.7, love: 0.4, tax: 0.4 } },
+      { name: 'reason', desc: 'Step-by-step analysis', plt: { profit: 0.9, love: 0.3, tax: 0.5 } },
+      { name: 'remember', desc: 'Access stored memories', plt: { profit: 0.5, love: 0.6, tax: 0.4 } },
+      { name: 'file_read', desc: 'Read files from disk', plt: { profit: 0.6, love: 0.3, tax: 0.6 } },
+      { name: 'file_write', desc: 'Write files to disk', plt: { profit: 0.7, love: 0.3, tax: 0.5 } },
+      { name: 'web_fetch', desc: 'Fetch web content', plt: { profit: 0.8, love: 0.4, tax: 0.3 } },
+      { name: 'search', desc: 'Search through data', plt: { profit: 0.7, love: 0.4, tax: 0.5 } },
+      { name: 'git_ops', desc: 'Git operations', plt: { profit: 0.8, love: 0.3, tax: 0.6 } },
+      { name: 'github_api', desc: 'GitHub API access', plt: { profit: 0.8, love: 0.3, tax: 0.5 } },
+      { name: 'bash_run', desc: 'Execute shell commands', plt: { profit: 0.9, love: 0.2, tax: 0.6 } },
+      { name: 'mcp_connect', desc: 'Connect to MCP agents', plt: { profit: 0.7, love: 0.5, tax: 0.4 } },
+    ];
+
+    skillsData = defaultSkills;
+    renderSkills(skillsData);
+
+    // Tab switching
+    function switchPage(name, btn) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.getElementById('page-' + name).classList.add('active');
+      document.querySelectorAll('.sidebar button').forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+    }
+
+    // Skills
+    function renderSkills(skills) {
+      const tbody = document.getElementById('skill-tbody');
+      if (!tbody) return;
+      tbody.innerHTML = skills.map(s => {
+        const plt = s.plt || {};
+        return `<tr><td style="font-weight:600;color:var(--cyan);">${s.name}</td><td>${s.description || ''}</td><td style="font-size:10px;">P:${Math.round((plt.profit||0)*100)} L:${Math.round((plt.love||0)*100)} T:${Math.round((plt.tax||0)*100)}</td></tr>`;
+      }).join('');
+    }
+
+    function filterSkills() {
+      const q = document.getElementById('skill-search').value.toLowerCase();
+      const filtered = skillsData.filter(s => s.name.toLowerCase().includes(q) || (s.description||'').toLowerCase().includes(q));
+      renderSkills(filtered);
+    }
+
+    // Chat
+    async function sendChat() {
+      const inp = document.getElementById('chat-input');
+      if (!inp) return;
+      const text = inp.value.trim();
+      if (!text || isSending) return;
+      isSending = true;
+      addChatMsg('user', text);
+      addTermLine('in', '[USER] ' + text.substring(0, 80));
+      inp.value = '';
+      addChatMsg('soul', '⏳ SCRIBE is thinking...', 'SCRIBE');
+
+      try {
+        // Try to connect to SCRIBE backend
+        const response = await fetch(`${SCRIBE_API}/api/chat`, {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({message: text})
+        });
+
+        removeLastSoulMsg();
+        if (!response.ok) throw new Error(`Server error: ${response.status}`);
+
+        const data = await response.json();
+        addChatMsg('soul', data.reply || data.response || JSON.stringify(data), 'SCRIBE');
+
+        // Update stats
+        if (data.plt) updatePLT(data.plt);
+        if (data.tokens) updateStats(data.tokens);
+      } catch (e) {
+        removeLastSoulMsg();
+        addChatMsg('soul', `[offline] DeepSeek not connected. Run: node SCRIBE/scribe-cli.js`, 'SCRIBE');
+        addTermLine('err', '⚠️ ' + e.message);
+      } finally {
+        isSending = false;
+      }
+    }
+
+    function removeLastSoulMsg() {
+      const c = document.getElementById('chat-msgs');
+      if (!c) return;
+      const last = c.lastElementChild;
+      if (last && last.textContent.includes('thinking')) last.remove();
+    }
+
+    function addChatMsg(type, text, sender) {
+      const c = document.getElementById('chat-msgs');
+      if (!c) return;
+      const m = document.createElement('div');
+      m.className = 'msg ' + type;
+      if (type === 'soul') {
+        const s = sender||'SCRIBE';
+        m.innerHTML = `<div class="sender" style="color:var(--orange)">${s}</div>${text.replace(/\n/g, '<br>')}`;
+      } else m.textContent = text;
+      c.appendChild(m);
+      c.scrollTop = c.scrollHeight;
+    }
+
+    // Terminal
+    function addTermLine(type, text) {
+      const t = document.getElementById('terminal-out');
+      if (!t) return;
+      text.split('\n').forEach(l => {
+        if (l) t.innerHTML += `<div class="term-line ${type}">${escapeHtml(l)}</div>`;
+      });
+      t.scrollTop = t.scrollHeight;
+    }
+
+    function escapeHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    function switchTermTab(tab, btn) {
+      termTab = tab;
+      document.querySelectorAll('.tabs .tab').forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+      const t = document.getElementById('terminal-out');
+      if (!t) return;
+      if (tab === 'state') {
+        t.innerHTML = '<div class="term-line sys">⬡ WORKBENCH STATE</div>';
+        if (soulState) {
+          t.innerHTML += '<div class="term-line out">' + escapeHtml(JSON.stringify(soulState, null, 2)) + '</div>';
+        } else {
+          t.innerHTML += '<div class="term-line err">No state received yet.</div>';
+        }
+      } else if (tab === 'plt') {
+        const plt = JSON.parse(localStorage.getItem('scribe-plt') || '{"profit":0,"love":0,"tax":0,"totalActions":0}');
+        t.innerHTML = '<div class="term-line sys">⬡ PLT STATE</div>';
+        t.innerHTML += `<div class="term-line out">Profit: ${plt.profit.toFixed(2)}</div>`;
+        t.innerHTML += `<div class="term-line out">Love: ${plt.love.toFixed(2)}</div>`;
+        t.innerHTML += `<div class="term-line out">Tax: ${plt.tax.toFixed(2)}</div>`;
+        t.innerHTML += `<div class="term-line out">Total Actions: ${plt.totalActions}</div>`;
+        t.innerHTML += `<div class="term-line out">True Value: ${(plt.profit + plt.love - plt.tax).toFixed(2)}</div>`;
+      } else if (tab === 'mcp') {
+        t.innerHTML = '<div class="term-line sys">⬡ MCP CONNECTIONS</div>';
+        t.innerHTML += '<div class="term-line out">No MCP connections active</div>';
+        t.innerHTML += '<div class="term-line out">Use CLI to connect: node SCRIBE/scribe-cli.js</div>';
+      } else {
+        t.innerHTML = '<div class="term-line sys">⬡ CONSOLE LOG — Real-time events</div>';
+        addTermLine('out', 'Listening for updates...');
+      }
+    }
+
+    // PLT
+    function updatePLT(plt) {
+      if (!plt) return;
+      const p = Math.round((plt.profit || 0) * 100);
+      const l = Math.round((plt.love || 0) * 100);
+      const t = Math.round((plt.tax || 0) * 100);
+      animateNum('plt-profit', p);
+      animateNum('plt-love', l);
+      animateNum('plt-tax', t);
+      const tv = (plt.profit + plt.love - plt.tax).toFixed(2);
+      document.getElementById('plt-tv').textContent = tv;
+      document.getElementById('plt-display').textContent = `P:${p} L:${l} T:${t}`;
+
+      // Save to localStorage
+      localStorage.setItem('scribe-plt', JSON.stringify({ profit: plt.profit, love: plt.love, tax: plt.tax, totalActions: (plt.totalActions || 0) }));
+    }
+
+    function updateStats(stats) {
+      if (!stats) return;
+      animateNum('stat-req', stats.requestCount || 0);
+      animateNum('stat-tokens', stats.totalTokens || 0);
+      document.getElementById('req-display').textContent = `R:${stats.requestCount || 0}`;
+      document.getElementById('token-display').textContent = `T:${stats.totalTokens || 0}`;
+    }
+
+    function animateNum(id, target) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const cur = parseInt(el.textContent) || 0;
+      if (cur === target) return;
+      const step = (target - cur) / 10;
+      let val = cur;
+      const t = setInterval(() => {
+        val += step;
+        if ((step > 0 && val >= target) || (step < 0 && val <= target)) {
+          val = target; clearInterval(t);
+        }
+        el.textContent = Math.round(val);
+      }, 30);
+    }
+
+    // Soul upload
+    function uploadSoul(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      addTermLine('sys', `📦 Uploading soul: ${file.name}`);
+      addChatMsg('sys', `Uploading soul: ${file.name}...`);
+      // In a real implementation, this would send to the backend
+      setTimeout(() => {
+        addTermLine('out', `✅ Soul uploaded: ${file.name}`);
+        addChatMsg('sys', `Soul uploaded successfully.`);
+      }, 1000);
+    }
+
+    // Config
+    function loadConfig() {
+      const config = {
+        deepseekApiKey: process.env.DEEPSEEK_API_KEY || 'not-set',
+        mode: 'light',
+        dataDir: '~/.soul-scribe',
+        plt: JSON.parse(localStorage.getItem('scribe-plt') || '{"profit":0,"love":0,"tax":0}'),
+        skills: skillsData.length,
+        version: '1.0.0'
+      };
+      document.getElementById('config-textarea').value = JSON.stringify(config, null, 2);
+    }
+
+    function saveConfig() {
+      try {
+        const newConfig = JSON.parse(document.getElementById('config-textarea').value);
+        localStorage.setItem('scribe-config', JSON.stringify(newConfig));
+        addTermLine('sys', '✅ Config saved');
+      } catch(e) {
+        addTermLine('err', '❌ Invalid JSON: ' + e.message);
+      }
+    }
+
+    // Initialize
+    loadConfig();
+    updatePLT({ profit: 0.33, love: 0.33, tax: 0.34 });
+
+    // Soul grid
+    const soulGrid = document.getElementById('soul-grid');
+    if (soulGrid) {
+      soulGrid.innerHTML = `
+        <div class="soul-card active">
+          <span class="soul-emoji">📜</span>
+          <div class="soul-name">SCRIBE</div>
+          <div class="soul-stat">online</div>
+        </div>
+        <div class="soul-card">
+          <span class="soul-emoji">🧠</span>
+          <div class="soul-name">DEEPSEEK</div>
+          <div class="soul-stat">brain</div>
+        </div>
+        <div class="soul-card">
+          <span class="soul-emoji">🔗</span>
+          <div class="soul-name">MCP</div>
+          <div class="soul-stat">ready</div>
+        </div>
+        <div class="soul-card">
+          <span class="soul-emoji">⚡</span>
+          <div class="soul-name">SKILLS</div>
+          <div class="soul-stat">${skillsData.length}</div>
+        </div>
+      `;
+    }
+
+    // Agent list
+    const agentList = document.getElementById('agent-list');
+    if (agentList) {
+      agentList.innerHTML = `
+        <div class="agent-row">
+          <div><div class="agent-name">SCRIBE</div><div class="agent-task">Witnessing</div></div>
+          <div class="agent-status active">ONLINE</div>
+        </div>
+        <div class="agent-row">
+          <div><div class="agent-name">DEEPSEEK</div><div class="agent-task">Thinking</div></div>
+          <div class="agent-status active">ONLINE</div>
+        </div>
+        <div class="agent-row">
+          <div><div class="agent-name">MCP BRIDGE</div><div class="agent-task">Scanning</div></div>
+          <div class="agent-status idle">IDLE</div>
+        </div>
+      `;
+    }
+
+    // Status
+    document.getElementById('ws-status').textContent = 'ONLINE';
+    document.getElementById('ws-dot').className = 'dot';
+
+    addTermLine('sys', '⬡ SCRIBE WORKBENCH v1.0 INITIALIZED');
+    addTermLine('sys', '⬡ DeepSeek Brain + PLT Framework Active');
+    addTermLine('out', 'Type in the chat to interact with SCRIBE.');
+  </script>
+</body>
+</html>

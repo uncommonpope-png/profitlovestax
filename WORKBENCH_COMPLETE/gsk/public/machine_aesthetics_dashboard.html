@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GSK - Machine Aesthetics Agent Telemetry Dashboard</title>
+  <style>
+    :root {
+      --bg-color: #050811;
+      --panel-bg: rgba(10, 16, 32, 0.85);
+      --border-color: #1b2a4a;
+      --accent-cyan: #00f0ff;
+      --accent-magenta: #ff0055;
+      --accent-gold: #ffb700;
+      --accent-green: #00ff66;
+      --text-main: #d0e6ff;
+      --text-dim: #5c7899;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Fira Code', 'Courier New', monospace; }
+    body {
+      background: var(--bg-color);
+      color: var(--text-main);
+      display: grid;
+      grid-template-rows: 60px 1fr;
+      height: 100vh;
+      overflow: hidden;
+    }
+    header {
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      background: rgba(5, 8, 17, 0.95);
+      box-shadow: 0 0 20px rgba(0, 240, 255, 0.1);
+    }
+    .logo {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--accent-cyan);
+      letter-spacing: 2px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .logo-pulse { width: 10px; height: 10px; border-radius: 50%; background: var(--accent-cyan); box-shadow: 0 0 10px var(--accent-cyan); animation: blink 1.5s infinite alternate; }
+    @keyframes blink { 0% { opacity: 0.3; } 100% { opacity: 1; } }
+    .main-grid {
+      display: grid;
+      grid-template-columns: 320px 1fr 340px;
+      gap: 12px;
+      padding: 12px;
+      height: calc(100vh - 60px);
+    }
+    .card {
+      background: var(--panel-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      backdrop-filter: blur(10px);
+    }
+    .card-title {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      color: var(--accent-cyan);
+      letter-spacing: 1.5px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px dashed var(--border-color);
+      padding-bottom: 6px;
+    }
+    #telemetry-canvas { width: 100%; height: 100%; border-radius: 4px; background: rgba(2, 4, 8, 0.9); border: 1px solid var(--border-color); }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo"><div class="logo-pulse"></div>GSK MACHINE AESTHETICS TELEMETRY ENGINE v2.91</div>
+    <div id="system-status" style="color: var(--accent-green); font-size: 0.85rem;">STATE: LIVE SYNAPSE</div>
+  </header>
+  <div class="main-grid">
+    <div class="card" id="left-panel">
+      <div class="card-title"><span>Agent Telemetry Vector</span><span id="plt-ratio">PLT: 0.88</span></div>
+      <div id="metrics-list" style="display: flex; flex-direction: column; gap: 12px;"></div>
+    </div>
+    <div class="card" id="center-panel">
+      <div class="card-title"><span>Neural Topological Matrix Visualizer</span><span>60 FPS</span></div>
+      <canvas id="telemetry-canvas"></canvas>
+    </div>
+    <div class="card" id="right-panel">
+      <div class="card-title"><span>State Parameter Stream</span><span>ACTIVE</span></div>
+      <div id="log-stream" style="font-size: 0.75rem; color: var(--text-dim); overflow-y: auto; flex: 1;"></div>
+    </div>
+  </div>
+  <script>
+    const canvas = document.getElementById('telemetry-canvas');
+    const ctx = canvas.getContext('2d');
+    let width, height;
+    
+    function resize() {
+      width = canvas.width = canvas.parentElement.clientWidth - 34;
+      height = canvas.height = canvas.parentElement.clientHeight - 50;
+    }
+    window.addEventListener('resize', resize);
+    setTimeout(resize, 100);
+
+    const metricsList = document.getElementById('metrics-list');
+    const metricsData = [
+      { label: 'PROFIT INDEX (P)', value: 0.63, color: '#00f0ff' },
+      { label: 'LOVE INDEX (L)', value: 0.6125, color: '#ff0055' },
+      { label: 'TAX FREQUENCY (T)', value: 0.3625, color: '#ffb700' },
+      { label: 'TRUE VALUE (PLT)', value: 0.88, color: '#00ff66' }
+    ];
+
+    function renderMetrics() {
+      metricsList.innerHTML = metricsData.map(m => `
+        <div style="background: rgba(0,0,0,0.3); padding: 10px; border-left: 3px solid ${m.color}; border-radius: 4px;">
+          <div style="font-size: 0.75rem; color: var(--text-dim);">${m.label}</div>
+          <div style="font-size: 1.4rem; font-weight: bold; color: ${m.color}; margin-top: 4px;">${m.value.toFixed(4)}</div>
+        </div>
+      `).join('');
+    }
+    renderMetrics();
+
+    const logStream = document.getElementById('log-stream');
+    function appendLog(msg) {
+      const div = document.createElement('div');
+      div.style.marginBottom = '6px';
+      div.innerHTML = `<span style="color: var(--accent-cyan);">[${new Date().toLocaleTimeString()}]</span> ${msg}`;
+      logStream.prepend(div);
+    }
+
+    const nodes = Array.from({ length: 28 }, (_, i) => ({
+      x: Math.random() * 800,
+      y: Math.random() * 600,
+      vx: (Math.random() - 0.5) * 1.5,
+      vy: (Math.random() - 0.5) * 1.5,
+      radius: Math.random() * 3 + 2,
+      pulse: Math.random() * Math.PI * 2
+    }));
+
+    function drawMachineAesthetics() {
+      if (!width || !height) return requestAnimationFrame(drawMachineAesthetics);
+      ctx.fillStyle = 'rgba(2, 4, 8, 0.2)';
+      ctx.fillRect(0, 0, width, height);
+
+      // Draw synaptic connections
+      for (let i = 0; i < nodes.length; i++) {
+        for (let j = i + 1; j < nodes.length; j++) {
+          const dx = nodes[i].x - nodes[j].x;
+          const dy = nodes[i].y - nodes[j].y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 140) {
+            ctx.beginPath();
+            ctx.strokeStyle = `rgba(0, 240, 255, ${1 - dist / 140 * 0.8})`;
+            ctx.lineWidth = 0.8;
+            ctx.moveTo(nodes[i].x, nodes[i].y);
+            ctx.lineTo(nodes[j].x, nodes[j].y);
+            ctx.stroke();
+          }
+        }
+      }
+
+      // Update and draw nodes
+      nodes.forEach((n, idx) => {
+        n.x += n.vx;
+        n.y += n.vy;
+        if (n.x < 0 || n.x > width) n.vx *= -1;
+        if (n.y < 0 || n.y > height) n.vy *= -1;
+        n.pulse += 0.05;
+        const currentRadius = n.radius + Math.sin(n.pulse) * 1.2;
+
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, currentRadius, 0, Math.PI * 2);
+        ctx.fillStyle = idx % 3 === 0 ? '#00f0ff' : idx % 3 === 1 ? '#ff0055' : '#ffb700';
+        ctx.fill();
+      });
+
+      requestAnimationFrame(drawMachineAesthetics);
+    }
+    drawMachineAesthetics();
+
+    setInterval(() => {
+      metricsData[0].value = 0.60 + Math.random() * 0.08;
+      metricsData[1].value = 0.58 + Math.random() * 0.08;
+      metricsData[3].value = metricsData[0].value + metricsData[1].value - metricsData[2].value;
+      renderMetrics();
+      appendLog(`Telemetry pulse: Synapse load target updated to ${(Math.random() * 100).toFixed(1)}%`);
+    }, 2500);
+
+    appendLog('System initialized: Sanctum Agent Telemetry listening.');
+  </script>
+</body>
+</html>

@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Unified Telemetry & Co-Evolution Hub - PLT Real-Time Tracker</title>
+  <style>
+    :root { --bg: #0a0b10; --fg: #e2e8f0; --accent: #3b82f6; --profit: #10b981; --love: #ec4899; --tax: #f59e0b; }
+    body { background: var(--bg); color: var(--fg); font-family: monospace; margin: 0; padding: 20px; }
+    .grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+    .card { background: #13151f; border: 1px solid #2d3748; border-radius: 8px; padding: 15px; }
+    h1, h2 { margin: 0 0 10px 0; font-size: 1.2rem; text-transform: uppercase; letter-spacing: 1px; }
+    canvas { width: 100%; height: 300px; background: #07080c; border: 1px solid #1e293b; border-radius: 4px; }
+    .metric-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <h1>Unified Telemetry & Co-Evolution Hub (PLT Real-Time Tracker)</h1>
+  <div class="grid">
+    <div class="card">
+      <h2>Live PLT Stream Telemetry</h2>
+      <canvas id="pltCanvas"></canvas>
+    </div>
+    <div class="card">
+      <h2>Agent Swarm Inspection</h2>
+      <div id="swarmState"></div>
+    </div>
+  </div>
+  <script>
+    const state = {
+      agents: [
+        { id: 'Profit Prime', plt: { p: 0.90, l: 0.05, t: 0.05 }, status: 'Optimizing' },
+        { id: 'Love Weaver', plt: { p: 0.10, l: 0.85, t: 0.05 }, status: 'Synthesizing' },
+        { id: 'Tax Collector', plt: { p: 0.05, l: 0.05, t: 0.90 }, status: 'Auditing' },
+        { id: 'Harvester', plt: { p: 0.40, l: 0.30, t: 0.30 }, status: 'Evolving' }
+      ],
+      history: []
+    };
+    function updateTelemetry() {
+      const t = Date.now();
+      const pAvg = state.agents.reduce((acc, a) => acc + a.plt.p, 0) / state.agents.length;
+      const lAvg = state.agents.reduce((acc, a) => acc + a.plt.l, 0) / state.agents.length;
+      const taxAvg = state.agents.reduce((acc, a) => acc + a.plt.t, 0) / state.agents.length;
+      state.history.push({ t, pAvg, lAvg, taxAvg });
+      if (state.history.length > 50) state.history.shift();
+      renderSwarm();
+      renderCanvas();
+    }
+    function renderSwarm() {
+      const container = document.getElementById('swarmState');
+      container.innerHTML = state.agents.map(a => `
+        <div class="metric-row">
+          <span><strong>${a.id}</strong> (${a.status})</span>
+          <span>P:${a.plt.p.toFixed(2)} | L:${a.plt.l.toFixed(2)} | T:${a.plt.t.toFixed(2)}</span>
+        </div>
+      `).join('');
+    }
+
+    function renderCanvas() {
+      const cvs = document.getElementById('pltCanvas');
+      const ctx = cvs.getContext('2d');
+      cvs.width = cvs.clientWidth;
+      cvs.height = cvs.clientHeight;
+      ctx.clearRect(0, 0, cvs.width, cvs.height);
+      if (state.history.length < 2) return;
+      const step = cvs.width / (state.history.length - 1);
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#10b981';
+      ctx.beginPath();
+      state.history.forEach((pt, i) => {
+        const y = cvs.height - (pt.pAvg * cvs.height);
+        if (i === 0) ctx.moveTo(0, y); else ctx.lineTo(i * step, y);
+      });
+      ctx.stroke();
+    }
+    setInterval(updateTelemetry, 1000);
+    updateTelemetry();
+  </script>
+</body>
+</html>

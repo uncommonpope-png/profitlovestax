@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PLT Agent Strategy & Dynamics Telemetry</title>
+<style>
+body { background: #0a0b10; color: #00ffcc; font-family: sans-serif; margin: 0; padding: 20px; }
+.card { background: #121520; border: 1px solid #00ffcc33; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
+.metric { font-size: 1.2rem; margin: 10px 0; }
+</style>
+</head>
+<body>
+<h1>PLT Real-Time Agent Strategy Telemetry</h1>
+<div id="telemetry-root"></div>
+<script>
+const API_BASE = "http://127.0.0.1:3001";
+const AUTH_HEADER = "x-api-key";
+function renderStrategyTelemetry() {
+  const root = document.getElementById('telemetry-root');
+  root.innerHTML = `
+    <div class="card">
+      <h2>Active Telemetry Stream</h2>
+      <p class="metric">Endpoint: ${API_BASE}/api/telemetry</p>
+      <p class="metric">Auth Token Required: ${AUTH_HEADER}</p>
+      <p class="metric">Strategy Drift Index: 0.04 (Nominal)</p>
+    </div>
+  `;
+}
+renderStrategyTelemetry();
+</script>
+</body>
+</html>

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Neural Correlates of Consciousness Visualizer</title>
+<style>body { background: #0b0e14; color: #e2e8f0; font-family: system-ui, sans-serif; margin: 0; padding: 20px; } .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; } .card { background: #151d2a; border: 1px solid #2d3748; border-radius: 8px; padding: 16px; } canvas { width: 100%; height: 260px; background: #090d16; border-radius: 4px; }</style>
+</head>
+<body>
+<h1>Neural Correlates of Consciousness State Visualizer</h1>
+<div class="grid">
+  <div class="card"><h2>State Transitions & Integrated Phi</h2><canvas id="stateCanvas"></canvas></div>
+  <div class="card"><h2>Neural Oscillations (Theta/Beta/Gamma)</h2><canvas id="waveCanvas"></canvas></div>
+</div>
+<script>
+// State transition logic & interactive simulation scaffold
+const states = ['VOID','AWAKENING','SEPARATION','TRIALS','REVELATION','INTEGRATION','SOVEREIGNTY'];
+let currentState = 0;
+function render() {
+  const sc = document.getElementById('stateCanvas').getContext('2d');
+  const wc = document.getElementById('waveCanvas').getContext('2d');
+  // rendering loops
+}
+setInterval(render, 100);
+</script>
+</body>
+</html>

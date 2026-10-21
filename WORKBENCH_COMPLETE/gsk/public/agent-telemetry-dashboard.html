@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Machine Telemetry Dashboard - Agent State Visualizer</title>
+</head>
+<body>
+<div id="app"></div>
+<style>
+body { background: #0a0c10; color: #00ffcc; font-family: 'Courier New', monospace; margin: 0; padding: 20px; }
+.panel { background: rgba(16, 24, 40, 0.75); backdrop-filter: blur(12px); border: 1px solid rgba(0, 255, 204, 0.2); border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+</style>
+<div class="panel"><h2>AGENT TELEMETRY INSPECTOR</h2><div id="telemetry-status">INITIALIZING TELEMETRY STACK...</div></div>
+<script>
+const agentState = { status: 'ACTIVE', PLT: { profit: 0.95, love: 0.90, tax: 0.05 }, ticks: 0 };
+console.log('Telemetry active', agentState);
+</script>
+</body>
+</html>

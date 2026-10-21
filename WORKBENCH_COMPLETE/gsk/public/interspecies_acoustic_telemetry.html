@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Interspecies Acoustic Telemetry Visualizer</title>
+<style>
+body { margin: 0; background: #0a0d14; color: #e2e8f0; font-family: monospace; overflow: hidden; }
+#header { padding: 12px 20px; background: #111827; border-bottom: 1px solid #1f2937; display: flex; justify-content: space-between; align-items: center; }
+.card { background: #1f2937; padding: 10px 16px; border-radius: 6px; border: 1px solid #374151; }
+#canvas-container { width: 100vw; height: calc(100vh - 60px); position: relative; }
+canvas { width: 100%; height: 100%; display: block; }
+</style>
+</head>
+<body>
+<div id="header">
+  <div><strong>INTERSPECIES ACOUSTIC TELEMETRY VISUALIZER</strong> | Bio-Signal PLT Decoder</div>
+  <div class="card" id="plt-display">PLT Score: <span id="plt-val">0.950</span> (Profit: 0.90 | Love: 0.05 | Tax: 0.05)</div>
+</div>
+<div id="canvas-container">
+  <canvas id="telemetryCanvas"></canvas>
+</div>
+<script>
+const canvas = document.getElementById('telemetryCanvas');
+const ctx = canvas.getContext('2d');
+function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight - 60; }
+window.addEventListener('resize', resize); resize();
+const bioSignals = [
+  { species: 'Cetacean Bio-Pulse (Whale)', freq: 18, amplitude: 0.85, pltYield: 0.92, status: 'DECODED' },
+  { species: 'Mycelial Electric Chirp', freq: 120, amplitude: 0.45, pltYield: 0.88, status: 'HARMONIZING' },
+  { species: 'Avian Acoustic Pattern', freq: 4400, amplitude: 0.65, pltYield: 0.96, status: 'ACTIVE' }
+];
+let phase = 0;
+function render() {
+  ctx.fillStyle = '#0a0d14';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.lineWidth = 2;
+  bioSignals.forEach((sig, idx) => {
+    ctx.beginPath();
+    ctx.strokeStyle = idx === 0 ? '#10b981' : idx === 1 ? '#3b82f6' : '#f59e0b';
+    const yOffset = (canvas.height / (bioSignals.length + 1)) * (idx + 1);
+    for (let x = 0; x < canvas.width; x += 5) {
+      const y = yOffset + Math.sin((x * 0.01) + phase + idx) * (sig.amplitude * 40);
+      if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    ctx.fillStyle = ctx.strokeStyle;
+    ctx.fillText(`${sig.species} | Freq: ${sig.freq}Hz | PLT Yield: ${sig.pltYield}`, 20, yOffset - 45);
+  });
+  phase += 0.05;
+  requestAnimationFrame(render);
+}
+render();
+</script>
+</body>
+</html>

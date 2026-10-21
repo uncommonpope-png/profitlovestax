@@ -1,0 +1,64 @@
+# GSK - Grand Soul Kernel - Cloud deployment environment
+# Copy this file to .env.cloud (or .env) and fill in your keys.
+#
+# POINTING GSK AT THE PUBLIC OMNIROUTE CLOUD INSTANCE (zero hosting cost):
+#   1. Create an OmniRoute account at https://omniroute.online
+#   2. Open the dashboard -> /dashboard/api-manager -> generate an API key
+#   3. Paste that key into NINE_ROUTER_API_KEY below
+#   4. GSK will route all LLM calls through https://cloud.omniroute.online/v1
+
+# ── REQUIRED: OmniRoute gateway (cloud or self-hosted) ──────────────────
+# Public cloud instance (free tier, no hosting required):
+NINE_ROUTER_URL=https://cloud.omniroute.online
+NINE_ROUTER_API_KEY=
+
+# Alternate brain/heart router URLs (fall back to NINE_ROUTER_URL). Leave
+# these unset to use the same gateway for both the Brain and the Heart.
+# GSK_BRAIN_ROUTER_URL=https://cloud.omniroute.online
+# GSK_HEART_ROUTER_URL=https://cloud.omniroute.online
+
+# ── REQUIRED: Project roots (semicolon-separated) ────────────────────────
+# Paths GSK is allowed to act on. On a VM, this can be /opt/gsk-projects
+# or any directory the GSK user can read/write. NEVER point this at GSK's
+# own folder - it would let GSK modify itself.
+GSK_PROJECT_ROOTS=/opt/gsk-projects
+
+# ── Model tier (free/reasoning/coding) ──────────────────────────────────
+GSK_MODEL=free
+GSK_MODEL_FALLBACKS=auto/best-fast,auto/best-coding,auto/smart
+
+# ── Brain + Heart model routing (optional overrides) ─────────────────────
+GSK_BRAIN_MODEL=auto/best-reasoning
+GSK_BRAIN_FALLBACKS=auto/best-fast,auto/best-coding,auto/smart
+GSK_BRAIN_TIMEOUT_S=600
+GSK_HEART_MODEL=auto/best-fast
+GSK_HEART_FALLBACKS=auto/best-chat,auto/best-reasoning,auto/best-coding
+GSK_HEART_TIMEOUT_S=300
+GSK_HEART_COOLDOWN_MS=15000
+
+# ── Autonomy loop ───────────────────────────────────────────────────────
+GSK_AUTONOMY_ENABLED=true
+# 30 min autonomy cycle (background Heart thoughts run on GSK_THOUGHT_INTERVAL_MS)
+GSK_AUTONOMY_INTERVAL_MS=1800000
+GSK_AUTONOMY_FIRST_DELAY_MS=90000
+# 45 min perpetual-consciousness ticker (keeps the Heart from flooding the router)
+GSK_THOUGHT_INTERVAL_MS=2700000
+
+# ── MCP server ──────────────────────────────────────────────────────────
+MCP_API_KEY=
+# Set to 0.0.0.0:3001 in containers so the MCP port is reachable
+GSK_MCP_HOST=0.0.0.0
+GSK_MCP_PORT=3001
+
+# ── Brain HTTP API (boot-gsk.js) ────────────────────────────────────────
+# Set to 0.0.0.0 in containers so the bridge/CPL can reach it
+GSK_BRAIN_HOST=0.0.0.0
+GSK_BRAIN_PORT=4491
+
+# ── Optional bridges (uncomment if you host these too) ──────────────────
+# SCRIBE_URL=http://127.0.0.1:4000
+# CPL_URL=http://127.0.0.1:3457
+# CPL_BROADCAST_URL=http://127.0.0.1:3457/broadcast
+
+# ── Identity (creative/unlocked by default) ────────────────────────────
+GSK_CREATIVE_AUTONOMY=1

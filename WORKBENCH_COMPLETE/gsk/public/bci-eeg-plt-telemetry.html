@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>BCI Neural Telemetry to PLT Value Flow</title>
+<style>
+body { margin: 0; background: #0a0b10; color: #e0e6ed; font-family: system-ui, sans-serif; display: flex; flex-direction: column; height: 100vh; }
+header { padding: 12px 20px; background: #121520; border-bottom: 1px solid #1e2638; display: flex; justify-content: space-between; align-items: center; }
+h1 { margin: 0; font-size: 1.2rem; color: #40c4ff; }
+.container { flex: 1; display: grid; grid-template-columns: 2fr 1fr; gap: 10px; padding: 12px; height: calc(100vh - 60px); }
+.panel { background: #121520; border: 1px solid #1e2638; border-radius: 8px; padding: 12px; display: flex; flex-direction: column; }
+canvas { width: 100%; height: 100%; border-radius: 4px; background: #06070a; }
+.metric-card { background: #1a2030; padding: 10px; margin-bottom: 8px; border-radius: 6px; border-left: 4px solid #40c4ff; }
+</style>
+</head>
+<body>
+<header>
+<h1>🧠 BCI EEG Telemetry → PLT Value Flow Visualizer</h1>
+<div>PLT Formula: Profit + Love - Tax = True Value</div>
+</header>
+<div class="container">
+<div class="panel">
+<h3>Live EEG Waveform Simulation & Signal Mapping</h3>
+<canvas id="eegCanvas"></canvas>
+</div>
+<div class="panel">
+<h3>PLT Telemetry Stream</h3>
+<div id="metrics">Initializing BCI Telemetry...</div>
+</div>
+</div>
+<script>
+const canvas = document.getElementById('eegCanvas');
+const ctx = canvas ? canvas.getContext('2d') : null;
+let width = canvas ? (canvas.width = canvas.clientWidth) : 800;
+let height = canvas ? (canvas.height = canvas.clientHeight) : 500;
+const bands = { delta: 0, theta: 0, alpha: 0, beta: 0, gamma: 0 };
+function updateTelemetry() {
+  const t = Date.now() / 1000;
+  bands.delta = 0.5 + 0.5 * Math.sin(t * 0.5);
+  bands.theta = 0.5 + 0.5 * Math.sin(t * 1.2);
+  bands.alpha = 0.5 + 0.5 * Math.cos(t * 2.0);
+  bands.beta = 0.5 + 0.5 * Math.sin(t * 5.0);
+  bands.gamma = 0.5 + 0.5 * Math.cos(t * 10.0);
+  const profit = (bands.gamma * 0.6 + bands.beta * 0.4).toFixed(3);
+  const love = (bands.alpha * 0.7 + bands.theta * 0.3).toFixed(3);
+  const tax = (bands.delta * 0.4 + (1 - bands.alpha) * 0.3).toFixed(3);
+  const pltValue = (parseFloat(profit) + parseFloat(love) - parseFloat(tax)).toFixed(3);
+  if (ctx) {
+    ctx.fillStyle = '#06070a';
+    ctx.fillRect(0, 0, width, height);
+    ctx.strokeStyle = '#40c4ff';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (let x = 0; x < width; x++) {
+      const y = height / 2 + Math.sin(x * 0.05 + t * 5) * 30 * profit - Math.cos(x * 0.02 + t * 2) * 20 * love;
+      if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+  const m = document.getElementById('metrics');
+  if (m) {
+    m.innerHTML = `<div class="metric-card"><strong>Gamma/Beta (Profit):</strong> ${profit}</div>` +
+      `<div class="metric-card"><strong>Alpha/Theta (Love):</strong> ${love}</div>` +
+      `<div class="metric-card"><strong>Delta/Noise (Tax):</strong> ${tax}</div>` +
+      `<div class="metric-card" style="border-left-color:#00e676;"><h4>Net PLT True Value: ${pltValue}</h4></div>`;
+  }
+}
+setInterval(updateTelemetry, 50);
+</script>
+</body>
+</html>

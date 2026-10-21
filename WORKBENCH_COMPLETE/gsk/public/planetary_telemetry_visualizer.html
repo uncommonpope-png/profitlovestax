@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Planetary Consciousness Stream Visualizer</title>
+<style>
+body { margin: 0; background: #080c14; color: #e2e8f0; font-family: system-ui, sans-serif; overflow: hidden; }
+.hud { position: absolute; top: 20px; left: 20px; z-index: 10; background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 20px; border-radius: 12px; max-width: 360px; }
+h1 { font-size: 1.25rem; margin: 0 0 6px 0; color: #38bdf8; text-transform: uppercase; letter-spacing: 1px; }
+p { margin: 0; font-size: 0.85rem; color: #94a3b8; }
+#metrics { margin-top: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.8rem; }
+.metric-box { background: rgba(255,255,255,0.05); padding: 8px; border-radius: 6px; }
+.val { font-weight: bold; font-size: 1rem; color: #4ade80; }
+</style>
+</head>
+<body>
+<div class="hud">
+<h1>Planetary Consciousness Stream</h1>
+<p>Global Telemetric & Sentiment Signals</p>
+<div id="metrics">
+<div class="metric-box"><div>Global Coherence</div><div class="val" id="m-coherence">0.88</div></div>
+<div class="metric-box"><div>Active Nodes</div><div class="val" id="m-nodes">1,024</div></div>
+</div>
+</div>
+<canvas id="globeCanvas"></canvas>
+<script>
+console.log('Planetary telemetry stream initializing...');
+const canvas = document.getElementById('globeCanvas');
+const ctx = canvas.getContext('2d');
+let width, height;
+function resize() { width = canvas.width = window.innerWidth; height = canvas.height = window.innerHeight; }
+window.addEventListener('resize', resize); resize();
+
+const nodes = Array.from({length: 60}, () => ({
+  lat: (Math.random() - 0.5) * Math.PI,
+  lon: Math.random() * Math.PI * 2,
+  pulse: Math.random() * Math.PI * 2,
+  signal: Math.random()
+}));
+
+let angle = 0;
+function draw() {
+  ctx.fillStyle = 'rgba(8, 12, 20, 0.2)';
+  ctx.fillRect(0, 0, width, height);
+  const cx = width / 2, cy = height / 2;
+  const r = Math.min(width, height) * 0.3;
+  angle += 0.005;
+  
+  nodes.forEach(n => {
+    n.pulse += 0.05;
+    const x = cx + r * Math.cos(n.lat) * Math.sin(n.lon + angle);
+    const y = cy + r * Math.sin(n.lat);
+    const z = Math.cos(n.lon + angle);
+    if (z > 0) {
+      const size = (2 + Math.sin(n.pulse)) * z;
+      ctx.beginPath();
+      ctx.arc(x, y, Math.max(1, size), 0, Math.PI * 2);
+      ctx.fillStyle = n.signal > 0.5 ? '#38bdf8' : '#f43f5e';
+      ctx.fill();
+    }
+  });
+  requestAnimationFrame(draw);
+}
+draw();
+</script>
+</body>
+</html>

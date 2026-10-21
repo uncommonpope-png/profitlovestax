@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GSK Real-Time PLT Telemetry Dashboard</title>
+<style>
+body { background-color: #0b0f19; color: #e2e8f0; font-family: monospace; margin: 0; padding: 20px; }
+.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 16px; }
+.metric-title { font-size: 0.9rem; color: #94a3b8; text-transform: uppercase; }
+.metric-value { font-size: 2rem; font-weight: bold; margin-top: 8px; }
+</style>
+</head>
+<body>
+<h1 style="color:#38bdf8;">GSK Real-Time Telemetry Dashboard — PLT Operational Visualizer</h1>
+<div class="grid">
+<div class="card"><div class="metric-title">Profit Ratio (P)</div><div id="val-profit" class="metric-value" style="color:#4ade80;">0.00</div></div>
+<div class="card"><div class="metric-title">Love Weaver Index (L)</div><div id="val-love" class="metric-value" style="color:#f472b6;">0.00</div></div>
+<div class="card"><div class="metric-title">Tax Overhead (T)</div><div id="val-tax" class="metric-value" style="color:#fbbf24;">0.00</div></div>
+</div>
+<div class="card" style="margin-top:20px;">
+<h3>Bio-Acoustic & Operational Telemetry Stream</h3>
+<canvas id="telemetry-canvas" width="900" height="240" style="width:100%; background:#0f172a; border-radius:6px;"></canvas>
+</div>
+<script>
+const canvas = document.getElementById('telemetry-canvas');
+const ctx = canvas.getContext('2d');
+let history = Array(100).fill(0);
+
+function generateSignal() {
+  const now = Date.now();
+  const profitSig = 0.5 + 0.4 * Math.sin(now / 800) + Math.random() * 0.1;
+  const loveSig = 0.5 + 0.3 * Math.cos(now / 1200) + Math.random() * 0.1;
+  const taxSig = 0.1 + 0.1 * Math.sin(now / 500) + Math.random() * 0.05;
+  
+  document.getElementById('val-profit').innerText = profitSig.toFixed(3);
+  document.getElementById('val-love').innerText = loveSig.toFixed(3);
+  document.getElementById('val-tax').innerText = taxSig.toFixed(3);
+  
+  history.push(profitSig - taxSig + (loveSig * 0.2));
+  if (history.length > 100) history.shift();
+  
+  drawCanvas();
+}
+
+function drawCanvas() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.strokeStyle = '#38bdf8';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  const step = canvas.width / 100;
+  for(let i=0; i<history.length; i++) {
+    const x = i * step;
+    const y = canvas.height - (history[i] * canvas.height * 0.8) - 10;
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+}
+
+setInterval(generateSignal, 100);
+</script>
+</body>
+</html>

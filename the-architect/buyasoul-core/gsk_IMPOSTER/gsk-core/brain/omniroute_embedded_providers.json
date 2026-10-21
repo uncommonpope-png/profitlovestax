@@ -1,0 +1,14 @@
+// OmniRoute Built-in Providers — no extra API keys needed
+// These are baked into OmniRoute's codebase and work out of the box
+[
+  { name: "ollama",        type: "ollama",    basePath: "/ollama", defaultModel: "llama3.2:1b" },
+  { name: "mcp",           type: "mcp",       basePath: "/mcp",    defaultModel: "mcp-tool" },
+  { name: "docker",        type: "docker",    basePath: "/docker", defaultModel: "docker-sandbox" },
+  { name: "web",           type: "web",       basePath: "/web",    defaultModel: "web-fetch" },
+  { name: "code-interpreter", type: "code",  basePath: "/code",    defaultModel: "code-interpreter" },
+  { name: "image",         type: "image",     basePath: "/image",    defaultModel: "dall-e-3" },
+  { name: "audio",         type: "audio",     basePath: "/audio",    defaultModel: "tts-1" },
+  { name: "video",         type: "video",    basePath: "/video",     defaultModel: "video-gen" },
+  { name: "filesystem",    type: "filesystem", basePath: "/fs",      defaultModel: "file-read" },
+  { name: "terminal",      type: "terminal",  basePath: "/terminal", defaultModel: "shell" }
+]

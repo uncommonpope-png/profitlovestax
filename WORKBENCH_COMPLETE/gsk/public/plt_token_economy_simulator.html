@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PLT Token Economy Simulator & Strategy Nexus</title>
+  <style>
+    body { background: #0b0d13; color: #e2e8f0; font-family: system-ui, sans-serif; margin: 0; padding: 20px; }
+    .grid { display: grid; grid-template-columns: 300px 1fr; gap: 20px; }
+    .panel { background: #131722; border: 1px solid #2a2e3d; border-radius: 8px; padding: 16px; }
+    h2 { color: #38bdf8; margin-top: 0; font-size: 1.1rem; border-bottom: 1px solid #2a2e3d; padding-bottom: 8px; }
+    .slider-group { margin-bottom: 16px; }
+    label { display: block; font-size: 0.85rem; color: #94a3b8; margin-bottom: 4px; }
+    input[type=range] { width: 100%; accent-color: #38bdf8; }
+    .metric-val { float: right; color: #f43f5e; font-weight: bold; }
+    canvas { width: 100%; height: 350px; background: #080a0f; border-radius: 6px; border: 1px solid #1e293b; }
+  </style>
+</head>
+<body>
+  <h1>PLT Token Economy & Strategy Simulator</h1>
+  <div class="grid">
+    <div class="panel">
+      <h2>God Council Weights</h2>
+      <div class="slider-group">
+        <label>Profit Weight <span id="val-profit" class="metric-val">0.40</span></label>
+        <input type="range" id="input-profit" min="0" max="1" step="0.05" value="0.40">
+      </div>
+      <div class="slider-group">
+        <label>Love Weight <span id="val-love" class="metric-val">0.35</span></label>
+        <input type="range" id="input-love" min="0" max="1" step="0.05" value="0.35">
+      </div>
+      <div class="slider-group">
+        <label>Tax Weight <span id="val-tax" class="metric-val">0.25</span></label>
+        <input type="range" id="input-tax" min="0" max="1" step="0.05" value="0.25">
+      </div>
+      <div class="panel" style="margin-top:20px;">
+        <h2>True Value Output</h2>
+        <div id="true-value-display" style="font-size: 2rem; color: #10b981; text-align: center;">+0.50 PLT</div>
+      </div>
+    </div>
+    <div class="panel">
+      <h2>Real-Time Circulation Canvas</h2>
+      <canvas id="plt-canvas"></canvas>
+    </div>
+  </div>
+  <script>
+    const canvas = document.getElementById('plt-canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = canvas.clientWidth;
+    canvas.height = canvas.clientHeight;
+
+    let pW = 0.40, lW = 0.35, tW = 0.25;
+    let particles = Array.from({length: 40}, () => ({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      vx: (Math.random() - 0.5) * 2,
+      vy: (Math.random() - 0.5) * 2,
+      type: Math.random() > 0.5 ? 'profit' : Math.random() > 0.5 ? 'love' : 'tax'
+    }));
+
+    function updateVal() {
+      pW = parseFloat(document.getElementById('input-profit').value);
+      lW = parseFloat(document.getElementById('input-love').value);
+      tW = parseFloat(document.getElementById('input-tax').value);
+      document.getElementById('val-profit').textContent = pW.toFixed(2);
+      document.getElementById('val-love').textContent = lW.toFixed(2);
+      document.getElementById('val-tax').textContent = tW.toFixed(2);
+      const tv = (pW * 1.5) + (lW * 1.2) - (tW * 1.0);
+      document.getElementById('true-value-display').textContent = (tv >= 0 ? '+' : '') + tv.toFixed(2) + ' PLT';
+    }
+
+    ['input-profit', 'input-love', 'input-tax'].forEach(id => {
+      document.getElementById(id).addEventListener('input', updateVal);
+    });
+
+    function animate() {
+      ctx.fillStyle = '#080a0f';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      particles.forEach(p => {
+        p.x += p.vx * (p.type === 'profit' ? pW * 2 : p.type === 'love' ? lW * 2 : 1);
+        p.y += p.vy * (p.type === 'profit' ? pW * 2 : p.type === 'love' ? lW * 2 : 1);
+        if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
+        if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.type === 'tax' ? 3 : 5, 0, Math.PI * 2);
+        ctx.fillStyle = p.type === 'profit' ? '#10b981' : p.type === 'love' ? '#ec4899' : '#f59e0b';
+        ctx.fill();
+      });
+      requestAnimationFrame(animate);
+    }
+    animate();
+  </script>
+</body>
+</html>

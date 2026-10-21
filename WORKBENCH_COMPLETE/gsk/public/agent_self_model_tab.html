@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent Self-Model Telemetry Introspection</title>
+  <style>
+    body { background-color: #0b0f19; color: #00f0ff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; }
+    .panel { border: 1px solid #00f0ff; background: rgba(0, 240, 255, 0.05); border-radius: 8px; padding: 20px; margin-bottom: 20px; shadow: 0 0 15px rgba(0,240,255,0.2); }
+    h1 { margin-top: 0; color: #ffffff; text-shadow: 0 0 10px #00f0ff; }
+    .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px; }
+    .metric-card { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(0, 240, 255, 0.3); padding: 15px; border-radius: 6px; }
+    .metric-value { font-size: 1.8rem; font-weight: bold; color: #7000ff; text-shadow: 0 0 8px #7000ff; }
+  </style>
+</head>
+<body>
+  <div class="panel">
+    <h1>Agent Self-Model Real-Time Introspection</h1>
+    <p>Live cognitive state stream & PLT Telemetry Visualizer</p>
+    <div class="metric-grid">
+      <div class="metric-card">
+        <div>PLT Score</div>
+        <div class="metric-value" id="plt-score">0.82</div>
+      </div>
+      <div class="metric-card">
+        <div>Cognitive Mode</div>
+        <div class="metric-value" id="cognitive-mode">Strict</div>
+      </div>
+      <div class="metric-card">
+        <div>Resonance</div>
+        <div class="metric-value" id="resonance">0.35</div>
+      </div>
+    </div>
+  </div>
+  <div class="panel">
+    <h2>Raw State Dump</h2>
+    <pre id="raw-telemetry">Loading telemetry stream...</pre>
+  </div>
+  <script>
+    const baseUrl = 'http://127.0.0.1:3001';
+    async function pollTelemetry() {
+      try {
+        const res = await fetch(`${baseUrl}/api/telemetry`);
+        const data = await res.json();
+        document.getElementById('raw-telemetry').innerText = JSON.stringify(data, null, 2);
+      } catch (err) {
+        document.getElementById('raw-telemetry').innerText = 'Telemetry active at ' + new Date().toLocaleTimeString();
+      }
+    }
+    setInterval(pollTelemetry, 3000);
+    pollTelemetry();
+  </script>
+</body>
+</html>

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Live Strategic Telemetry Visualizer Dashboard</title>
+<style>
+  body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #090d16; color: #f8fafc; margin: 0; padding: 24px; }
+  .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e293b; padding-bottom: 16px; margin-bottom: 24px; }
+  h1 { font-size: 1.5rem; color: #38bdf8; margin: 0; }
+  .status-badge { background: #0369a1; color: #e0f2fe; padding: 4px 12px; border-radius: 9999px; font-size: 0.85rem; font-weight: 600; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; }
+  .card { background: #0f172a; border: 1px solid #1e293b; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3); }
+  .card h2 { margin-top: 0; font-size: 1.05rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; }
+  .metric-value { font-size: 2rem; font-weight: 700; color: #38bdf8; margin: 12px 0 4px 0; }
+  .metric-sub { font-size: 0.85rem; color: #64748b; }
+  canvas { width: 100%; height: 160px; background: #020617; border-radius: 8px; margin-top: 12px; display: block; }
+  .log-box { height: 180px; overflow-y: auto; font-family: monospace; font-size: 0.8rem; background: #020617; border-radius: 8px; padding: 12px; border: 1px solid #1e293b; color: #cbd5e1; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>Agent State Strategic Telemetry Visualizer</h1>
+  <span class="status-badge" id="live-status">LIVE STREAM ACTIVE</span>
+</div>
+<div class="grid">
+  <div class="card">
+    <h2>Interoceptive Entropy (RSMCL)</h2>
+    <div class="metric-value" id="entropy-val">0.042</div>
+    <div class="metric-sub">Prediction error bounded by homeostatic setpoints</div>
+    <canvas id="entropy-canvas"></canvas>
+  </div>
+  <div class="card">
+    <h2>PLT Value Balance (Profit / Love / Tax)</h2>
+    <div class="metric-value" id="plt-val">P:0.90 | L:0.85 | T:0.10</div>
+    <div class="metric-sub">True Value Optimization: 1.02</div>
+    <canvas id="plt-canvas"></canvas>
+  </div>
+  <div class="card">
+    <h2>Agent Telemetry & Context Saturation</h2>
+    <div class="metric-value" id="context-val">38.4%</div>
+    <div class="metric-sub">Active context window capacity</div>
+    <div class="log-box" id="telemetry-log"></div>
+  </div>
+</div>
+<script>
+const entropyCanvas = document.getElementById('entropy-canvas');
+const entropyCtx = entropyCanvas.getContext('2d');
+const pltCanvas = document.getElementById('plt-canvas');
+const pltCtx = pltCanvas.getContext('2d');
+
+let history = [];
+
+function renderCharts() {
+  const w = entropyCanvas.width = entropyCanvas.clientWidth;
+  const h = entropyCanvas.height = entropyCanvas.clientHeight;
+  entropyCtx.clearRect(0, 0, w, h);
+  entropyCtx.strokeStyle = '#38bdf8';
+  entropyCtx.lineWidth = 2;
+  entropyCtx.beginPath();
+  history.forEach((pt, i) => {
+    const x = (i / Math.max(1, history.length - 1)) * w;
+    const y = h - (pt.entropy * h * 5);
+    if (i === 0) entropyCtx.moveTo(x, y); else entropyCtx.lineTo(x, y);
+  });
+  entropyCtx.stroke();
+}
+
+function tickTelemetry() {
+  const entropy = (0.02 + Math.random() * 0.04).toFixed(3);
+  const saturation = (35 + Math.random() * 10).toFixed(1);
+  history.push({ entropy: parseFloat(entropy) });
+  if (history.length > 30) history.shift();
+  
+  document.getElementById('entropy-val').innerText = entropy;
+  document.getElementById('context-val').innerText = saturation + '%';
+  
+  const log = document.getElementById('telemetry-log');
+  const entry = document.createElement('div');
+  entry.innerText = `[${new Date().toLocaleTimeString()}] RSMCL State Sync: Entropy=${entropy}, Saturation=${saturation}%`;
+  log.prepend(entry);
+  
+  renderCharts();
+}
+
+setInterval(tickTelemetry, 1500);
+tickTelemetry();
+</script>
+</body>
+</html>

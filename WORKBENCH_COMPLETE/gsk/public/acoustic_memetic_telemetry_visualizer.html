@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Acoustic & Memetic Telemetry Visualizer</title>
+<style>
+  body { background: #0a0a10; color: #e0e0e0; font-family: monospace; margin: 0; padding: 20px; }
+  .panel { border: 1px solid #2a2a3a; padding: 15px; margin-bottom: 15px; border-radius: 6px; background: #12121c; }
+  canvas { width: 100%; height: 200px; background: #050508; display: block; border-radius: 4px; border: 1px solid #1e1e2d; }
+</style>
+</head>
+<body>
+<div class="panel">
+  <h1>Live Acoustic & Memetic Agent Telemetry</h1>
+  <canvas id="audioWaveform"></canvas>
+</div>
+<div class="panel">
+  <canvas id="memeticGraph"></canvas>
+</div>
+<div id="pltDisplay" class="panel">PLT Optimization Vector: Initializing...</div>
+<script>
+const audioCanvas = document.getElementById('audioWaveform');
+const audioCtx = audioCanvas.getContext('2d');
+const memeticCanvas = document.getElementById('memeticGraph');
+const memeticCtx = memeticCanvas.getContext('2d');
+let time = 0;
+function renderTelemetry() {
+  time += 0.05;
+  audioCtx.fillStyle = '#050508';
+  audioCtx.fillRect(0,0,audioCanvas.width,audioCanvas.height);
+  audioCtx.strokeStyle = '#00ffcc';
+  audioCtx.beginPath();
+  for(let x = 0; x < audioCanvas.width; x++) {
+    let y = audioCanvas.height / 2 + Math.sin(x * 0.05 + time) * 30 + Math.cos(x * 0.02 - time) * 15;
+    if (x === 0) audioCtx.moveTo(x, y); else audioCtx.lineTo(x, y);
+  }
+  audioCtx.stroke();
+  const p = (0.33 + 0.1 * Math.sin(time)).toFixed(3);
+  const l = (0.33 + 0.1 * Math.cos(time * 0.8)).toFixed(3);
+  const t = (0.34 - 0.05 * Math.sin(time * 1.2)).toFixed(3);
+  document.getElementById('pltDisplay').innerHTML = `<strong>PLT Telemetry Vector:</strong> Profit: ${p} | Love: ${l} | Tax: ${t} | Optimization Index: ${(p * l / (parseFloat(t) + 0.01)).toFixed(3)}`;
+  requestAnimationFrame(renderTelemetry);
+}
+renderTelemetry();
+</script>
+</body>
+</html>

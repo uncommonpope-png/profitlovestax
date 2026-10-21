@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>4 Gods Council PLT Decision Matrix & Live Simulation</title>
+  <style>
+    body { background-color: #0b0f19; color: #e2e8f0; font-family: monospace; padding: 20px; }
+    h1 { color: #38bdf8; border-bottom: 1px solid #334155; padding-bottom: 8px; }
+    .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 20px; }
+    .card { background: #1e293b; border: 1px solid #475569; padding: 16px; border-radius: 8px; }
+    .god-title { font-weight: bold; font-size: 1.1em; margin-bottom: 8px; }
+    .profit { color: #4ade80; }
+    .love { color: #f472b6; }
+    .tax { color: #f87171; }
+    .harvester { color: #fbbf24; }
+    .metric { font-size: 1.4em; margin: 10px 0; }
+    button { background: #0284c7; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; }
+    button:hover { background: #0369a1; }
+  </style>
+</head>
+<body>
+  <h1>4 Gods Council PLT Decision Matrix</h1>
+  <div id="app">
+    <div class="grid">
+      <div class="card"><div class="god-title profit">Profit Prime (PLT 0.9 / 0.05 / 0.05)</div><p>Multiplier Score: <span id="profit-score">0.90</span></p></div>
+      <div class="card"><div class="god-title love">Love Weaver (PLT 0.1 / 0.85 / 0.05)</div><p>Bonding Score: <span id="love-score">0.85</span></p></div>
+      <div class="card"><div class="god-title tax">Tax Collector (PLT 0.05 / 0.05 / 0.9)</div><p>Friction Cost: <span id="tax-score">0.10</span></p></div>
+      <div class="card"><div class="god-title harvester">Harvester (PLT 0.4 / 0.3 / 0.3)</div><p>Yield Score: <span id="harvest-score">0.70</span></p></div>
+    </div>
+    <div style="margin-top:20px; class="card">
+      <h3>Live Simulation Control</h3>
+      <button onclick="runSimulation()">Execute Decision Cycle</button>
+      <div id="simulation-output" style="margin-top:10px;">Ready.</div>
+    </div>
+  </div>
+  <script>
+    function runSimulation() {
+      const tv = (0.90 + 0.85 - 0.10).toFixed(2);
+      document.getElementById('simulation-output').innerText = 'Cycle Completed. True Value (TV): ' + tv + ' | Decision: PROCEED';
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PLT Value Optimization & Agent State Inspection</title>
+<style>
+  body { font-family: monospace; background: #0a0a0c; color: #00ffcc; margin: 0; padding: 20px; }
+  .card { background: #12131a; border: 1px solid #1a233a; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+  h1, h2 { color: #ffffff; }
+  .metric-bar { background: #1a1a24; height: 12px; border-radius: 6px; overflow: hidden; margin-top: 4px; }
+  .fill-profit { background: #00ffcc; height: 100%; width: 70%; }
+  .fill-love { background: #ff007f; height: 100%; width: 85%; }
+  .fill-tax { background: #ffaa00; height: 100%; width: 20%; }
+</style>
+</head>
+<body>
+<div id="app">
+  <h1>PLT Value Optimization & Agent State Inspection</h1>
+  <div class="card">
+    <h2>Interoceptive Telemetry Vectorization</h2>
+    <div>Profit Ratio: <span id="val-p">0.70</span></div>
+    <div class="metric-bar"><div class="fill-profit"></div></div>
+    <div>Love Factor: <span id="val-l">0.85</span></div>
+    <div class="metric-bar"><div class="fill-love"></div></div>
+    <div>Tax Overhead: <span id="val-t">0.20</span></div>
+    <div class="metric-bar"><div class="fill-tax"></div></div>
+  </div>
+</div>
+<script>
+  const PLTState = { profit: 0.70, love: 0.85, tax: 0.20 };
+  function calculateTrueValue(p, l, t) { return p + l - t; }
+  console.log('PLT Value Optimization tab initialized with True Value:', calculateTrueValue(PLTState.profit, PLTState.love, PLTState.tax));
+</script>
+</body>
+</html>

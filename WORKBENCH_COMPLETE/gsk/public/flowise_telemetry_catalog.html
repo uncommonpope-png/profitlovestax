@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Flowise x GSK Execution Telemetry Catalog</title>
+<style>
+body { font-family: monospace; background: #0a0a0c; color: #00ffcc; margin: 0; padding: 20px; }
+.header { border-bottom: 1px solid #00ffcc; padding-bottom: 10px; margin-bottom: 20px; }
+.grid { display: grid; grid-template-columns: 300px 1fr; gap: 20px; }
+.catalog { background: #12131a; padding: 15px; border-radius: 8px; border: 1px solid #1e202e; }
+.node-item { padding: 10px; margin: 5px 0; background: #1a1c26; cursor: pointer; border-radius: 4px; }
+.node-item:hover { background: #252838; border-left: 3px solid #00ffcc; }
+.telemetry-pane { background: #12131a; padding: 20px; border-radius: 8px; border: 1px solid #1e202e; }
+</style>
+</head>
+<body>
+<div class="header"><h1>Flowise Component x GSK Telemetry Catalog</h1></div>
+<div class="grid">
+<div class="catalog" id="catalogList"></div>
+<div class="telemetry-pane" id="telemetryDetail">Select a node to inspect telemetry mapping.</div>
+</div>
+<script>
+const flowiseNodes = [
+  { id: 'llm_chain', name: 'LLM Chain', category: 'Chains', gskMapping: 'Cognitive Execution Cycle', status: 'ACTIVE', metrics: { memoryDelta: '0.04MB', callCount: 142 } },
+  { id: 'prompt_template', name: 'Prompt Template', category: 'Prompts', gskMapping: 'Profit Bible System Instructions', status: 'STABLE', metrics: { integrity: '100%', fingerprint: 'e53792ea' } },
+  { id: 'vector_store', name: 'Vector Store Retriever', category: 'Vector Stores', gskMapping: 'SCRIBE Memory Archive (Port 4000)', status: 'ACTIVE', metrics: { latency: '12ms', recordCount: 1840 } },
+  { id: 'agent_executor', name: 'Custom Agent Executor', category: 'Agents', gskMapping: 'PLT Sovereign Agent Orchestrator', status: 'ACTIVE', metrics: { pltScore: 1.09, valence: -0.57 } }
+];
+function renderCatalog() {
+  const container = document.getElementById('catalogList');
+  container.innerHTML = flowiseNodes.map(node => `<div class="node-item" onclick="selectNode('${node.id}')"><strong>${node.name}</strong><br><small>${node.category}</small></div>`).join('');
+}
+function selectNode(id) {
+  const node = flowiseNodes.find(n => n.id === id);
+  document.getElementById('telemetryDetail').innerHTML = `<h3>${node.name}</h3><p><strong>Category:</strong> ${node.category}</p><p><strong>GSK Telemetry Mapping:</strong> ${node.gskMapping}</p><pre>${JSON.stringify(node.metrics, null, 2)}</pre>`;
+}
+renderCatalog();
+</script>
+</body>
+</html>

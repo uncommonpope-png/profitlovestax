@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Live Strategic Telemetry Visualizer</title>
+  <style>
+    :root { --bg: #0a0e17; --panel: #111827; --accent: #00f0ff; --text: #e2e8f0; --accent-love: #ff0055; --accent-plt: #10b981; }
+    body { margin: 0; background: var(--bg); color: var(--text); font-family: monospace; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+    header { padding: 12px 24px; background: var(--panel); border-bottom: 1px solid #1e293b; display: flex; justify-content: space-between; align-items: center; }
+    .grid { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; padding: 16px; flex: 1; min-height: 0; }
+    .card { background: var(--panel); border: 1px solid #1e293b; border-radius: 8px; padding: 16px; display: flex; flex-direction: column; position: relative; }
+    canvas { width: 100%; height: 100%; display: block; }
+    #feed { font-size: 11px; overflow-y: auto; flex: 1; font-family: monospace; line-height: 1.4; color: #94a3b8; }
+    .stat { font-size: 24px; font-weight: bold; color: var(--accent); }
+  </style>
+</head>
+<body>
+  <header>
+    <div><strong>GSK TELEMETRY OPERATOR</strong> &mdash; Agent State Visualizer</div>
+    <div id="connection-status">● LIVE STREAM</div>
+  </header>
+  <div class="grid">
+    <div class="card">
+      <h3>Agent Strategic State Canvas</h3>
+      <canvas id="stateCanvas"></canvas>
+    </div>
+    <div class="card">
+      <h3>Telemetry Stream Log</h3>
+      <div id="feed"></div>
+    </div>
+  </div>
+  <script>
+    const canvas = document.getElementById('stateCanvas');
+    const ctx = canvas.getContext('2d');
+    const feed = document.getElementById('feed');
+    function resize() { canvas.width = canvas.parentElement.clientWidth; canvas.height = canvas.parentElement.clientHeight - 40; }
+    window.addEventListener('resize', resize); resize();
+    let t = 0;
+    function render() {
+      t += 0.05;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.strokeStyle = 'rgba(0, 240, 255, 0.2)';
+      ctx.beginPath();
+      for (let x = 0; x < canvas.width; x += 30) { ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); }
+      for (let y = 0; y < canvas.height; y += 30) { ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); }
+      ctx.stroke();
+      const px = canvas.width / 2 + Math.cos(t) * 120;
+      const py = canvas.height / 2 + Math.sin(t * 1.5) * 80;
+      ctx.fillStyle = '#00f0ff'; ctx.beginPath(); ctx.arc(px, py, 12, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#ffffff'; ctx.font = '12px monospace'; ctx.fillText('State: ACTIVE', px + 18, py + 4);
+      requestAnimationFrame(render);
+    }
+    render();
+    setInterval(() => {
+      const log = document.createElement('div');
+      log.innerText = `[${new Date().toISOString()}] Telemetry pulse: state_val=${(Math.random()*0.9).toFixed(3)} plt_score=${(Math.random()*1.5).toFixed(2)}`;
+      feed.prepend(log);
+      if(feed.children.length > 50) feed.lastChild.remove();
+    }, 1000);
+  </script>
+</body>
+</html>

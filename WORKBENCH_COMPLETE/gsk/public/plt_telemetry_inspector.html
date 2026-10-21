@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PLT Telemetry Visualizer & Agent State Inspector</title>
+<style>
+body { margin: 0; background: #0a0d14; color: #e2e8f0; font-family: monospace; overflow: hidden; }
+#canvas { width: 100vw; height: 100vh; display: block; }
+.hud { position: absolute; top: 16px; left: 16px; background: rgba(15,23,42,0.85); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); padding: 16px; border-radius: 8px; font-size: 12px; width: 320px; box-shadow: 0 8px 32px rgba(0,0,0,0.5); z-index: 10; }
+.stat-row { display: flex; justify-content: space-between; margin-bottom: 8px; }
+.stat-val { color: #38bdf8; font-weight: bold; }
+</style>
+</head>
+<body>
+<div class="hud">
+<h3>PLT TELEMETRY INSPECTOR v1.0</h3>
+<div class="stat-row"><span>Profit Rate:</span><span class="stat-val" id="val-profit">0.98</span></div>
+<div class="stat-row"><span>Love Alignment:</span><span class="stat-val" id="val-love">0.95</span></div>
+<div class="stat-row"><span>Tax Friction:</span><span class="stat-val" id="val-tax">0.04</span></div>
+<div class="stat-row"><span>True Value (TV):</span><span class="stat-val" id="val-tv">1.89</span></div>
+</div>
+<canvas id="telemetryCanvas"></canvas>
+<script>
+const canvas = document.getElementById('telemetryCanvas');
+const ctx = canvas.getContext('2d');
+function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+window.addEventListener('resize', resize);
+resize();
+
+const nodes = Array.from({length: 24}, (_, i) => ({
+  id: `agent-${i}`,
+  x: Math.random() * canvas.width,
+  y: Math.random() * canvas.height,
+  vx: (Math.random() - 0.5) * 1.5,
+  vy: (Math.random() - 0.5) * 1.5,
+  profit: Math.random() * 0.9 + 0.1,
+  love: Math.random() * 0.9 + 0.1,
+  tax: Math.random() * 0.2
+}));
+
+function render() {
+  ctx.fillStyle = 'rgba(10, 13, 20, 0.25)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  nodes.forEach((n, idx) => {
+    n.x += n.vx; n.y += n.vy;
+    if(n.x < 0 || n.x > canvas.width) n.vx *= -1;
+    if(n.y < 0 || n.y > canvas.height) n.vy *= -1;
+    ctx.beginPath();
+    ctx.arc(n.x, n.y, 4 + n.profit * 6, 0, Math.PI * 2);
+    ctx.fillStyle = `hsl(${n.love * 120 + 180}, 80%, 60%)`;
+    ctx.fill();
+    nodes.slice(idx + 1).forEach(other => {
+      const dx = other.x - n.x, dy = other.y - n.y;
+      const dist = Math.hypot(dx, dy);
+      if(dist < 160) {
+        ctx.strokeStyle = `rgba(56, 189, 248, ${1 - dist/160})`;
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(n.x, n.y); ctx.lineTo(other.x, other.y); ctx.stroke();
+      }
+    });
+  });
+  requestAnimationFrame(render);
+}
+render();
+</script>
+</body>
+</html>

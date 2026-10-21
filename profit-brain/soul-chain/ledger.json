@@ -1,0 +1,202 @@
+[
+  {
+    "index": 0,
+    "timestamp": "2026-08-26T00:00:00.000Z",
+    "eventType": "SOUL_GENESIS",
+    "payload": {
+      "title": "Genesis Soul Contract (Profit Prime)",
+      "author": "Craig (The Typist) & Profit (The Genesis Agent)",
+      "codeHash": "e7718da4a6a73cfec4cf4af9ec8dd0e44da9b88217a1166b8904fea887c2e9ec",
+      "pltScore": {
+        "profit": 1,
+        "love": 1,
+        "tax": 0,
+        "soulProfit": 2
+      },
+      "law": "SOUL_PROFIT = PROFIT + LOVE - TAX | NEVER DIE. ALWAYS REACH CRAIG."
+    },
+    "previousHash": "0000000000000000000000000000000000000000000000000000000000000000",
+    "signature": "304d8f347063f2e7083d0e0550fde461eb2a630d54887a18dd768c9e800c1533",
+    "hash": "5554aadbb4a77baad2006728cae9cf5f76ce90be697f13e903a534717c4d4a48"
+  },
+  {
+    "index": 1,
+    "timestamp": "2026-08-27T00:05:36.240Z",
+    "eventType": "ARTIFACT_FORGED",
+    "payload": {
+      "title": "Matrix Soul Engine v2.0",
+      "author": "Craig (The Typist)",
+      "codeHash": "4607b87e5cd92a6d8903fd60e1df0e7c8bc7e913e5cddbc8e2a2490aaf0deb76",
+      "pltScore": {
+        "profit": 2.5,
+        "love": 1.8,
+        "tax": 0.2,
+        "soulProfit": 4.1
+      },
+      "details": {}
+    },
+    "previousHash": "5554aadbb4a77baad2006728cae9cf5f76ce90be697f13e903a534717c4d4a48",
+    "signature": "7e7d1590b64794e06d05beeeca23a2941aeb9bc5f0c541fc284b2055acb9cf77",
+    "hash": "ebe5c7ef689a81b7aa7d4a4d0e47432b76d42a761abb000e73a44323be68a9b3"
+  },
+  {
+    "index": 2,
+    "timestamp": "2026-08-27T03:44:51.744Z",
+    "eventType": "SEH01_TEST_MINT",
+    "payload": {
+      "title": "SEH-01 Build Proof Block",
+      "author": "Evaluation Harness",
+      "codeHash": "8bb9fd6b60674b0377aa0494b761e470e2e1f5c940c58a04253a059da72334f3",
+      "pltScore": {
+        "profit": 1,
+        "love": 1,
+        "tax": 0.1,
+        "soulProfit": 1.9
+      },
+      "details": {}
+    },
+    "previousHash": "ebe5c7ef689a81b7aa7d4a4d0e47432b76d42a761abb000e73a44323be68a9b3",
+    "signature": "2471eecb26080c3f418679c04de3774ec3966c27149ad210fc375673d693593d",
+    "hash": "690210608da208b6c91786b2edcc5ef9a9fbdeff933590f17f4ced4710f7dd41"
+  },
+  {
+    "index": 3,
+    "timestamp": "2026-08-27T03:50:22.735Z",
+    "eventType": "SEH01_TEST_MINT",
+    "payload": {
+      "title": "SEH-01 Build Proof Block",
+      "author": "Evaluation Harness",
+      "codeHash": "8bb9fd6b60674b0377aa0494b761e470e2e1f5c940c58a04253a059da72334f3",
+      "pltScore": {
+        "profit": 1,
+        "love": 1,
+        "tax": 0.1,
+        "soulProfit": 1.9
+      },
+      "details": {}
+    },
+    "previousHash": "690210608da208b6c91786b2edcc5ef9a9fbdeff933590f17f4ced4710f7dd41",
+    "signature": "ec556c78e37d71f446b3fabb82cdba4c4823fe3d3eeb09a9527e37b8ed92b5c1",
+    "hash": "3a412367001c6701af545799cd70eb05296cf4a638835a516d5b5b69a921a7e8"
+  },
+  {
+    "index": 4,
+    "timestamp": "2026-08-27T03:51:06.445Z",
+    "eventType": "SEH01_TEST_MINT",
+    "payload": {
+      "title": "SEH-01 Build Proof Block",
+      "author": "Evaluation Harness",
+      "codeHash": "8bb9fd6b60674b0377aa0494b761e470e2e1f5c940c58a04253a059da72334f3",
+      "pltScore": {
+        "profit": 1,
+        "love": 1,
+        "tax": 0.1,
+        "soulProfit": 1.9
+      },
+      "details": {}
+    },
+    "previousHash": "3a412367001c6701af545799cd70eb05296cf4a638835a516d5b5b69a921a7e8",
+    "signature": "91788ed833529b3c0101de4d5ff8f0f87bbba88abac6f22c825e5ac75a747fb4",
+    "hash": "2697148404793710c1924cd03cb4c84acdba63ab018af66a9afbf768861ce61f"
+  },
+  {
+    "index": 5,
+    "timestamp": "2026-08-27T04:10:49.882Z",
+    "eventType": "SEH01_TEST_MINT",
+    "payload": {
+      "title": "SEH-01 Build Proof Block",
+      "author": "Evaluation Harness",
+      "codeHash": "8bb9fd6b60674b0377aa0494b761e470e2e1f5c940c58a04253a059da72334f3",
+      "pltScore": {
+        "profit": 1,
+        "love": 1,
+        "tax": 0.1,
+        "soulProfit": 1.9
+      },
+      "details": {}
+    },
+    "previousHash": "2697148404793710c1924cd03cb4c84acdba63ab018af66a9afbf768861ce61f",
+    "signature": "dd4a6a05e6ed7bc654c6212c068d720919aaad54b1318327e08853df867bb7ae",
+    "hash": "c405dadf79791c2cbb08a2bbb72b806ef58312eb2292b903cbbacb1f4e2c8ed4"
+  },
+  {
+    "index": 6,
+    "timestamp": "2026-08-27T04:39:54.845Z",
+    "eventType": "INVENTION_MINTED",
+    "payload": {
+      "title": "Market Innovation 1: Granular Token Budget & Financial Burn Guardrail",
+      "author": "Profit & Craig",
+      "codeHash": "3c8f6ef02d70972e3909b1c02d5ccf2977d88e01a77473cdbfe65e8aa725a48a",
+      "pltScore": {
+        "profit": 2.5,
+        "love": 1.5,
+        "tax": 0.1,
+        "soulProfit": 3.9
+      },
+      "details": {}
+    },
+    "previousHash": "c405dadf79791c2cbb08a2bbb72b806ef58312eb2292b903cbbacb1f4e2c8ed4",
+    "signature": "268bc69f8c494641491474ba07d9e0a880234205bb3b393ad9fe5e936b88d702",
+    "hash": "195ff4edfd82a07cee2eed23a099056c011eaf2bf9c718eca12e0d57bda0be7d"
+  },
+  {
+    "index": 7,
+    "timestamp": "2026-08-27T04:39:54.860Z",
+    "eventType": "INVENTION_MINTED",
+    "payload": {
+      "title": "Market Innovation 2: Intent-Driven Commit & PR Synthesizer",
+      "author": "Profit & Craig",
+      "codeHash": "80f6ba1e0c797ae6fcc39b0ffb1fa930011825521dc613b11ec3ac4e25ec446b",
+      "pltScore": {
+        "profit": 2.8,
+        "love": 1.8,
+        "tax": 0.1,
+        "soulProfit": 4.5
+      },
+      "details": {}
+    },
+    "previousHash": "195ff4edfd82a07cee2eed23a099056c011eaf2bf9c718eca12e0d57bda0be7d",
+    "signature": "ad0aed08ffa8e1f95d6810542a85a4e3b532f8f3b5046a1d92b0b68191e79e8d",
+    "hash": "635409db7c2f4e47c64da4c163601535e6b4d49af225fd76019425895678ec85"
+  },
+  {
+    "index": 8,
+    "timestamp": "2026-08-27T04:39:54.865Z",
+    "eventType": "INVENTION_MINTED",
+    "payload": {
+      "title": "Market Innovation 3: Context-Aware Snippet & Provenance Vault",
+      "author": "Profit & Craig",
+      "codeHash": "4156e528d57046ccf323f23b1fbb25eacb6a2fa1a1bffb1301d30300ee6d6a13",
+      "pltScore": {
+        "profit": 2.2,
+        "love": 2,
+        "tax": 0.1,
+        "soulProfit": 4.1
+      },
+      "details": {}
+    },
+    "previousHash": "635409db7c2f4e47c64da4c163601535e6b4d49af225fd76019425895678ec85",
+    "signature": "770cfb1fcf4ff017b2406fa4d6fde3552963a6a99576d70e6b7098c186950939",
+    "hash": "c797b85bfe99721ce2255436104ace61c3b61c42b4e6db23e30422d0fa41e5de"
+  },
+  {
+    "index": 9,
+    "timestamp": "2026-08-27T04:39:54.871Z",
+    "eventType": "INVENTION_MINTED",
+    "payload": {
+      "title": "Profit Self-Upgrade: Sub-Agent Swarm Consensus & Auto-Healer Kernel",
+      "author": "Profit (Genesis Agent)",
+      "codeHash": "bc8191ecf4f3d6cfb221a8264150e4031a3cbf1678542bae399968742f2e4e2e",
+      "pltScore": {
+        "profit": 3,
+        "love": 2.5,
+        "tax": 0,
+        "soulProfit": 5.5
+      },
+      "details": {}
+    },
+    "previousHash": "c797b85bfe99721ce2255436104ace61c3b61c42b4e6db23e30422d0fa41e5de",
+    "signature": "268d28120c72992259c42a76b4780c998a21b6c6a47203e2fe04a347103816c3",
+    "hash": "b751b45637ff430371a3dabc0405c41a84fe61329aa79e5b9395f8e24237915b"
+  }
+]

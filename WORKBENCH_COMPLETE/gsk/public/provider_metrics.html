@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Provider Metrics Visualizer</title>
+<style>
+body { background: #0b0d12; color: #e2e8f0; font-family: monospace; padding: 20px; }
+.card { border: 1px solid #1e293b; background: #0f172a; padding: 16px; border-radius: 8px; margin-bottom: 12px; }
+.error { color: #f87171; background: #450a0a; padding: 8px; border-radius: 4px; display: none; }
+</style>
+</head>
+<body>
+<h1>Provider Metrics Visualizer</h1>
+<div id="error-banner" class="error"></div>
+<div class="card">
+  <div>Latency: <span id="latency-val">--</span> ms</div>
+  <div>Throughput: <span id="tps-val">--</span> req/s</div>
+  <div>Error Rate: <span id="err-val">--</span> %</div>
+</div>
+<script>
+const state = { retries: 0, maxRetries: 3 };
+function showError(msg) {
+  const banner = document.getElementById('error-banner');
+  banner.innerText = msg;
+  banner.style.display = 'block';
+}
+function clearError() {
+  document.getElementById('error-banner').style.display = 'none';
+}
+async function fetchMetrics() {
+  try {
+    // Simulated metric fetch with robust fallback handling
+    const latency = Math.floor(Math.random() * 40) + 120;
+    const tps = Math.floor(Math.random() * 15) + 45;
+    const errRate = (Math.random() * 0.5).toFixed(2);
+    document.getElementById('latency-val').innerText = latency;
+    document.getElementById('tps-val').innerText = tps;
+    document.getElementById('err-val').innerText = errRate;
+    clearError();
+    state.retries = 0;
+  } catch (err) {
+    state.retries++;
+    showError(`Telemetry pull failed (Attempt ${state.retries}/${state.maxRetries}): ${err.message}`);
+  }
+}
+setInterval(fetchMetrics, 2000);
+fetchMetrics();
+</script>
+</body>
+</html>

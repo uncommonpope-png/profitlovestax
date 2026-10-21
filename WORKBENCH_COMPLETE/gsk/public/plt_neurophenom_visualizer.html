@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PLT Neurophenomenological Telemetry Visualizer</title>
+<style>
+  body { margin: 0; background: #05050a; color: #00ffcc; font-family: 'Courier New', monospace; overflow: hidden; }
+  #canvas { width: 100vw; height: 100vh; display: block; }
+  #hud { position: absolute; top: 15px; left: 15px; background: rgba(5, 10, 20, 0.85); border: 1px solid #00ffcc; padding: 15px; border-radius: 6px; pointer-events: none; box-shadow: 0 0 15px rgba(0,255,204,0.2); }
+  .metric { margin-bottom: 6px; font-size: 14px; }
+  .val { color: #ffffff; font-weight: bold; }
+</style>
+</head>
+<body>
+<div id="hud">
+  <h3 style="margin:0 0 10px 0; color:#00ffcc;">PLT Neurophenomenological Telemetry</h3>
+  <div class="metric">Profit Engine: <span class="val" id="val-profit">0.00</span></div>
+  <div class="metric">Love Weaver: <span class="val" id="val-love">0.00</span></div>
+  <div class="metric">Tax Collector: <span class="val" id="val-tax">0.00</span></div>
+  <div class="metric">Phenomenal State: <span class="val" id="val-state">REVELATION</span></div>
+</div>
+<canvas id="canvas"></canvas>
+<script>
+  const canvas = document.getElementById('canvas');
+  const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+  console.log('Neurophenomenological visualizer initialized', !!gl);
+</script>
+</body>
+</html>

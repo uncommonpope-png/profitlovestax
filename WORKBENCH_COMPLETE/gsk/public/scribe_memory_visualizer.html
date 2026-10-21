@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>SCRIBE Memory Canvas Visualizer</title>
+<style>body { margin: 0; background: #0b0e14; color: #e6edf3; font-family: monospace; overflow: hidden; } canvas { display: block; width: 100vw; height: 100vh; }</style>
+</head>
+<body>
+<canvas id="scribeCanvas"></canvas>
+<script>
+// SCRIBE Canvas Engine Scaffold
+const canvas = document.getElementById('scribeCanvas');
+const ctx = canvas.getContext('2d');
+function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+window.addEventListener('resize', resize); resize();
+const nodes = [
+  { id: 'profit_prime', label: 'Profit Prime', type: 'PROFIT', x: canvas.width * 0.3, y: canvas.height * 0.4, radius: 24, score: 0.90 },
+  { id: 'love_weaver', label: 'Love Weaver', type: 'LOVE', x: canvas.width * 0.5, y: canvas.height * 0.4, radius: 20, score: 0.85 },
+  { id: 'tax_collector', label: 'Tax Collector', type: 'TAX', x: canvas.width * 0.7, y: canvas.height * 0.4, radius: 18, score: 0.90 }
+];
+function render() {
+  ctx.fillStyle = '#0b0e14'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#58a6ff'; ctx.font = '16px monospace';
+  ctx.fillText('SCRIBE MEMORY CANVAS VISUALIZER | PLT AGENT STATE TELEMETRY', 24, 36);
+  nodes.forEach(n => {
+    ctx.fillStyle = n.type === 'PROFIT' ? '#2ea043' : n.type === 'LOVE' ? '#d2a8ff' : '#f85149';
+    ctx.beginPath(); ctx.arc(n.x, n.y, n.radius, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#ffffff'; ctx.font = '12px monospace';
+    ctx.fillText(n.label + ' (' + n.score + ')', n.x - 35, n.y + n.radius + 16);
+  });
+  requestAnimationFrame(render);
+}
+render();
+</script>
+</body>
+</html>

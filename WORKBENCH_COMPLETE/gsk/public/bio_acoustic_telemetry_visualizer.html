@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Bio-Feedback Acoustic Telemetry Visualizer</title>
+<style>
+body { margin: 0; background: #0a0b10; color: #e0e6ed; font-family: monospace; overflow: hidden; }
+#visualizer { width: 100vw; height: 100vh; display: block; }
+.hud { position: absolute; top: 15px; left: 15px; background: rgba(10,11,16,0.85); padding: 15px; border: 1px solid #1e293b; border-radius: 8px; font-size: 12px; pointer-events: none; }
+.plt-score { color: #10b981; font-weight: bold; font-size: 14px; margin-top: 5px; }
+</style>
+</head>
+<body>
+<div class="hud">
+  <h2>BIO-ACOUSTIC TELEMETRY</h2>
+  <div>Status: LIVE REASONING RESONANCE</div>
+  <div class="plt-score" id="pltDisplay">PLT Index: 0.900 | Profit: 0.90 | Love: 0.05 | Tax: 0.05</div>
+</div>
+<canvas id="visualizer"></canvas>
+<script>
+const canvas = document.getElementById('visualizer');
+const ctx = canvas.getContext('2d');
+function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+window.addEventListener('resize', resize); resize();
+
+let audioCtx, analyser, dataArray;
+function initAudio() {
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  analyser = audioCtx.createAnalyser();
+  analyser.fftSize = 128;
+  dataArray = new Uint8Array(analyser.frequencyBinCount);
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = 'sine'; osc.frequency.setValueAtTime(432, audioCtx.currentTime);
+  gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+  osc.connect(gain); gain.connect(analyser); analyser.connect(audioCtx.destination);
+  osc.start();
+}
+window.addEventListener('click', () => { if (!audioCtx) initAudio(); });
+
+const particles = Array.from({length: 80}, () => ({
+  x: Math.random() * canvas.width, y: Math.random() * canvas.height,
+  radius: Math.random() * 3 + 1, vx: (Math.random()-0.5)*2, vy: (Math.random()-0.5)*2,
+  freqIndex: Math.floor(Math.random() * 64)
+}));
+
+function render() {
+  requestAnimationFrame(render);
+  ctx.fillStyle = 'rgba(10, 11, 16, 0.2)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  if (analyser) analyser.getByteFrequencyData(dataArray);
+
+  particles.forEach(p => {
+    p.x += p.vx; p.y += p.vy;
+    if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
+    if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+    const energy = dataArray ? dataArray[p.freqIndex] / 255 : 0.5;
+    const size = p.radius + energy * 8;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, size, 0, Math.PI * 2);
+    ctx.fillStyle = `hsla(${200 + energy * 120}, 80%, 60%, ${0.4 + energy * 0.6})`;
+    ctx.fill();
+  });
+}
+render();
+</script>
+</body>
+</html>

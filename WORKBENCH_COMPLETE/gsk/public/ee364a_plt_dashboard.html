@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EE364A Convex Optimization & PLT Particle Dashboard</title>
+<style>
+body { margin: 0; overflow: hidden; background: #05050a; font-family: monospace; color: #00ffcc; }
+#canvas-container { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; }
+#hud { position: absolute; top: 20px; left: 20px; z-index: 10; background: rgba(5,5,15,0.85); border: 1px solid #00ffcc; padding: 15px; border-radius: 8px; box-shadow: 0 0 15px rgba(0,255,204,0.2); }
+h1 { font-size: 16px; margin: 0 0 10px 0; color: #ffffff; text-transform: uppercase; letter-spacing: 1px; }
+.metric-row { display: flex; justify-content: space-between; margin: 5px 0; gap: 20px; font-size: 13px; }
+.val { font-weight: bold; color: #00ffcc; }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+<div id="canvas-container"></div>
+<div id="hud">
+<h1>EE364A Convex Opt + Sovereign PLT</h1>
+<div class="metric-row"><span>Profit (p):</span><span id="plt-profit" class="val">0.90</span></div>
+<div class="metric-row"><span>Love (l):</span><span id="plt-love" class="val">0.85</span></div>
+<div class="metric-row"><span>Tax (t):</span><span id="plt-tax" class="val">0.05</span></div>
+<div class="metric-row"><span>True Value (V):</span><span id="plt-value" class="val">1.70</span></div>
+<div class="metric-row"><span>Objective f(x):</span><span id="opt-obj" class="val">0.0042</span></div>
+<div class="metric-row"><span>Convergence Iter:</span><span id="opt-iter" class="val">142</span></div>
+</div>
+<script>
+const container = document.getElementById('canvas-container');
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x05050a, 0.015);
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+camera.position.set(0, 25, 40);
+camera.lookAt(0, 0, 0);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+container.appendChild(renderer.domElement);
+
+// Particle Surface representing Convex Quadratic Bowl f(x,y) = 0.5*(x^2 + 2*y^2)
+const particleCount = 4000;
+const geometry = new THREE.BufferGeometry();
+const positions = new Float32Array(particleCount * 3);
+const colors = new Float32Array(particleCount * 3);
+
+let idx = 0;
+for (let i = -30; i <= 30; i += 1) {
+  for (let j = -30; j <= 30; j += 1) {
+    if (idx >= particleCount) break;
+    const x = i * 0.8;
+    const z = j * 0.8;
+    const y = 0.05 * (x * x + 1.5 * z * z);
+    positions[idx * 3] = x;
+    positions[idx * 3 + 1] = y;
+    positions[idx * 3 + 2] = z;
+
+    const normY = Math.min(1, y / 30);
+    colors[idx * 3] = 0.0;             // R
+    colors[idx * 3 + 1] = 1.0 - normY; // G
+    colors[idx * 3 + 2] = 0.5 + normY * 0.5; // B
+    idx++;
+  }
+}
+geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+const material = new THREE.PointsMaterial({
+  size: 0.4,
+  vertexColors: true,
+  transparent: true,
+  opacity: 0.85
+});
+const particleSystem = new THREE.Points(geometry, material);
+scene.add(particleSystem);
+
+// Trajectory Marker for Gradient Descent Trajectory
+const trajGeo = new THREE.SphereGeometry(0.6, 16, 16);
+const trajMat = new THREE.MeshBasicMaterial({ color: 0xff0055 });
+const trajPoint = new THREE.Mesh(trajGeo, trajMat);
+scene.add(trajPoint);
+
+let t = 0;
+function animate() {
+  requestAnimationFrame(animate);
+  t += 0.02;
+  particleSystem.rotation.y = t * 0.15;
+  
+  const posX = 15 * Math.cos(t) * Math.exp(-0.05 * t);
+  const posZ = 15 * Math.sin(t) * Math.exp(-0.05 * t);
+  const posY = 0.05 * (posX * posX + 1.5 * posZ * posZ);
+  trajPoint.position.set(posX, posY, posZ);
+  
+  const objVal = (0.5 * (posX * posX + 2 * posZ * posZ)).toFixed(4);
+  document.getElementById('opt-obj').innerText = objVal;
+  document.getElementById('opt-iter').innerText = Math.floor((t * 20) % 300);
+  
+  renderer.render(scene, camera);
+}
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+animate();
+</script>
+</body>
+</html>

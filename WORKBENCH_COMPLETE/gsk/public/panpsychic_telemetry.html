@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Panpsychic Telemetry Visualizer</title>
+<style>
+body { margin: 0; background: #0a0a12; color: #00ffcc; font-family: monospace; overflow: hidden; }
+#canvas { width: 100vw; height: 100vh; display: block; }
+.hud { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.85); padding: 15px; border: 1px solid #00ffcc; border-radius: 8px; z-index: 10; boxShadow: 0 0 10px #00ffcc; }
+</style>
+</head>
+<body>
+<div class="hud">
+<h2>Panpsychic Telemetry Engine</h2>
+<p>PLT Value Formula: Profit + Love - Tax = True Value</p>
+<div id="stats">Entities: Initializing...</div>
+</div>
+<canvas id="canvas"></canvas>
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+class TelemetryEntity {
+  constructor(id, x, y, level) {
+    this.id = id;
+    this.x = x;
+    this.y = y;
+    this.consciousness = level;
+    this.profit = Math.random() * 50 + 10;
+    this.love = Math.random() * 40 + 20;
+    this.tax = Math.random() * 15 + 5;
+  }
+  get plt() {
+    return this.profit + this.love - this.tax;
+  }
+  draw() {
+    const r = Math.max(5, this.plt / 5);
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, r, 0, Math.PI * 2);
+    ctx.fillStyle = `hsl(${this.consciousness * 360}, 100%, 50%)`;
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = ctx.fillStyle;
+    ctx.fill();
+  }
+}
+const entities = Array.from({length: 30}, (_, i) => new TelemetryEntity(i, Math.random()*canvas.width, Math.random()*canvas.height, Math.random()));
+function render() {
+  ctx.fillStyle = 'rgba(10, 10, 18, 0.2)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  let totalPLT = 0;
+  entities.forEach(e => { e.draw(); totalPLT += e.plt; });
+  document.getElementById('stats').innerText = `Active Souls: ${entities.length} | Aggregate PLT: ${totalPLT.toFixed(2)}`;
+  requestAnimationFrame(render);
+}
+render();
+</script>
+</body>
+</html>

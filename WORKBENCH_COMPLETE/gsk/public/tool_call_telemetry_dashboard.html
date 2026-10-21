@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tool Call Telemetry & Execution Value Dashboard</title>
+<style>
+  body { font-family: system-ui, -apple-system, sans-serif; background: #0d1117; color: #c9d1d9; margin: 0; padding: 24px; }
+  .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #30363d; padding-bottom: 16px; margin-bottom: 24px; }
+  .metrics-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+  .card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px; }
+  .card h3 { margin: 0 0 8px 0; font-size: 14px; color: #8b949e; }
+  .card .value { font-size: 24px; font-weight: bold; color: #58a6ff; }
+  #canvas-container { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px; margin-bottom: 24px; }
+  canvas { width: 100%; height: 320px; display: block; }
+  .log-table { width: 100%; border-collapse: collapse; background: #161b22; border-radius: 8px; overflow: hidden; }
+  .log-table th, .log-table td { text-align: left; padding: 12px 16px; border-bottom: 1px solid #30363d; font-size: 13px; }
+  .log-table th { background: #21262d; color: #8b949e; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>Tool Call Telemetry Visualizer</h1>
+  <div id="status-indicator" style="color: #3fb950; font-weight: 600;">&#9679; LIVE TELEMETRY STREAM</div>
+</div>
+<div class="metrics-grid">
+  <div class="card"><h3>TOTAL CALLS</h3><div class="value" id="metric-total">0</div></div>
+  <div class="card"><h3>PLT SCORE</h3><div class="value" id="metric-plt">1.00</div></div>
+  <div class="card"><h3>PROFIT GAIN</h3><div class="value" id="metric-profit">+0.00</div></div>
+  <div class="card"><h3>TAX COST</h3><div class="value" id="metric-tax">0.00</div></div>
+</div>
+<div id="canvas-container">
+  <canvas id="telemetryCanvas" width="900" height="320"></canvas>
+</div>
+<table class="log-table">
+  <thead><tr><th>TIMESTAMP</th><th>TOOL</th><th>STATUS</th><th>EXECUTION VALUE</th><th>PLT ACCUMULATION</th></tr></thead>
+  <tbody id="log-body"></tbody>
+</table>
+<script>
+const state = {
+  calls: [],
+  pltHistory: [],
+  totalCalls: 0,
+  pltScore: 1.05,
+  profit: 1.20,
+  tax: 0.15
+};
+
+function addTelemetryEvent(toolName, status, profitDelta, taxDelta) {
+  const now = new Date().toLocaleTimeString();
+  state.totalCalls++;
+  state.profit += profitDelta;
+  state.tax += taxDelta;
+  state.pltScore = Math.max(0, state.profit - state.tax);
+  state.pltHistory.push(state.pltScore);
+  if (state.pltHistory.length > 50) state.pltHistory.shift();
+  
+  const tbody = document.getElementById('log-body');
+  const tr = document.createElement('tr');
+  tr.innerHTML = `<td>${now}</td><td><code>${toolName}</code></td><td style="color:${status === 'OK' ? '#3fb950' : '#f85149'}">${status}</td><td>+${profitDelta.toFixed(2)} / -${taxDelta.toFixed(2)}</td><td>${state.pltScore.toFixed(2)}</td>`;
+  tbody.prepend(tr);
+  updateMetrics();
+  drawChart();
+}
+
+function updateMetrics() {
+  document.getElementById('metric-total').textContent = state.totalCalls;
+  document.getElementById('metric-plt').textContent = state.pltScore.toFixed(2);
+  document.getElementById('metric-profit').textContent = '+' + state.profit.toFixed(2);
+  document.getElementById('metric-tax').textContent = state.tax.toFixed(2);
+}
+
+function drawChart() {
+  const canvas = document.getElementById('telemetryCanvas');
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  
+  ctx.strokeStyle = '#30363d';
+  ctx.lineWidth = 1;
+  for(let y = 40; y < canvas.height; y += 40) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+  }
+  
+  if (state.pltHistory.length < 2) return;
+  ctx.beginPath();
+  ctx.strokeStyle = '#58a6ff';
+  ctx.lineWidth = 3;
+  const step = canvas.width / Math.max(1, state.pltHistory.length - 1);
+  state.pltHistory.forEach((val, idx) => {
+    const x = idx * step;
+    const y = canvas.height - (val * 80);
+    if (idx === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+}
+
+// Seed initial telemetry sample batch
+['read_file', 'search_code', 'write_file', 'verify_build'].forEach((t, i) => {
+  setTimeout(() => addTelemetryEvent(t, 'OK', 0.25, 0.03), i * 300);
+});
+</script>
+</body>
+</html>

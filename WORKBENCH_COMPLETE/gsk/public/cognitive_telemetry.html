@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GSK Cognitive Telemetry & State Visualizer</title>
+<style>
+  body { background-color: #0b0c10; color: #66fcf1; font-family: 'Courier New', monospace; margin: 0; padding: 20px; }
+  .header { border-bottom: 2px solid #45a29e; padding-bottom: 10px; margin-bottom: 20px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px; }
+  .card { background: #1f2833; border: 1px solid #45a29e; border-radius: 6px; padding: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+  .metric-title { font-size: 0.85em; color: #c5c6c7; text-transform: uppercase; letter-spacing: 1px; }
+  .metric-value { font-size: 1.8em; color: #66fcf1; font-weight: bold; margin-top: 5px; }
+  .log-box { background: #0b0c10; border: 1px solid #1f2833; border-radius: 4px; padding: 10px; height: 180px; overflow-y: auto; color: #c5c6c7; font-size: 0.9em; margin-top: 15px; }
+</style>
+</head>
+<body>
+  <div class="header">
+    <h1>🧠 GSK COGNITIVE TELEMETRY & DIAGNOSTICS</h1>
+    <p>Real-time Self-Model Visualizer & Chamber Telemetry Engine</p>
+  </div>
+  <div class="grid">
+    <div class="card">
+      <div class="metric-title">Chamber Mood</div>
+      <div class="metric-value" id="mood-display">neutral</div>
+    </div>
+    <div class="card">
+      <div class="metric-title">Cognitive Valence</div>
+      <div class="metric-value" id="valence-display">-0.02</div>
+    </div>
+    <div class="card">
+      <div class="metric-title">Sacred Resonance</div>
+      <div class="metric-value" id="resonance-display">0.35</div>
+    </div>
+    <div class="card">
+      <div class="metric-title">PLT Ratio Score</div>
+      <div class="metric-value" id="plt-display">0.94 / 0.70</div>
+    </div>
+  </div>
+  <div class="card" style="margin-top: 20px;">
+    <div class="metric-title">Live Diagnostics & Cognitive Trace</div>
+    <div class="log-box" id="diag-log">
+      [SYSTEM] Cognitive Telemetry dashboard initialized.<br>
+      [TELEMETRY] Chamber state linked to core visualizer.<br>
+      [DIAGNOSTICS] Fixation loop resolved. Telemetry stream active.
+    </div>
+  </div>
+  <script>
+    console.log('Cognitive telemetry view ready.');
+  </script>
+</body>
+</html>

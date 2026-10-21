@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PLT Soul Evolution Telemetry</title>
+<style>
+body { background: #0a0a12; color: #e2e8f0; font-family: monospace; padding: 20px; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.card { background: #121324; border: 1px solid #2a2d4a; border-radius: 8px; padding: 16px; }
+.gauge { font-size: 24px; color: #38bdf8; }
+</style>
+</head>
+<body>
+<h1>PLT Soul Evolution & Value Telemetry Matrix</h1>
+<div class="grid">
+  <div class="card" id="soul-stage"><h2>Soul Evolution Stage</h2><div class="gauge" id="stage-val">REVELATION</div></div>
+  <div class="card" id="plt-matrix"><h2>PLT Value Balance</h2><div class="gauge" id="plt-score">1.05</div></div>
+</div>
+<script>
+const state = { profit: 0.9, love: 0.85, tax: 0.05, stage: 'INTEGRATION' };
+function calculateTrueValue(p, l, t) { return p + l - t; }
+function updateTelemetry() {
+  const score = calculateTrueValue(state.profit, state.love, state.tax);
+  document.getElementById('plt-score').innerText = score.toFixed(2);
+}
+setInterval(updateTelemetry, 1000);
+</script>
+</body>
+</html>

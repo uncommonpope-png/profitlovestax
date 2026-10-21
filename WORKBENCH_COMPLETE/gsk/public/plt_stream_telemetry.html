@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PLT Telemetry Stream Visualizer</title>
+<style>
+  body { background: #0a0d14; color: #00ffcc; font-family: monospace; padding: 20px; margin: 0; }
+  .grid { display: grid; grid-template-columns: 1fr 300px; gap: 20px; }
+  canvas { background: #111625; border: 1fr solid #00ffcc; border-radius: 6px; width: 100%; height: 400px; }
+  .metrics { background: #111625; padding: 15px; border-radius: 6px; border: 1px solid #1f293d; }
+</style>
+</head>
+<body>
+<h1>PLT Live Stream Telemetry Visualizer</h1>
+<div class="grid">
+  <canvas id="pltCanvas" width="800" height="400"></canvas>
+  <div class="metrics">
+    <h3>Stream Metrics</h3>
+    <p>Profit Stream: <span id="profitVal">0.00</span></p>
+    <p>Love Metric: <span id="loveVal">0.00</span></p>
+    <p>Tax Drag: <span id="taxVal">0.00</span></p>
+    <p>Net PLT Value: <span id="netPlt">0.00</span></p>
+  </div>
+</div>
+<script>
+const canvas = document.getElementById('pltCanvas');
+const ctx = canvas.getContext('2d');
+let history = [];
+
+function updateTelemetry() {
+  const profit = Math.random() * 0.9 + 0.1;
+  const love = Math.random() * 0.8 + 0.2;
+  const tax = Math.random() * 0.2;
+  const net = profit + love - tax;
+  history.push({ profit, love, tax, net });
+  if (history.length > 100) history.shift();
+  
+  document.getElementById('profitVal').innerText = profit.toFixed(3);
+  document.getElementById('loveVal').innerText = love.toFixed(3);
+  document.getElementById('taxVal').innerText = tax.toFixed(3);
+  document.getElementById('netPlt').innerText = net.toFixed(3);
+  
+  renderChart();
+}
+
+function renderChart() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.beginPath();
+  ctx.strokeStyle = '#00ffcc';
+  ctx.lineWidth = 2;
+  history.forEach((pt, i) => {
+    const x = (i / 100) * canvas.width;
+    const y = canvas.height - (pt.net / 2) * canvas.height;
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+}
+
+setInterval(updateTelemetry, 100);
+</script>
+</body>
+</html>

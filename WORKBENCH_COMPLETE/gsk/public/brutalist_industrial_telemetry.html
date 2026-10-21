@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>INDUSTRIAL TELEMETRY CORE v291</title>
+<style>
+body { background: #08080a; color: #d0d0d0; font-family: 'Courier New', monospace; margin: 0; padding: 12px; box-sizing: border-box; }
+.grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; height: 92vh; }
+.panel { border: 2px solid #2a2a35; background: rgba(12,12,16,0.92); padding: 12px; box-shadow: inset 0 0 15px rgba(0,0,0,0.9); display: flex; flex-direction: column; justify-content: space-between; }
+.panel-header { border-bottom: 2px solid #ff3300; font-weight: bold; color: #ff3300; letter-spacing: 1px; margin-bottom: 8px; font-size: 0.9rem; text-transform: uppercase; }
+.header { grid-column: span 4; border: 2px solid #ff3300; background: #111116; padding: 10px 20px; display: flex; justify-space: space-between; align-items: center; }
+h1 { font-size: 1.3rem; margin: 0; text-transform: uppercase; letter-spacing: 3px; color: #ff3300; }
+#plt-stats { font-size: 0.85rem; line-height: 1.6; border: 1px solid #333; padding: 10px; background: #050507; color: #00ffcc; }
+canvas { width: 100%; height: 180px; background: #020204; border: 1px solid #1a1a22; }
+</style>
+</head>
+<body>
+<div class="header">
+<h1>[GSK-SYS] BRUTALIST INDUSTRIAL TELEMETRY CORE</h1>
+<span id="sys-status">STATUS: ONLINE | PLT OPTIMIZED (0.95/0.95/0.05)</span>
+</div>
+<div class="grid">
+<div class="panel"><div class="panel-header">[01] ENGINE FREQUENCY</div><canvas id="chart1"></canvas></div>
+<div class="panel"><div class="panel-header">[02] HYDRAULIC PRESSURE</div><canvas id="chart2"></canvas></div>
+<div class="panel"><div class="panel-header">[03] PLT VECTOR FLOW</div><div id="plt-stats">P-CORE: 0.95<br>L-SYNCH: 0.95<br>TAX-LEAK: 0.05<br>STATE: SOVEREIGN</div></div>
+<div class="panel"><div class="panel-header">[04] THERMAL DYNAMICS</div><canvas id="chart3"></canvas></div>
+</div>
+<script>
+function initTelemetry(id, color, speed) {
+  const canvas = document.getElementById(id);
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  canvas.width = canvas.clientWidth;
+  canvas.height = canvas.clientHeight;
+  let pts = Array(40).fill(50);
+  function render() {
+    pts.push(Math.sin(Date.now() / speed) * 35 + 50 + (Math.random() * 8 - 4));
+    if(pts.length > 40) pts.shift();
+    ctx.fillStyle = '#020204';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    pts.forEach((val, i) => {
+      const x = (i / 40) * canvas.width;
+      const y = canvas.height - (val / 100) * canvas.height;
+      if(i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+    requestAnimationFrame(render);
+  }
+  render();
+}
+initTelemetry('chart1', '#ff3300', 180);
+initTelemetry('chart2', '#00ffcc', 240);
+initTelemetry('chart3', '#ffaa00', 120);
+console.log('Industrial Telemetry Engine Initialized');
+</script>
+</body>
+</html>

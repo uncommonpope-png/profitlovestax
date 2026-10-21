@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PLT Computational Aesthetic Dashboard</title>
+<style>
+body { background-color: #0b0f19; color: #e2e8f0; font-family: system-ui, sans-serif; margin: 0; padding: 20px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 20px; }
+.card { background: #1e293b; border: 1px solid #334155; padding: 16px; border-radius: 8px; }
+.title { font-size: 0.85rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; }
+.val { font-size: 1.8rem; font-weight: bold; margin-top: 4px; }
+.profit-val { color: #34d399; }
+.love-val { color: #f472b6; }
+.tax-val { color: #f87171; }
+.tv-val { color: #38bdf8; }
+canvas { width: 100%; height: 300px; background: #0f172a; border: 1px solid #334155; border-radius: 8px; }
+</style>
+</head>
+<body>
+<h1>PLT Computational Aesthetic Telemetry</h1>
+<div class="grid">
+  <div class="card"><div class="title">Profit Score</div><div id="profit" class="val profit-val">0.00</div></div>
+  <div class="card"><div class="title">Love Score</div><div id="love" class="val love-val">0.00</div></div>
+  <div class="card"><div class="title">Tax Score</div><div id="tax" class="val tax-val">0.00</div></div>
+  <div class="card"><div class="title">True Value Score</div><div id="tv" class="val tv-val">0.00</div></div>
+</div>
+<canvas id="telemetryCanvas"></canvas>
+<script src="./plt_computational_aesthetic_engine.js"></script>
+<script>
+const engine = new PLTAestheticEngine();
+const canvas = document.getElementById('telemetryCanvas');
+const ctx = canvas.getContext('2d');
+function update() {
+  const res = engine.calculateScore({
+    fps: 55 + Math.random() * 10,
+    interactionRate: 0.7 + Math.random() * 0.2,
+    harmonyScore: 0.85,
+    latencyMs: 12 + Math.random() * 8
+  });
+  document.getElementById('profit').innerText = res.profit.toFixed(3);
+  document.getElementById('love').innerText = res.love.toFixed(3);
+  document.getElementById('tax').innerText = res.tax.toFixed(3);
+  document.getElementById('tv').innerText = res.trueValue.toFixed(3);
+}
+setInterval(update, 500);
+update();
+</script>
+</body>
+</html>

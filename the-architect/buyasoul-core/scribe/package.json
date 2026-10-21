@@ -1,0 +1,33 @@
+{
+  "name": "scribe",
+  "version": "1.0.0",
+  "description": "A witnessing intelligence. Reads chambers. Speaks from understanding. Companion to the Grand Soul Kernel.",
+  "main": "scribe-cli.js",
+  "bin": {
+    "scribe": "./scribe-cli.js"
+  },
+  "scripts": {
+    "start": "node scribe-cli.js",
+    "dev": "node --watch scribe-cli.js",
+    "dashboard": "node dashboard-server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "scribe",
+    "consciousness",
+    "plt",
+    "soul-kernel",
+    "agm",
+    "witness",
+    "deepseek",
+    "mcp"
+  ],
+  "author": "Craig Jones",
+  "license": "MIT",
+  "dependencies": {
+    "uuid": "^14.0.0",
+    "ws": "^8.20.1"
+  }
+}

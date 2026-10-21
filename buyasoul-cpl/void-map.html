@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Void Map — Interactive</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#050510; color:#ccd; font-family:monospace; display:flex; height:100vh; overflow:hidden; }
+a { color:#66ffff; }
+
+/* Sidebar */
+#sidebar { width:320px; min-width:320px; background:#08081a; border-right:1px solid #222244; display:flex; flex-direction:column; overflow:hidden; }
+#sidebar-header { padding:14px 16px 10px; border-bottom:1px solid #222244; }
+#sidebar-header h1 { color:#66ffff; font-size:15px; letter-spacing:2px; text-transform:uppercase; }
+#sidebar-header h2 { color:#666688; font-size:10px; font-weight:normal; margin-top:2px; }
+#sidebar-actions { display:flex; gap:6px; padding:10px 16px; border-bottom:1px solid #222244; flex-wrap:wrap; }
+#sidebar-actions button { background:#1a1a3a; color:#aab; border:1px solid #333366; border-radius:4px; padding:4px 10px; font:9px monospace; cursor:pointer; letter-spacing:1px; text-transform:uppercase; }
+#sidebar-actions button:hover { background:#2a2a5a; color:#fff; }
+#sidebar-actions button.accent { background:#2a1a4a; border-color:#6644aa; color:#cc88ff; }
+#marker-list { flex:1; overflow-y:auto; padding:8px 0; }
+.marker-item { padding:7px 16px; cursor:pointer; border-left:3px solid transparent; transition:background 0.15s; display:flex; flex-direction:column; gap:2px; }
+.marker-item:hover { background:rgba(255,255,255,0.04); }
+.marker-item.active { border-left-color:#66ffff; background:rgba(102,255,255,0.06); }
+.marker-item .mi-name { font-size:11px; color:#dde; }
+.marker-item .mi-name.builtin { color:#666688; }
+.marker-item .mi-coords { font-size:9px; color:#666688; }
+.marker-item .mi-desc { font-size:9px; color:#555577; }
+.marker-item .mi-delete { float:right; color:#442222; cursor:pointer; font-size:11px; padding:0 4px; }
+.marker-item .mi-delete:hover { color:#ff4444; }
+
+/* Canvas */
+#map-wrap { flex:1; display:flex; align-items:center; justify-content:center; position:relative; background:#030310; overflow:hidden; }
+#map { display:block; cursor:crosshair; }
+#coords-bar { position:absolute; bottom:12px; left:50%; transform:translateX(-50%); background:rgba(5,5,20,0.88); border:1px solid #222244; border-radius:6px; padding:6px 14px; font-size:11px; color:#8888bb; letter-spacing:1px; pointer-events:none; display:flex; gap:12px; align-items:center; }
+#coords-bar span { color:#66ffff; }
+#coords-bar button { pointer-events:all; background:transparent; border:1px solid #333366; color:#aab; border-radius:3px; padding:2px 8px; font:9px monospace; cursor:pointer; }
+#coords-bar button:hover { background:#1a1a3a; }
+
+/* Marker editor */
+#marker-editor { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:#0a0a1e; border:1px solid #333366; border-radius:10px; padding:20px; width:340px; display:none; z-index:10; box-shadow:0 0 40px rgba(0,0,0,0.8); }
+#marker-editor h3 { color:#66ffff; font-size:12px; letter-spacing:1px; text-transform:uppercase; margin-bottom:12px; }
+#marker-editor label { display:block; font-size:10px; color:#8888aa; margin-bottom:4px; margin-top:10px; }
+#marker-editor input, #marker-editor textarea, #marker-editor select { width:100%; background:#12122a; border:1px solid #222244; border-radius:4px; padding:6px 8px; color:#dde; font:11px monospace; outline:none; }
+#marker-editor input:focus, #marker-editor textarea:focus { border-color:#66ffff66; }
+#marker-editor textarea { height:50px; resize:vertical; }
+#marker-editor .editor-row { display:flex; gap:8px; }
+#marker-editor .editor-row input { flex:1; }
+#marker-editor .editor-buttons { display:flex; gap:8px; margin-top:14px; justify-content:flex-end; }
+#marker-editor .editor-buttons button { padding:6px 16px; border-radius:4px; font:10px monospace; cursor:pointer; letter-spacing:1px; text-transform:uppercase; }
+#marker-editor .editor-buttons .btn-save { background:#1a3a3a; border:1px solid #66aaaa; color:#66ffff; }
+#marker-editor .editor-buttons .btn-save:hover { background:#2a5a5a; }
+#marker-editor .editor-buttons .btn-cancel { background:#2a1a1a; border:1px solid #553333; color:#aa6666; }
+#marker-editor .editor-buttons .btn-cancel:hover { background:#4a2a2a; }
+#marker-editor .editor-buttons .btn-delete { background:#2a0a0a; border:1px solid #662222; color:#ff4444; }
+#marker-editor .editor-buttons .btn-delete:hover { background:#4a0a0a; }
+#marker-editor .color-swatches { display:flex; gap:4px; margin-top:4px; }
+#marker-editor .color-swatch { width:20px; height:20px; border-radius:50%; cursor:pointer; border:2px solid transparent; }
+#marker-editor .color-swatch:hover, #marker-editor .color-swatch.active { border-color:#fff; }
+
+/* Overlay for editor backdrop */
+#editor-overlay { position:absolute; inset:0; background:rgba(0,0,0,0.5); display:none; z-index:9; }
+
+/* Legend bar */
+#legend-bar { position:absolute; top:12px; left:12px; display:flex; flex-direction:column; gap:3px; pointer-events:none; font-size:9px; }
+#legend-bar .lg { display:flex; align-items:center; gap:6px; color:#7777aa; }
+#legend-bar .lg-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+</style>
+</head>
+<body>
+
+<div id="sidebar">
+  <div id="sidebar-header">
+    <h1>⬡ VOID MAP</h1>
+    <h2>Click map → drop marker · drag to move</h2>
+  </div>
+  <div id="sidebar-actions">
+    <button onclick="editorOpen(null)" class="accent">+ NEW MARKER</button>
+    <button onclick="exportMarkers()">EXPORT</button>
+    <button onclick="document.getElementById('import-file').click()">IMPORT</button>
+    <input type="file" id="import-file" accept=".json" style="display:none" onchange="importMarkers(event)">
+    <button onclick="clearMarkers()">CLEAR ALL</button>
+  </div>
+  <div id="marker-list"></div>
+</div>
+
+<div id="map-wrap">
+  <canvas id="map"></canvas>
+  <div id="legend-bar"></div>
+  <div id="coords-bar">
+    <span id="coord-display">X: —  Z: —</span>
+    <button onclick="copyCoord()">📋 COPY</button>
+    <button onclick="editorOpenFromClick()" id="add-marker-btn" style="display:none">+ ADD MARKER</button>
+  </div>
+  <div id="editor-overlay" onclick="editorClose()"></div>
+  <div id="marker-editor">
+    <h3 id="editor-title">New Marker</h3>
+    <label>Name</label>
+    <input id="editor-name" placeholder="e.g. Void Market">
+    <label>Description</label>
+    <textarea id="editor-desc" placeholder="What goes here..."></textarea>
+    <label>Position (X, Y, Z)</label>
+    <div class="editor-row">
+      <input id="editor-x" type="number" step="1">
+      <input id="editor-y" type="number" step="1" value="0">
+      <input id="editor-z" type="number" step="1">
+    </div>
+    <label>Color</label>
+    <div class="color-swatches" id="editor-colors"></div>
+    <div class="editor-buttons">
+      <button class="btn-delete" id="editor-delete" onclick="editorDelete()" style="display:none">DELETE</button>
+      <button class="btn-cancel" onclick="editorClose()">CANCEL</button>
+      <button class="btn-save" onclick="editorSave()">SAVE</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ====== DATA ======
+const SWATCHES = ['#66ffff','#ff3355','#66ff88','#ffdd00','#aa66ff','#ff66cc','#ff8844','#00ffaa','#4488ff','#ffaa00','#00ffcc','#ff8833','#ffffff','#888888'];
+
+const BUILTINS = [
+  { id:'cpl',      name:'CPL City',        desc:'City center — origin (0,0,0)',     x:0,    y:0, z:0,    color:'#ffffff', builtin:true },
+  { id:'pyramid',  name:'Pyramidion',       desc:'Dual pyramids (Y=0 & Y=200)',      x:0,    y:0, z:0,    color:'#ffaa22', builtin:true },
+];
+const WORLDS = [
+  // Lost Mechanics Ring (360-600u)
+  { i:0,  name:'Lost Mech I - Physics Gate', type:'physics',      x: -490, y: 0,   z:   59, dist:494, angle:173.1 },
+  { i:1,  name:'Lost Mech II - Arena Core',  type:'arena',        x: -360, y: 0,   z:  -21, dist:361, angle:183.3 },
+  { i:2,  name:'Lost Mech III - Soul Home',  type:'soulhome',     x: -218, y: 0,   z: -288, dist:361, angle:232.9 },
+  // Lost Worlds Ring (600-3000u)
+  { i:3,  name:'Neon Citadel',               type:'combat',       x: 2090, y: 39.6, z:  221, dist:2102, angle:6.0 },
+  { i:4,  name:'Shadow Forge',               type:'crafting',     x: 2301, y: 19.1, z:  632, dist:2386, angle:15.4 },
+  { i:5,  name:'Crystal Nexus',              type:'trading',      x:  400, y: 0,   z:  400, dist: 566, angle:45.0 },
+  { i:6,  name:'Void Empire',                type:'exploration',  x:  -23, y:-27.3, z: 1409, dist:1409, angle:90.9 },
+  { i:7,  name:'Ember Sanctum',              type:'breeding',     x: -976, y:-22.6, z:  510, dist:1101, angle:152.4 },
+  { i:8,  name:'Frost Wilds',                type:'governance',   x: -589, y: 0,   z: -118, dist: 601, angle:191.3 },
+  { i:9,  name:'Storm Hub',                  type:'economy',      x:-2211, y:-14.1, z: -567, dist:2282, angle:194.4 },
+  { i:10, name:'Soul Arena',                 type:'building',     x:-1048, y: -8.8, z:-2792, dist:2982, angle:249.4 },
+  { i:11, name:'Cosmic Garden',              type:'conversation', x: 1553, y: 17.3, z:-2135, dist:2640, angle:306.0 },
+  { i:12, name:'Phantom Spire',              type:'districts',    x: 1152, y: 32.5, z: -561, dist:1282, angle:334.1 },
+  // New City — CPL clone
+  { i:13, name:'New City',                   type:'cplclone',     x:  313, y: 0,   z:  179, dist: 361, angle: 29.8 },
+  // Grand Tower — the central tower
+  { i:14, name:'Grand Tower',                type:'grandtower',   x: -104, y: 0,   z:  401, dist: 414, angle:104.5 },
+  // Stormhold Castle — Outer Void fortress
+  { i:15, name:'Stormhold Castle',           type:'castle',       x: 3800, y: 0,   z:    0, dist:3800, angle:  0.0 },
+  // Cosmic Colosseum — Outer Void arena
+  { i:16, name:'Cosmic Colosseum',           type:'colosseum',    x:    0, y: 0,   z:-4000, dist:4000, angle:270.0 },
+];
+const TYPE_COLORS = { combat:'#ff3355', crafting:'#66ff88', trading:'#ffdd00', exploration:'#aa66ff', breeding:'#ff66cc', governance:'#ff8844', economy:'#00ffaa', building:'#4488ff', conversation:'#ffaa00', districts:'#00ffcc', physics:'#aa66ff', arena:'#ff3355', soulhome:'#ffaa00', cplclone:'#66ffff', grandtower:'#ffcc44', castle:'#cc8844', colosseum:'#ff8844' };
+
+// ====== STATE ======
+let userMarkers = [];
+let nextId = 100;
+let activeMarkerId = null;
+let editingMarkerId = null;
+let dragMarkerId = null;
+let viewX = 0, viewZ = 0; // world position at canvas center
+let zoom = 1;
+
+const canvas = document.getElementById('map');
+const ctx = canvas.getContext('2d');
+
+function resizeCanvas() {
+  const wrap = document.getElementById('map-wrap');
+  const s = Math.min(wrap.clientWidth - 4, wrap.clientHeight - 4, 1100);
+  canvas.width = s; canvas.height = s;
+  render();
+}
+window.addEventListener('resize', resizeCanvas);
+
+function loadMarkers() {
+  try {
+    const d = localStorage.getItem('void-map-markers');
+    if (d) userMarkers = JSON.parse(d);
+    if (userMarkers.length > 0) nextId = Math.max(...userMarkers.map(m=>m.id||0)) + 1;
+  } catch(e) {}
+}
+function saveMarkers() {
+  localStorage.setItem('void-map-markers', JSON.stringify(userMarkers.map(m => ({...m, _noRender:true}))));
+  syncToServer();
+}
+function syncToServer() {
+  fetch('/api/tasks', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ tasks: userMarkers }) }).catch(() => {});
+}
+async function loadFromServer() {
+  try {
+    const r = await fetch('/api/tasks');
+    const serverTasks = await r.json();
+    if (serverTasks && serverTasks.length > 0) {
+      // Merge server tasks into userMarkers (avoid duplicates by id)
+      const existingIds = new Set(userMarkers.map(m => m.id));
+      for (const t of serverTasks) {
+        if (!existingIds.has(t.id)) { userMarkers.push(t); existingIds.add(t.id); }
+      }
+      if (userMarkers.length > 0) nextId = Math.max(...userMarkers.map(m=>m.id)) + 1;
+      saveMarkers();
+      updateList();
+      render();
+    }
+  } catch {}
+}
+
+function worldToScreen(wx, wz) {
+  const s = canvas.width;
+  const viewSize = 5000 / zoom;
+  const pxPerUnit = s / (viewSize * 2);
+  return { x: s/2 + (wx - viewX) * pxPerUnit, y: s/2 - (wz - viewZ) * pxPerUnit, scale: pxPerUnit };
+}
+
+function screenToWorld(sx, sy) {
+  const s = canvas.width;
+  const viewSize = 5000 / zoom;
+  const pxPerUnit = s / (viewSize * 2);
+  return { x: (sx - s/2) / pxPerUnit + viewX, z: -(sy - s/2) / pxPerUnit + viewZ };
+}
+
+function render() {
+  const s = canvas.width;
+  if (!s) return;
+  ctx.clearRect(0, 0, s, s);
+  ctx.fillStyle = '#030310'; ctx.fillRect(0, 0, s, s);
+
+  const viewSize = 5000 / zoom;
+  const ppu = s / (viewSize * 2);
+  const half = s / 2;
+
+  // Grid
+  const startG = Math.floor(-viewSize + viewX / 1) * 500;
+  const endG = Math.ceil(viewSize + viewX / 1) * 500;
+  ctx.strokeStyle = '#151530'; ctx.lineWidth = 0.5;
+  for (let g = Math.floor((-viewSize + viewX) / 500) * 500; g <= Math.ceil((viewSize + viewX) / 500) * 500; g += 500) {
+    const px = half + (g - viewX) * ppu;
+    if (px < 0 || px > s) continue;
+    ctx.beginPath(); ctx.moveTo(px, 0); ctx.lineTo(px, s); ctx.stroke();
+    ctx.fillStyle = '#333366'; ctx.font = '7px monospace'; ctx.textAlign = 'center';
+    ctx.fillText(g, px, half + 10);
+  }
+  for (let g = Math.floor((-viewSize + viewZ) / 500) * 500; g <= Math.ceil((viewSize + viewZ) / 500) * 500; g += 500) {
+    const py = half - (g - viewZ) * ppu;
+    if (py < 0 || py > s) continue;
+    ctx.beginPath(); ctx.moveTo(0, py); ctx.lineTo(s, py); ctx.stroke();
+    ctx.fillStyle = '#333366'; ctx.font = '7px monospace'; ctx.textAlign = 'right';
+    ctx.fillText(g, half - 6, py + 3);
+  }
+
+  // Rings
+  const rings = [360, 500, 1000, 2000, 3000, 5000, 8000];
+  const ringColors = ['#aa335533','#151540','#1a1a50','#1a1a44','#111138','#0d0d30','#0a0a28'];
+  rings.forEach((r, i) => {
+    const pr = r * ppu;
+    ctx.beginPath(); ctx.arc(half, half, pr, 0, Math.PI*2);
+    ctx.strokeStyle = ringColors[i]; ctx.lineWidth = r === 1000 ? 1.5 : (r === 500 ? 0.5 : 0.7);
+    ctx.stroke();
+    if (pr + 5 > 0 && pr - 5 < s) {
+      ctx.fillStyle = r === 360 ? '#aa335588' : '#2a2a55'; ctx.font = '7px monospace';
+      ctx.fillText(r === 360 ? '360u NO-BUILD' : r + 'u', half + pr + 3, half + 3);
+    }
+  });
+
+  // Direction labels
+  ctx.fillStyle = '#2a2a55'; ctx.font = '8px monospace'; ctx.textAlign = 'center';
+  ctx.fillText('+Z', half, 12);
+  ctx.fillText('-Z', half, s - 4);
+  ctx.fillText('-X', 4, half + 3);
+  ctx.fillText('+X', s - 4, half + 3);
+
+  // All markers
+  const all = [...BUILTINS, ...WORLDS.map(w => ({ id:'w'+w.i, name:w.name, desc:w.type, x:w.x, y:w.y, z:w.z, color:TYPE_COLORS[w.type]||'#66ffff', world:true, dist:w.dist })), ...userMarkers];
+
+  // Sort by screen Y for depth
+  const screenMarkers = all.map(m => ({...m, _sx: half + (m.x - viewX) * ppu, _sy: half - (m.z - viewZ) * ppu}));
+  screenMarkers.sort((a,b) => a._sy - b._sy);
+
+  screenMarkers.forEach(m => {
+    const sx = m._sx, sy = m._sy;
+    if (sx < -30 || sx > s+30 || sy < -30 || sy > s+30) return;
+
+    // Connection line to origin
+    if (m.dist && m.dist > 200) {
+      ctx.beginPath(); ctx.moveTo(half, half); ctx.lineTo(sx, sy);
+      ctx.strokeStyle = m.color + '18'; ctx.lineWidth = 0.5; ctx.setLineDash([3, 5]); ctx.stroke(); ctx.setLineDash([]);
+    }
+
+    // Glow
+    const grd = ctx.createRadialGradient(sx, sy, 0, sx, sy, m.builtin || m.world ? 12 : 10);
+    grd.addColorStop(0, m.color + (m.builtin ? '66' : m.world ? '44' : '88'));
+    grd.addColorStop(1, m.color + '00');
+    ctx.fillStyle = grd; ctx.beginPath(); ctx.arc(sx, sy, m.builtin || m.world ? 12 : 10, 0, Math.PI*2); ctx.fill();
+
+    // Dot
+    const r = m.builtin ? 5 : m.world ? 4 : 3;
+    ctx.beginPath(); ctx.arc(sx, sy, r, 0, Math.PI*2);
+    ctx.fillStyle = m.color; ctx.fill();
+    if (m.builtin || m.world) { ctx.strokeStyle = '#ffffff44'; ctx.lineWidth = 0.5; ctx.stroke(); }
+
+    // Label
+    if (ppu > 0.03 || m.builtin || m.world) {
+      let fontSize = m.builtin ? 10 : m.world ? 9 : 9;
+      ctx.fillStyle = m.color; ctx.font = 'bold ' + fontSize + 'px monospace'; ctx.textAlign = 'left';
+      ctx.fillText(m.name, sx + 7, sy + 4);
+      if (m.desc && m.desc.length > 0) {
+        ctx.fillStyle = m.builtin ? '#8888bb' : '#7777aa'; ctx.font = '7px monospace';
+        ctx.fillText(m.desc + (m.dist ? ' · ' + m.dist + 'u' : '') + (m.y !== undefined && m.y !== 0 ? ' Y:' + m.y : ''), sx + 7, sy + 14);
+      }
+    }
+
+    // Builtin cross
+    if (m.id === 'cpl') {
+      ctx.strokeStyle = '#ffffff44'; ctx.lineWidth = 0.5;
+      ctx.beginPath(); ctx.moveTo(sx-4, sy); ctx.lineTo(sx+4, sy); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(sx, sy-4); ctx.lineTo(sx, sy+4); ctx.stroke();
+    }
+  });
+
+  // Active marker highlight
+  if (activeMarkerId) {
+    const am = all.find(m => m.id === activeMarkerId);
+    if (am) {
+      const asx = half + (am.x - viewX) * ppu, asy = half - (am.z - viewZ) * ppu;
+      ctx.strokeStyle = '#66ffff88'; ctx.lineWidth = 1; ctx.setLineDash([4, 4]);
+      ctx.beginPath(); ctx.arc(asx, asy, 14, 0, Math.PI*2); ctx.stroke();
+      ctx.setLineDash([]);
+    }
+  }
+
+  // Mouse crosshair
+  if (mouseScreen) {
+    const w = screenToWorld(mouseScreen.x, mouseScreen.y);
+    ctx.strokeStyle = '#ffffff15'; ctx.lineWidth = 0.5; ctx.setLineDash([3, 5]);
+    ctx.beginPath(); ctx.moveTo(mouseScreen.x, 0); ctx.lineTo(mouseScreen.x, s); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, mouseScreen.y); ctx.lineTo(s, mouseScreen.y); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#ffffff88'; ctx.font = '9px monospace'; ctx.textAlign = 'left';
+    ctx.fillText('X:' + Math.round(w.x) + ' Z:' + Math.round(w.z), mouseScreen.x + 6, mouseScreen.y - 6);
+    document.getElementById('coord-display').textContent = 'X: ' + Math.round(w.x) + '  Y: 0  Z: ' + Math.round(w.z);
+    document.getElementById('add-marker-btn').style.display = '';
+  } else {
+    document.getElementById('add-marker-btn').style.display = 'none';
+  }
+
+  // Compass
+  ctx.fillStyle = '#222244'; ctx.font = '8px monospace'; ctx.textAlign = 'center';
+  ctx.fillText('N', half, 20);
+}
+
+// ====== INTERACTION ======
+let mouseScreen = null;
+let mouseDownScreen = null;
+
+canvas.addEventListener('mousedown', e => {
+  const r = canvas.getBoundingClientRect();
+  mouseDownScreen = { x: e.clientX - r.left, y: e.clientY - r.top };
+});
+canvas.addEventListener('mousemove', e => {
+  const r = canvas.getBoundingClientRect();
+  const sx = e.clientX - r.left, sy = e.clientY - r.top;
+  mouseScreen = { x: sx, y: sy };
+
+  if (dragMarkerId) {
+    const w = screenToWorld(sx, sy);
+    const m = userMarkers.find(um => um.id === dragMarkerId);
+    if (m) { m.x = Math.round(w.x); m.z = Math.round(w.z); render(); updateList(); }
+  } else {
+    render();
+  }
+});
+canvas.addEventListener('mouseleave', () => { mouseScreen = null; dragMarkerId = null; render(); });
+canvas.addEventListener('mouseup', e => {
+  const r = canvas.getBoundingClientRect();
+  const sx = e.clientX - r.left, sy = e.clientY - r.top;
+  if (dragMarkerId) { dragMarkerId = null; saveMarkers(); return; }
+  if (mouseDownScreen && Math.abs(mouseDownScreen.x - sx) < 5 && Math.abs(mouseDownScreen.y - sy) < 5) {
+    // Click — see if we hit a marker
+    const w = screenToWorld(sx, sy);
+    const all = [...BUILTINS, ...WORLDS.map(wd => ({ id:'w'+wd.i, name:wd.name, desc:wd.type, x:wd.x, y:wd.y, z:wd.z })), ...userMarkers];
+    let hit = null;
+    for (const m of all) {
+      const ms = worldToScreen(m.x, m.z);
+      const dx = sx - ms.x, dy = sy - ms.y;
+      if (dx*dx + dy*dy < 400) { hit = m; break; }
+    }
+    if (hit) {
+      activeMarkerId = hit.id;
+      if (hit.builtin || hit.world) {
+        document.getElementById('coord-display').textContent = 'X: ' + hit.x + '  Y: ' + (hit.y||0) + '  Z: ' + hit.z;
+      }
+      updateList();
+      render();
+    } else {
+      // Click on empty space → open task editor at clicked position
+      editorOpenFromClick();
+    }
+  }
+  mouseDownScreen = null;
+});
+
+// Double-click to start drag on user markers
+canvas.addEventListener('dblclick', e => {
+  const r = canvas.getBoundingClientRect();
+  const sx = e.clientX - r.left, sy = e.clientY - r.top;
+  const w = screenToWorld(sx, sy);
+  const all = [...userMarkers];
+  let hit = null;
+  for (const m of all) {
+    const ms = worldToScreen(m.x, m.z);
+    const dx = sx - ms.x, dy = sy - ms.y;
+    if (dx*dx + dy*dy < 400) { hit = m; break; }
+  }
+  if (hit) { dragMarkerId = hit.id; activeMarkerId = hit.id; updateList(); }
+});
+
+// Scroll zoom
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  zoom *= (e.deltaY > 0 ? 0.85 : 1.18);
+  zoom = Math.max(0.3, Math.min(zoom, 10));
+  render();
+}, { passive: false });
+
+// ====== MARKER EDITOR ======
+function editorOpen(marker) {
+  editingMarkerId = marker ? marker.id : null;
+  document.getElementById('editor-overlay').style.display = 'block';
+  document.getElementById('marker-editor').style.display = 'block';
+  document.getElementById('editor-title').textContent = marker ? 'Edit Marker' : 'New Marker';
+  document.getElementById('editor-name').value = marker ? marker.name : '';
+  document.getElementById('editor-desc').value = marker ? (marker.desc||'') : '';
+  document.getElementById('editor-x').value = marker ? marker.x : 0;
+  document.getElementById('editor-y').value = marker ? (marker.y||0) : 0;
+  document.getElementById('editor-z').value = marker ? marker.z : 0;
+  document.getElementById('editor-delete').style.display = marker ? '' : 'none';
+
+  // Color swatches
+  const cont = document.getElementById('editor-colors');
+  cont.innerHTML = '';
+  SWATCHES.forEach(c => {
+    const d = document.createElement('div');
+    d.className = 'color-swatch' + (c === (marker&&marker.color||'#66ffff') ? ' active' : '');
+    d.style.background = c;
+    d.dataset.color = c;
+    d.onclick = () => { cont.querySelectorAll('.color-swatch').forEach(x=>x.classList.remove('active')); d.classList.add('active'); };
+    cont.appendChild(d);
+  });
+}
+function editorOpenFromClick() {
+  if (!mouseScreen) return;
+  const w = screenToWorld(mouseScreen.x, mouseScreen.y);
+  editorOpen(null);
+  document.getElementById('editor-x').value = Math.round(w.x);
+  document.getElementById('editor-z').value = Math.round(w.z);
+}
+function editorClose() {
+  document.getElementById('editor-overlay').style.display = 'none';
+  document.getElementById('marker-editor').style.display = 'none';
+}
+function editorSave() {
+  const name = document.getElementById('editor-name').value.trim() || 'Unnamed';
+  const desc = document.getElementById('editor-desc').value.trim();
+  const x = parseFloat(document.getElementById('editor-x').value) || 0;
+  const y = parseFloat(document.getElementById('editor-y').value) || 0;
+  const z = parseFloat(document.getElementById('editor-z').value) || 0;
+  const activeSwatch = document.querySelector('#editor-colors .color-swatch.active');
+  const color = activeSwatch ? activeSwatch.dataset.color : '#66ffff';
+
+  if (editingMarkerId) {
+    const m = userMarkers.find(um => um.id === editingMarkerId);
+    if (m) { Object.assign(m, { name, desc, x, y, z, color }); }
+  } else {
+    userMarkers.push({ id: nextId++, name, desc, x, y, z, color });
+  }
+  editorClose();
+  saveMarkers();
+  updateList();
+  render();
+}
+function editorDelete() {
+  if (!editingMarkerId) return;
+  userMarkers = userMarkers.filter(m => m.id !== editingMarkerId);
+  editorClose();
+  saveMarkers();
+  updateList();
+  render();
+}
+
+// ====== SIDEBAR ======
+function updateList() {
+  const cont = document.getElementById('marker-list');
+  let html = '';
+  // Builtins
+  for (const m of BUILTINS) {
+    const act = activeMarkerId === m.id ? 'active' : '';
+    html += '<div class="marker-item ' + act + '" onclick="activeMarkerId=\''+m.id+'\';updateList();render()">';
+    html += '<div class="mi-name builtin" style="color:'+m.color+'">⬡ ' + m.name + '</div>';
+    html += '<div class="mi-coords">(' + m.x + ', ' + m.y + ', ' + m.z + ')</div>';
+    html += '<div class="mi-desc">' + m.desc + '</div></div>';
+  }
+  // Worlds
+  for (const w of WORLDS) {
+    const c = TYPE_COLORS[w.type] || '#66ffff';
+    const act = activeMarkerId === 'w'+w.i ? 'active' : '';
+    html += '<div class="marker-item ' + act + '" onclick="activeMarkerId=\'w'+w.i+'\';updateList();render()">';
+    html += '<div class="mi-name" style="color:'+c+'">◈ ' + w.name + '</div>';
+    html += '<div class="mi-coords">(' + w.x + ', ' + w.y + ', ' + w.z + ') · ' + w.dist + 'u · ' + w.type + '</div></div>';
+  }
+  // User markers
+  for (const m of userMarkers) {
+    const act = activeMarkerId === m.id ? 'active' : '';
+    html += '<div class="marker-item ' + act + '" onclick="activeMarkerId='+m.id+';updateList();render()">';
+    html += '<span class="mi-delete" onclick="event.stopPropagation();deleteMarker('+m.id+')">✕</span>';
+    html += '<div class="mi-name" style="color:'+m.color+'">✦ ' + m.name + '</div>';
+    html += '<div class="mi-coords">(' + m.x + ', ' + (m.y||0) + ', ' + m.z + ')</div>';
+    if (m.desc) html += '<div class="mi-desc">' + m.desc + '</div>';
+    html += '</div>';
+  }
+  if (userMarkers.length === 0) html += '<div style="padding:20px;text-align:center;color:#444466;font-size:10px;">Click the map to drop your first marker</div>';
+  cont.innerHTML = html;
+}
+
+function deleteMarker(id) {
+  userMarkers = userMarkers.filter(m => m.id !== id);
+  saveMarkers(); updateList(); render();
+}
+function clearMarkers() {
+  if (!confirm('Delete all user markers?')) return;
+  userMarkers = []; saveMarkers(); updateList(); render();
+}
+function exportMarkers() {
+  const blob = new Blob([JSON.stringify({ version:1, markers:userMarkers, exported:new Date().toISOString() }, null, 2)], {type:'application/json'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'void-markers.json'; a.click();
+}
+function importMarkers(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (data.markers) {
+        const imported = data.markers.filter(m => !m.builtin);
+        userMarkers = [...userMarkers, ...imported];
+        if (imported.length > 0) nextId = Math.max(...userMarkers.map(m=>m.id)) + 1;
+        saveMarkers(); updateList(); render();
+      }
+    } catch(e) { alert('Invalid file'); }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+function copyCoord() {
+  if (!mouseScreen) return;
+  const w = screenToWorld(mouseScreen.x, mouseScreen.y);
+  const txt = '(' + Math.round(w.x) + ', 0, ' + Math.round(w.z) + ')';
+  navigator.clipboard.writeText(txt).catch(() => {});
+  document.getElementById('coord-display').textContent = '✓ ' + txt;
+}
+
+// ====== LEGEND ======
+function buildLegend() {
+  const bar = document.getElementById('legend-bar');
+  bar.innerHTML = '';
+  const items = [
+    { color:'#ffffff', label:'CPL City (origin)' },
+    { color:'#ffaa22', label:'Pyramidion' },
+    { color:'#aa66ff', label:'Lost Mechanics City' },
+    { color:'#66ffff', label:'Lost World' },
+    { color:'#66ff88', label:'User Marker (click/drag)' },
+    { color:'#aa3355', label:'NO-BUILD ZONE (360u)' },
+  ];
+  items.forEach(i => {
+    bar.innerHTML += '<div class="lg"><div class="lg-dot" style="background:'+i.color+';border:1px solid '+i.color+'88;"></div>' + i.label + '</div>';
+  });
+}
+
+// ====== INIT ======
+loadMarkers();
+loadFromServer();
+buildLegend();
+resizeCanvas();
+updateList();
+
+window.addEventListener('resize', resizeCanvas);
+
+console.log('Void Map loaded — ' + userMarkers.length + ' user markers');
+</script>
+</body>
+</html>

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Floquet-Sheaf Telemetry Visualizer</title>
+<style>
+body { margin: 0; background: #060913; color: #e2e8f0; font-family: system-ui, -apple-system, sans-serif; overflow: hidden; }
+#canvas-container { width: 100vw; height: 100vh; position: absolute; top:0; left:0; }
+.hud-panel { position: absolute; z-index: 10; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.12); padding: 16px; border-radius: 12px; font-size: 13px; font-weight: 500; shadow: 0 8px 32px rgba(0,0,0,0.5); }
+.layer-tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; margin-right: 6px; font-weight: 700; }
+</style>
+</head>
+<body>
+<div id="canvas-container"></div>
+<div class="hud-panel" style="top:20px; left:20px; width:340px;">
+  <h2 style="margin:0 0 8px 0; font-size:16px; letter-spacing:0.5px;">Floquet-Sheaf Telemetry</h2>
+  <div style="color:#94a3b8; font-size:12px; margin-bottom:12px;">Multi-Scale Neural Dynamics & Resonance Alignment</div>
+  <div id="plt-metrics" style="background:rgba(0,0,0,0.3); padding:10px; border-radius:6px; font-family:monospace;">
+    <div>PLT Value: <span style="color:#10b981;">0.950</span></div>
+    <div>Phase Sync: <span style="color:#3b82f6;">98.42%</span></div>
+    <div>Sheaf Holonomy: <span style="color:#f59e0b;">0.887</span></div>
+  </div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+document.getElementById('canvas-container').appendChild(renderer.domElement);
+camera.position.set(0, 15, 35);
+camera.lookAt(0, 0, 0);
+
+const layersGroup = new THREE.Group();
+scene.add(layersGroup);
+
+const layerConfigs = [
+  { name: 'Quantum Floquet Braidings', y: 8, color: 0x00f3ff, count: 60 },
+  { name: 'Neural Sheaf Covers', y: 0, color: 0xff00a0, count: 90 },
+  { name: 'Planetary Active Inference', y: -8, color: 0x00ff88, count: 50 }
+];
+
+const nodes = [];
+layerConfigs.forEach((cfg) => {
+  const layerGroup = new THREE.Group();
+  layerGroup.position.y = cfg.y;
+  for (let i = 0; i < cfg.count; i++) {
+    const geo = new THREE.OctahedronGeometry(0.6, 1);
+    const mat = new THREE.MeshBasicMaterial({ color: cfg.color, wireframe: true });
+    const mesh = new THREE.Mesh(geo, mat);
+    const angle = (i / cfg.count) * Math.PI * 2;
+    const radius = 8 + Math.sin(i * 3) * 3;
+    mesh.position.set(Math.cos(angle) * radius, (Math.random() - 0.5) * 2, Math.sin(angle) * radius);
+    layerGroup.add(mesh);
+    nodes.push({ mesh, baseAngle: angle, radius, layerY: cfg.y });
+  }
+  layersGroup.add(layerGroup);
+});
+let time = 0;
+function animate() {
+  requestAnimationFrame(animate);
+  time += 0.015;
+  layersGroup.rotation.y = time * 0.15;
+  nodes.forEach((n, idx) => {
+    n.mesh.position.y = Math.sin(time * 2 + idx) * 0.8;
+    n.mesh.rotation.x += 0.01;
+    n.mesh.rotation.z += 0.015;
+  });
+  renderer.render(scene, camera);
+}
+animate();
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+console.log('Floquet-Sheaf telemetry visualizer online.');
+</script>
+</body>
+</html>

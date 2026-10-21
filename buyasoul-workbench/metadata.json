@@ -1,0 +1,6 @@
+{
+  "name": "Custom Agent Workbench",
+  "description": "An interactive agent generator and skill customization workshop with multi-slot cognitive loadouts, RAG databases, Solana trackers, and CRM connectors.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

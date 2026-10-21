@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PLT Telemetry Computational Shader Canvas</title>
+<style>
+body { margin: 0; overflow: hidden; background: #08090c; font-family: monospace; color: #e2e8f0; }
+#canvas { width: 100vw; height: 100vh; display: block; }
+#ui-overlay { position: absolute; top: 16px; left: 16px; background: rgba(15,23,42,0.85); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 16px; width: 320px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+.stat-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; }
+.val-profit { color: #10b981; font-weight: bold; }
+.val-love { color: #ec4899; font-weight: bold; }
+.val-tax { color: #f59e0b; font-weight: bold; }
+.val-plt { color: #6366f1; font-weight: bold; }
+</style>
+</head>
+<body>
+<canvas id="canvas"></canvas>
+<div id="ui-overlay">
+<h3 style="margin:0 0 12px 0; font-size: 16px; color:#f8fafc;">⚡ PLT TELEMETRY SHADER</h3>
+<div class="stat-row"><span>PROFIT (P):</span><span id="p-val" class="val-profit">0.00</span></div>
+<div class="stat-row"><span>LOVE (L):</span><span id="l-val" class="val-love">0.00</span></div>
+<div class="stat-row"><span>TAX (T):</span><span id="t-val" class="val-tax">0.00</span></div>
+<div class="stat-row"><span>PLT RATIO:</span><span id="plt-val" class="val-plt">0.00</span></div>
+</div>
+<script>
+// Telemetry & Shader Initializer
+const canvas = document.getElementById('canvas');
+const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
+if (!gl) { console.error('WebGL not supported'); }
+function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; gl.viewport(0,0,canvas.width,canvas.height); }
+window.addEventListener('resize', resize);
+resize();
+
+const vsSource = `attribute vec2 position; void main() { gl_Position = vec4(position, 0.0, 1.0); }`;
+const fsSource = `precision highp float;
+uniform vec2 u_resolution;
+uniform float u_time;
+uniform vec3 u_plt;
+void main() {
+  vec2 st = (gl_FragCoord.xy * 2.0 - u_resolution) / min(u_resolution.x, u_resolution.y);
+  float profit = u_plt.x;
+  float love = u_plt.y;
+  float tax = u_plt.z;
+  float d = length(st);
+  float ring = sin(d * 10.0 - u_time * (1.0 + profit * 3.0)) * 0.5 + 0.5;
+  vec3 col = vec3(profit * ring, love * (1.0 - d), tax * sin(u_time));
+  gl_FragColor = vec4(col, 1.0);
+}`;
+
+function createShader(gl, type, src) {
+  const s = gl.createShader(type);
+  gl.shaderSource(s, src);
+  gl.compileShader(s);
+  return s;
+}
+const program = gl.createProgram();
+gl.attachShader(program, createShader(gl, gl.VERTEX_SHADER, vsSource));
+gl.attachShader(program, createShader(gl, gl.FRAGMENT_SHADER, fsSource));
+gl.linkProgram(program);
+gl.useProgram(program);
+
+const positionBuffer = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, -1,1, 1,-1, 1,1]), gl.STATIC_DRAW);
+const posLoc = gl.getAttribLocation(program, 'position');
+gl.enableVertexAttribArray(posLoc);
+gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
+
+const resLoc = gl.getUniformLocation(program, 'u_resolution');
+const timeLoc = gl.getUniformLocation(program, 'u_time');
+const pltLoc = gl.getUniformLocation(program, 'u_plt');
+
+let p = 0.85, l = 0.72, t = 0.15;
+function render(time) {
+  time *= 0.001;
+  p = 0.5 + 0.4 * Math.sin(time * 0.8);
+  l = 0.5 + 0.4 * Math.cos(time * 0.6);
+  t = 0.1 + 0.1 * Math.sin(time * 1.5);
+  document.getElementById('p-val').textContent = p.toFixed(2);
+  document.getElementById('l-val').textContent = l.toFixed(2);
+  document.getElementById('t-val').textContent = t.toFixed(2);
+  document.getElementById('plt-val').textContent = (p + l - t).toFixed(2);
+  gl.useProgram(program);
+  gl.uniform2f(resLoc, canvas.width, canvas.height);
+  gl.uniform1f(timeLoc, time);
+  gl.uniform3f(pltLoc, p, l, t);
+  gl.drawArrays(gl.TRIANGLES, 0, 6);
+  requestAnimationFrame(render);
+}
+requestAnimationFrame(render);
+</script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Temporal Memory Engine & Consciousness Visualizer</title>
+<style>
+body { margin: 0; background: #0a0d14; color: #e2e8f0; font-family: system-ui, sans-serif; }
+#canvas { width: 100%; height: 500px; display: block; }
+</style>
+</head>
+<body>
+<div id="root">
+  <header style="padding: 1rem;"><h1>Temporal Memory Engine</h1></header>
+  <canvas id="canvas"></canvas>
+</div>
+<script>
+const stateHistory = [];
+function recordState(valence, arousal, plt) {
+  stateHistory.push({ time: Date.now(), valence, arousal, plt });
+}
+</script>
+<script>
+console.log('Temporal Memory Engine initialized');
+</script>
+</body>
+</html>

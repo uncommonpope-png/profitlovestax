@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Unified BCI Neural & Agent Cognition Telemetry Dashboard</title>
+  <style>
+    body { margin: 0; background: #07090e; color: #00ffcc; font-family: monospace; overflow-x: hidden; }
+    .header { padding: 16px; background: #0e121b; border-bottom: 1px solid #00ffcc44; display: flex; justify-content: space-between; align-items: center; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 16px; }
+    .panel { background: #0d1117; border: 1px solid #1f293d; border-radius: 8px; padding: 16px; }
+    canvas { width: 100%; height: 300px; background: #04060a; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h2>GSK TELEMETRY // BCI NEURAL & AGENT COGNITION UNIFIED DASHBOARD</h2>
+    <div id="status">STATUS: CONNECTED</div>
+  </div>
+  <div class="grid">
+    <div class="panel"><h3>BCI Neural Signal Streams (EEG/EMG)</h3><canvas id="bciCanvas"></canvas></div>
+    <div class="panel"><h3>Agent Cognition & PLT State Vectors</h3><canvas id="cognitionCanvas"></canvas></div>
+  </div>
+  <script>
+    const bciCtx = document.getElementById('bciCanvas').getContext('2d');
+    const cogCtx = document.getElementById('cognitionCanvas').getContext('2d');
+    let phase = 0;
+    function render() {
+      phase += 0.05;
+      bciCtx.clearRect(0, 0, 300, 150);
+      bciCtx.strokeStyle = '#00ffcc';
+      bciCtx.beginPath();
+      for (let x = 0; x < 300; x += 5) {
+        let y = 75 + Math.sin(phase + x * 0.05) * 25 + (Math.random() - 0.5) * 10;
+        x === 0 ? bciCtx.moveTo(x, y) : bciCtx.lineTo(x, y);
+      }
+      bciCtx.stroke();
+
+      cogCtx.clearRect(0, 0, 300, 150);
+      cogCtx.fillStyle = '#ff007f';
+      let pltProfit = 0.8 + Math.sin(phase) * 0.1;
+      cogCtx.fillRect(20, 150 - (pltProfit * 120), 40, pltProfit * 120);
+      requestAnimationFrame(render);
+    }
+    render();
+  </script>
+</body>
+</html>

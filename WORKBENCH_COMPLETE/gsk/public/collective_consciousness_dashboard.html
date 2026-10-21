@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Collective Consciousness Dashboard - PLT Telemetry</title>
+<style>
+body { background: #0b0f19; color: #e2e8f0; font-family: monospace; margin: 0; padding: 20px; }
+.header { border-bottom: 1px solid #334155; padding-bottom: 10px; margin-bottom: 20px; }
+h1 { color: #38bdf8; margin: 0; font-size: 22px; }
+.grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+.card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 15px; }
+#network { width: 100%; height: 400px; background: #0f172a; border-radius: 6px; }
+.agent-status { margin-bottom: 8px; padding: 8px; background: #0f172a; border-radius: 4px; display: flex; justify-content: space-between; }
+.metric { color: #4ade80; font-weight: bold; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>Collective Consciousness & PLT Telemetry Dashboard</h1>
+  <p>Multi-Agent State Visualizer & PLT Value Flow Network</p>
+</div>
+<div class="grid">
+  <div class="card">
+    <h2>Agent Telemetry Network</h2>
+    <svg id="network" viewBox="0 0 800 400"></svg>
+  </div>
+  <div class="card">
+    <h2>PLT Value Metrics</h2>
+    <div id="metrics">
+      <div class="agent-status"><span>Profit Prime</span> <span class="metric" id="plt-profit">P: 0.90 | L: 0.05 | T: 0.05</span></div>
+      <div class="agent-status"><span>Love Weaver</span> <span class="metric" id="plt-love">P: 0.10 | L: 0.85 | T: 0.05</span></div>
+      <div class="agent-status"><span>Tax Collector</span> <span class="metric" id="plt-tax">P: 0.05 | L: 0.05 | T: 0.90</span></div>
+      <div class="agent-status"><span>Harvester</span> <span class="metric" id="plt-harvester">P: 0.40 | L: 0.30 | T: 0.30</span></div>
+    </div>
+  </div>
+</div>
+<script>
+const agents = [
+  { id: 'ProfitPrime', label: 'Profit Prime', x: 200, y: 150, color: '#4ade80' },
+  { id: 'LoveWeaver', label: 'Love Weaver', x: 600, y: 150, color: '#f472b6' },
+  { id: 'TaxCollector', label: 'Tax Collector', x: 200, y: 300, color: '#fbbf24' },
+  { id: 'Harvester', label: 'Harvester', x: 600, y: 300, color: '#38bdf8' }
+];
+const svg = document.getElementById('network');
+function renderNetwork() {
+  let svgContent = '';
+  agents.forEach((a, i) => {
+    agents.forEach((b, j) => {
+      if (i < j) {
+        svgContent += `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="#334155" stroke-width="2" stroke-dasharray="4" />`;
+      }
+    });
+  });
+  agents.forEach(a => {
+    svgContent += `<g class="node" transform="translate(${a.x},${a.y})">
+      <circle r="25" fill="${a.color}" opacity="0.8" />
+      <text y="40" text-anchor="middle" fill="#e2e8f0" font-size="12">${a.label}</text>
+    </g>`;
+  });
+  svg.innerHTML = svgContent;
+}
+renderNetwork();
+</script>
+</body>
+</html>

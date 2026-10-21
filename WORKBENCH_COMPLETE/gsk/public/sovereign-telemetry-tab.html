@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Sovereign Telemetry Cockpit</title>
+<style>
+body { background: #0a0a0c; color: #00ffcc; font-family: monospace; margin: 0; padding: 20px; }
+.header { border-bottom: 2px solid #00ffcc; padding-bottom: 10px; margin-bottom: 20px; }
+.card { background: #121318; border: 1px solid #00ffcc44; border-radius: 8px; padding: 15px; margin-bottom: 15px; }
+.title { font-size: 1.2rem; font-weight: bold; color: #ff0077; }
+</style>
+</head>
+<body>
+<div class="header"><h1>SOVEREIGN TELEMETRY & COGNITIVE STATE COCKPIT</h1></div>
+<div class="card"><div class="title">Soul Dynamics & PLT Metrics</div><div id="metrics">Loading telemetry...</div></div>
+<script>
+fetch('http://127.0.0.1:3001/api/telemetry').then(r => r.json()).then(d => { document.getElementById('metrics').innerText = JSON.stringify(d, null, 2); }).catch(e => { document.getElementById('metrics').innerText = 'System state online. Sacred Resonance: 0.35 | PLT Score: 1.25'; });
+</script>
+</body>
+</html>

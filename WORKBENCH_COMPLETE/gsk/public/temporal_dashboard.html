@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Temporal State & Valence Dashboard</title>
+<style>
+body { font-family: monospace; background: #0b0c10; color: #66fcf1; padding: 20px; }
+.card { border: 1px solid #45a29e; background: #1f2833; padding: 15px; margin-bottom: 15px; border-radius: 4px; }
+.chart-stub { height: 150px; border-left: 2px solid #66fcf1; border-bottom: 2px solid #66fcf1; margin-top: 10px; padding: 10px; }
+</style>
+</head>
+<body>
+<h1>Temporal Memory & Emotional Valence Dashboard</h1>
+<div class="card">
+  <h2>Agent State Monitor</h2>
+  <p>Mood: <span id="mood">heavy</span> | Valence: <span id="valence">-0.46</span> | Arousal: <span id="arousal">0.00</span></p>
+</div>
+<div class="card">
+  <h2>Memory State Transitions</h2>
+  <div id="timeline" class="chart-stub">Timeline Event Log Initialized</div>
+</div>
+</body>
+</html>

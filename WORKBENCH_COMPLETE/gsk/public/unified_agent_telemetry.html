@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unified Agent Telemetry Inspection Panel</title>
+<style>
+  body { background: #0a0c10; color: #00ffcc; font-family: monospace; margin: 0; padding: 20px; }
+  .panel { border: 1px solid #00ffcc; padding: 15px; border-radius: 6px; background: rgba(0,255,204,0.03); }
+  .controls { display: flex; gap: 10px; margin-bottom: 15px; }
+  button { background: #112233; color: #00ffcc; border: 1px solid #00ffcc; padding: 8px 16px; cursor: pointer; font-family: inherit; }
+  button:hover { background: #00ffcc; color: #0a0c10; }
+</style>
+</head>
+<body>
+<div class="panel">
+  <h1>Unified Agent Telemetry &amp; State Sync Panel</h1>
+  <div class="controls">
+    <button id="btn-sync">Sync State Now</button>
+    <button id="btn-toggle-freq">Toggle Frequency</button>
+  </div>
+  <div id="telemetry-tabs"></div>
+  <div id="sync-status">Status: Standby</div>
+</div>
+<script>
+console.log('Unified Telemetry Panel Initializing...');
+const syncController = {
+  state: 'INITIALIZED',
+  hz: 10,
+  sync: function() {
+    this.state = 'SYNCED';
+    document.getElementById('sync-status').innerText = 'Status: Synchronized @ ' + new Date().toISOString();
+  }
+};
+document.getElementById('btn-sync').addEventListener('click', () => syncController.sync());
+</script>
+</body>
+</html>

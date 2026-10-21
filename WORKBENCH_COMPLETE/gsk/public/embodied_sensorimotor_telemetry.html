@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Embodied Sensorimotor Telemetry Visualizer</title>
+<style>
+body { background: #0a0d14; color: #00ffcc; font-family: monospace; margin: 0; padding: 20px; }
+#hud { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+canvas { background: #05070a; border: 1fr solid #00ffcc; width: 100%; height: 500px; }
+.panel { border: 1px solid #1a2636; padding: 15px; background: rgba(10,13,20,0.8); }
+</style>
+</head>
+<body>
+<div id="hud">
+  <div class="panel">
+    <h2>Sensorimotor Perception Canvas</h2>
+    <canvas id="sensorCanvas"></canvas>
+  </div>
+  <div class="panel" id="plt-panel">
+    <h2>PLT Value Optimization</h2>
+    <div id="plt-metrics">Profit: 0.85 | Love: 0.70 | Tax: 0.15</div>
+  </div>
+</div>
+<script>
+const canvas = document.getElementById('sensorCanvas');
+const ctx = canvas.getContext('2d');
+let time = 0;
+function render() {
+  time += 0.05;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.strokeStyle = '#00ffcc';
+  ctx.beginPath();
+  for(let x = 0; x < canvas.width; x += 20) {
+    let y = 250 + Math.sin(x * 0.02 + time) * 50;
+    if(x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+  requestAnimationFrame(render);
+}
+render();
+</script>
+</body>
+</html>

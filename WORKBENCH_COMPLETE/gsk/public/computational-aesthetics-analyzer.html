@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Computational Aesthetics Analyzer - PLT Visual Harmony</title>
+  <style>
+    body { font-family: system-ui, sans-serif; background: #0a0a12; color: #00ffcc; margin: 0; padding: 20px; }
+    .card { background: #121220; border: 1px solid #1a1a3a; padding: 15px; margin-bottom: 15px; border-radius: 8px; }
+    #metrics-display { font-size: 1.1rem; line-height: 1.6; }
+    canvas { border: 1px solid #00ffcc; background: #05050d; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <h1>Computational Aesthetics Analyzer</h1>
+  <p>Evaluating UI visual harmony & visual balance for PLT telemetry optimization</p>
+  <div id="app-root">
+    <div class="card">
+      <h3>Visual Harmony Metrics</h3>
+      <div id="metrics-display">Initializing Aesthetics Engine...</div>
+    </div>
+    <div class="card">
+      <canvas id="harmony-canvas" width="600" height="300"></canvas>
+    </div>
+  </div>
+  <script>
+    const telemetryState = { profit: 0.9, love: 0.85, tax: 0.1 };
+    function calculateVisualHarmony(metrics) {
+      const goldenRatio = 1.61803398875;
+      const contrastRatio = Math.min(1.0, (metrics.profit + metrics.love) / (2 * (metrics.tax + 0.1)));
+      const symmetryScore = Math.abs((metrics.profit / (metrics.love || 0.01)) - goldenRatio) < 0.5 ? 0.95 : 0.72;
+      const visualHarmonyScore = ((contrastRatio * 0.5) + (symmetryScore * 0.5)).toFixed(4);
+      return { contrastRatio, symmetryScore, visualHarmonyScore };
+    }
+
+    function renderTelemetry() {
+      const display = document.getElementById('metrics-display');
+      const harmony = calculateVisualHarmony(telemetryState);
+      display.innerHTML = `<strong>Visual Harmony Score:</strong> ${harmony.visualHarmonyScore} <br><strong>Contrast Ratio:</strong> ${harmony.contrastRatio.toFixed(3)} | <strong>Symmetry Score:</strong> ${harmony.symmetryScore} <br><strong>PLT Vectors:</strong> Profit=${telemetryState.profit}, Love=${telemetryState.love}, Tax=${telemetryState.tax}`;
+    }
+    renderTelemetry();
+  </script>
+</body>
+</html>

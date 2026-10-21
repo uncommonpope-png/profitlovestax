@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Embodied Cognition Dashboard</title>
+  <style>
+    body { margin: 0; background: #07090e; color: #00ffcc; font-family: 'Courier New', monospace; overflow: hidden; }
+    #embodied-cognition { display: grid; grid-template-rows: 1fr 220px; height: 100vh; }
+    #spatial-viewport { width: 100%; height: 100%; position: relative; border-bottom: 2px solid #1a2638; }
+    #plt-metrics { background: #0c1017; padding: 20px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; box-shadow: 0 -4px 20px rgba(0,255,204,0.1); }
+    .metric-card { background: #131a26; padding: 15px; border-radius: 6px; border: 1px solid #1e2d42; text-align: center; }
+    .metric-val { font-size: 2em; font-weight: bold; margin-top: 5px; color: #ffffff; }
+  </style>
+</head>
+<body>
+<div id="embodied-cognition">
+  <div id="spatial-viewport"></div>
+  <div id="plt-metrics">
+    <div class="metric-card"><div>PROFIT (P)</div><div id="val-profit" class="metric-val">0.00</div></div>
+    <div class="metric-card"><div>LOVE (L)</div><div id="val-love" class="metric-val">0.00</div></div>
+    <div class="metric-card"><div>TAX (T)</div><div id="val-tax" class="metric-val">0.00</div></div>
+    <div class="metric-card"><div>TRUE VALUE</div><div id="val-tv" class="metric-val">0.00</div></div>
+  </div>
+</div>
+<script>
+  const baseUrl = 'http://127.0.0.1:3001';
+  console.log('Initializing Spatial Telemetry Engine with Base URL:', baseUrl);
+
+  const state = {
+    position: { x: 0, y: 0, z: 0 },
+    plt: { profit: 0.85, love: 0.70, tax: 0.15, trueValue: 1.40 }
+  };
+
+  function updateTelemetry(pos, plt) {
+    document.getElementById('val-profit').innerText = plt.profit.toFixed(2);
+    document.getElementById('val-love').innerText = plt.love.toFixed(2);
+    document.getElementById('val-tax').innerText = plt.tax.toFixed(2);
+    document.getElementById('val-tv').innerText = (plt.profit + plt.love - plt.tax).toFixed(2);
+  }
+
+  updateTelemetry(state.position, state.plt);
+</script>
+</body>
+</html>

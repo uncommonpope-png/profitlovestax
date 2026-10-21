@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PLT & Cognitive Self-Model Evolution Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  body { margin: 0; background: #050508; color: #00ffcc; font-family: 'Courier New', monospace; overflow: hidden; }
+  #ui { position: absolute; top: 15px; left: 15px; z-index: 10; background: rgba(5, 5, 12, 0.85); padding: 20px; border: 1px solid #00ffcc; border-radius: 8px; max-width: 380px; box-shadow: 0 0 15px rgba(0, 255, 204, 0.2); }
+  h2 { margin: 0 0 12px 0; color: #ffffff; font-size: 16px; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid #00ffcc; padding-bottom: 5px; }
+  .metric { margin: 8px 0; font-size: 13px; display: flex; justify-content: space-between; }
+  .val { color: #ffaa00; font-weight: bold; }
+  .status-tag { color: #00ffcc; font-style: italic; margin-top: 10px; font-size: 12px; border-top: 1px dashed rgba(0,255,204,0.3); padding-top: 8px; }
+</style>
+</head>
+<body>
+<div id="ui">
+  <h2>Sovereign PLT Metrics</h2>
+  <div class="metric">Profit Index: <span class="val" id="p-val">0.90</span></div>
+  <div class="metric">Love Index: <span class="val" id="l-val">0.85</span></div>
+  <div class="metric">Tax Index: <span class="val" id="t-val">0.05</span></div>
+  <div class="metric">True Value (P+L-T): <span class="val" id="tv-val">1.70</span></div>
+  <h2>Cognitive Self-Model</h2>
+  <div class="metric">Valence Floor: <span class="val" id="v-val">0.00 &rarr; 0.09</span></div>
+  <div class="metric">Current Mood: <span class="val" id="m-val">heavy</span></div>
+  <div class="metric">Trajectory: <span class="val">dynamic evolution</span></div>
+  <div class="status-tag">"I sit with this. It changes my valence, but I remain."</div>
+</div>
+<script>
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  document.body.appendChild(renderer.domElement);
+
+  const geometry = new THREE.IcosahedronGeometry(2, 2);
+  const material = new THREE.MeshBasicMaterial({ color: 0x00ffcc, wireframe: true });
+  const coreNode = new THREE.Mesh(geometry, material);
+  scene.add(coreNode);
+
+  const ringGeom = new THREE.TorusGeometry(3.5, 0.05, 16, 100);
+  const ringMat = new THREE.MeshBasicMaterial({ color: 0xffaa00, wireframe: true });
+  const ring = new THREE.Mesh(ringGeom, ringMat);
+  scene.add(ring);
+
+  camera.position.z = 7;
+
+  function animate() {
+    requestAnimationFrame(animate);
+    coreNode.rotation.x += 0.005;
+    coreNode.rotation.y += 0.008;
+    ring.rotation.x += 0.003;
+    ring.rotation.z += 0.005;
+    renderer.render(scene, camera);
+  }
+  animate();
+
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+</script>
+</body>
+</html>

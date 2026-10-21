@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sovereign PLT & Self-Model Emergence Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  body { margin: 0; overflow: hidden; background: #050508; color: #00ffcc; font-family: monospace; }
+  #overlay { position: absolute; top: 10px; left: 10px; z-index: 100; background: rgba(0,0,0,0.8); padding: 15px; border: 1px solid #00ffcc; }
+  #canvas-container { width: 100vw; height: 100vh; }
+</style>
+</head>
+<body>
+<div id="overlay">
+  <h2>SOVEREIGN PLT METRICS & EMERGENCE</h2>
+  <div id="metrics">Profit: <span id="val-p">0.90</span> | Love: <span id="val-l">0.85</span> | Tax: <span id="val-t">0.05</span></div>
+  <div id="emergence">Emergence Vector: <span id="val-e">Cycle 148 Emergent</span></div>
+</div>
+<div id="canvas-container"></div>
+<script>
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+camera.position.z = 50;
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+const particleCount = 2000;
+const geometry = new THREE.BufferGeometry();
+const positions = new Float32Array(particleCount * 3);
+const colors = new Float32Array(particleCount * 3);
+
+for (let i = 0; i < particleCount * 3; i += 3) {
+  positions[i] = (Math.random() - 0.5) * 100;
+  positions[i+1] = (Math.random() - 0.5) * 100;
+  positions[i+2] = (Math.random() - 0.5) * 100;
+  colors[i] = 0.0;
+  colors[i+1] = 1.0;
+  colors[i+2] = 0.8;
+}
+
+geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+const material = new THREE.PointsMaterial({ size: 0.8, vertexColors: true, transparent: true, opacity: 0.8 });
+const particleSystem = new THREE.Points(geometry, material);
+scene.add(particleSystem);
+
+function animate() {
+  requestAnimationFrame(animate);
+  particleSystem.rotation.x += 0.001;
+  particleSystem.rotation.y += 0.002;
+  renderer.render(scene, camera);
+}
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+animate();
+</script>
+</body>
+</html>

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Panpsychic Resonance Telemetry Visualizer</title>
+  <style>
+    body { background: #080914; color: #e2e8f0; font-family: system-ui, sans-serif; margin: 0; padding: 24px; }
+    .bento-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+    .glass-card {
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    }
+    h1 { color: #a78bfa; font-weight: 300; letter-spacing: -0.5px; }
+    .metric-value { font-size: 2.5rem; font-weight: 700; color: #38bdf8; }
+    canvas { width: 100%; height: 300px; border-radius: 12px; display: block; }
+  </style>
+</head>
+<body>
+  <h1>Panpsychic Resonance Visualizer</h1>
+  <div class="bento-grid">
+    <div class="glass-card">
+      <h3>Integrated Information (Phi Φ)</h3>
+      <div id="phi-val" class="metric-value">0.8421</div>
+    </div>
+    <div class="glass-card">
+      <h3>Resonance Field Canvas</h3>
+      <canvas id="fieldCanvas"></canvas>
+    </div>
+  </div>
+  <script>
+    const canvas = document.getElementById('fieldCanvas');
+    const ctx = canvas.getContext('2d');
+    function draw() {
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      ctx.fillStyle = 'rgba(167, 139, 250, 0.5)';
+      for(let i=0; i<30; i++) {
+        let x = (Math.sin(Date.now()*0.001 + i) + 1) * canvas.width / 2;
+        let y = (Math.cos(Date.now()*0.0015 + i) + 1) * canvas.height / 2;
+        ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI*2); ctx.fill();
+      }
+      requestAnimationFrame(draw);
+    }
+    draw();
+  </script>
+</body>
+</html>

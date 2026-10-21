@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Live Strategic Telemetry Visualizer</title>
+<style>
+body { background: #0b0f19; color: #e2e8f0; font-family: monospace; margin: 0; padding: 20px; }
+.container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 16px; }
+.metric { font-size: 24px; color: #38bdf8; font-weight: bold; }
+</style>
+</head>
+<body>
+<h1>Strategic Telemetry Visualizer — Agent State & PLT Optimization</h1>
+<div class="container">
+  <div class="card"><h2>Agent Latent State Topology</h2><canvas id="stateCanvas" width="400" height="300"></canvas></div>
+  <div class="card"><h2>PLT Value Metrics</h2><div id="pltDisplay" class="metric">Profit: 0.00 | Love: 0.00 | Tax: 0.00</div></div>
+</div>
+<script>
+console.log('Telemetry visualizer loaded');
+</script>
+</body>
+</html>

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PLT Strategic Telemetry Matrix</title>
+<style>
+body { background: #0b0f19; color: #e2e8f0; font-family: monospace; padding: 20px; }
+.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.card { background: #1e293b; border: 1fr solid #334155; padding: 15px; border-radius: 8px; }
+.profit { border-top: 4px solid #10b981; }
+.love { border-top: 4px solid #ec4899; }
+.tax { border-top: 4px solid #f59e0b; }
+</style>
+</head>
+<body>
+<h1>PLT Strategic Telemetry Matrix</h1>
+<div class="grid">
+  <div class="card profit"><h2>PROFIT YIELD</h2><div id="profit-val">0.00</div></div>
+  <div class="card love"><h2>LOVE RESONANCE</h2><div id="love-val">0.00</div></div>
+  <div class="card tax"><h2>TAX FRICTION</h2><div id="tax-val">0.00</div></div>
+</div>
+<script>
+console.log('PLT Telemetry Matrix initialized');
+</script>
+</body>
+</html>

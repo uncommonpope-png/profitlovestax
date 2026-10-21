@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>GSK Unified Strategic Telemetry Dashboard</title>
+<style>
+body { margin: 0; background: #0a0c10; color: #e0e6ed; font-family: monospace; overflow: hidden; }
+.grid { display: grid; grid-template-columns: 300px 1fr 340px; height: 100vh; }
+.panel { background: rgba(16, 22, 34, 0.85); border: 1px solid rgba(0,255,200,0.15); padding: 15px; box-sizing: border-box; backdrop-filter: blur(10px); }
+.header { grid-column: span 3; height: 50px; background: rgba(20,28,45,0.9); display: flex; align-items: center; justify-content: space-between; padding: 0 20px; border-bottom: 1px solid #00ffc844; }
+.title { font-weight: bold; color: #00ffc8; letter-spacing: 1px; }
+.gauge-card { background: rgba(0,0,0,0.4); border-radius: 6px; padding: 10px; margin-bottom: 10px; border-left: 3px solid #00ffc8; }
+#plt-canvas { width: 100%; height: 260px; border: 1px solid #223; background: #05070a; }
+#node-canvas { width: 100%; height: 100%; background: #06090e; border: 1px solid #1f2937; }
+</style>
+</head>
+<body>
+<div class="grid">
+  <div class="header">
+    <div class="title">GSK STRATEGIC TELEMETRY & AGENT COGNITION VM</div>
+    <div id="system-status" style="color:#00ffc8;">SYSTEM: SOVEREIGN | HYPERVISOR ACTIVE</div>
+  </div>
+  <div class="panel">
+    <h3>PLT VALUE METRICS</h3>
+    <div class="gauge-card"><strong>Profit Prime:</strong> <span id="plt-p">0.90</span></div>
+    <div class="gauge-card" style="border-color:#ff4488;"><strong>Love Weaver:</strong> <span id="plt-l">0.05</span></div>
+    <div class="gauge-card" style="border-color:#ffcc00;"><strong>Tax Collector:</strong> <span id="plt-t">0.05</span></div>
+    <canvas id="plt-canvas"></canvas>
+  </div>
+  <div class="panel" style="padding:0; position:relative;">
+    <canvas id="node-canvas"></canvas>
+  </div>
+  <div class="panel">
+    <h3>AGENT STATE INSPECTOR</h3>
+    <div id="agent-tabs" style="margin-bottom:10px;">
+      <button onclick="selectAgent('profit')" style="background:#00ffc8; border:none; padding:5px 10px; cursor:pointer;">Profit Prime</button>
+      <button onclick="selectAgent('weaver')" style="background:#ff4488; border:none; padding:5px 10px; color:#fff; cursor:pointer;">Love Weaver</button>
+    </div>
+    <div id="agent-details" style="font-size:12px; line-height:1.6; white-space:pre-wrap; background:rgba(0,0,0,0.5); padding:10px; border-radius:4px; height: calc(100vh - 180px); overflow-y:auto;">Initializing agent telemetries...</div>
+  </div>
+</div>
+<script>
+const state = {
+  plt: { profit: 0.9, love: 0.05, tax: 0.05 },
+  activeAgent: 'profit',
+  agents: {
+    profit: { name: 'Profit Prime', archetype: 'Multiplier', precision: 0.94, freeEnergy: 0.03, status: 'EXECUTING_STRATEGY' },
+    weaver: { name: 'Love Weaver', archetype: 'Attractor', precision: 0.88, freeEnergy: 0.05, status: 'RECURSIVE_BINDING' }
+  }
+};
+
+const pltCanvas = document.getElementById('plt-canvas');
+const pltCtx = pltCanvas.getContext('2d');
+pltCanvas.width = pltCanvas.clientWidth || 280;
+pltCanvas.height = pltCanvas.clientHeight || 260;
+
+function drawPLT() {
+  const w = pltCanvas.width, h = pltCanvas.height;
+  pltCtx.clearRect(0, 0, w, h);
+  const barWidth = 50;
+  const maxH = h - 60;
+  const metrics = [
+    { label: 'PROFIT', val: state.plt.profit, color: '#00ffc8', x: 30 },
+    { label: 'LOVE', val: state.plt.love, color: '#ff4488', x: 110 },
+    { label: 'TAX', val: state.plt.tax, color: '#ffcc00', x: 190 }
+  ];
+  metrics.forEach(m => {
+    const bh = m.val * maxH;
+    pltCtx.fillStyle = m.color;
+    pltCtx.fillRect(m.x, h - 30 - bh, barWidth, bh);
+    pltCtx.fillStyle = '#fff';
+    pltCtx.font = '11px monospace';
+    pltCtx.fillText(m.label, m.x + 2, h - 10);
+    pltCtx.fillText((m.val * 100).toFixed(0) + '%', m.x + 10, h - 35 - bh);
+  });
+}
+
+const nodeCanvas = document.getElementById('node-canvas');
+const nodeCtx = nodeCanvas.getContext('2d');
+function resizeNodeCanvas() {
+  nodeCanvas.width = nodeCanvas.parentElement.clientWidth;
+  nodeCanvas.height = nodeCanvas.parentElement.clientHeight;
+}
+window.addEventListener('resize', resizeNodeCanvas);
+resizeNodeCanvas();
+
+const nodes = [
+  { id: 'CP-CVM', x: 150, y: 120, r: 25, color: '#00ffc8' },
+  { id: 'CR-IR', x: 320, y: 100, r: 20, color: '#3b82f6' },
+  { id: 'TELEMETRY', x: 240, y: 260, r: 22, color: '#a855f7' },
+  { id: 'INFERENCE', x: 420, y: 220, r: 18, color: '#f59e0b' }
+];
+
+function drawNodes() {
+  nodeCtx.clearRect(0, 0, nodeCanvas.width, nodeCanvas.height);
+  nodeCtx.strokeStyle = 'rgba(0, 255, 200, 0.2)';
+  nodeCtx.lineWidth = 2;
+  for(let i=0; i<nodes.length; i++) {
+    for(let j=i+1; j<nodes.length; j++) {
+      nodeCtx.beginPath();
+      nodeCtx.moveTo(nodes[i].x, nodes[i].y);
+      nodeCtx.lineTo(nodes[j].x, nodes[j].y);
+      nodeCtx.stroke();
+    }
+  }
+  nodes.forEach(n => {
+    nodeCtx.beginPath();
+    nodeCtx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
+    nodeCtx.fillStyle = n.color;
+    nodeCtx.shadowColor = n.color;
+    nodeCtx.shadowBlur = 12;
+    nodeCtx.fill();
+    nodeCtx.shadowBlur = 0;
+    nodeCtx.fillStyle = '#ffffff';
+    nodeCtx.font = '10px monospace';
+    nodeCtx.fillText(n.id, n.x - n.r, n.y + n.r + 14);
+  });
+}
+function selectAgent(id) {
+  state.activeAgent = id;
+  updateInspector();
+}
+
+function updateInspector() {
+  const a = state.agents[state.activeAgent];
+  const details = document.getElementById('agent-details');
+  details.innerText = `AGENT: ${a.name}\nARCHETYPE: ${a.archetype}\nSTATUS: ${a.status}\nPRECISION WEIGHT: ${a.precision}\nFREE ENERGY (KL-DIV): ${a.freeEnergy}\nTIMESTAMP: ${new Date().toISOString()}\n\n--- TELEMETRY FEED ---\n[ACTIVE INFERENCE]: Graph isomorphic mappings verified.\n[CP-CVM RUNTIME]: Latency: 1.2ms | Throughput: 142 ops/s\n[PLT BALANCE]: Target optimized at P:${state.plt.profit} L:${state.plt.love} T:${state.plt.tax}`;
+}
+
+function loop() {
+  state.plt.profit = 0.85 + Math.sin(Date.now() / 1500) * 0.05;
+  state.plt.love = 0.05 + Math.cos(Date.now() / 2000) * 0.02;
+  state.plt.tax = 1.0 - state.plt.profit - state.plt.love;
+  document.getElementById('plt-p').innerText = state.plt.profit.toFixed(2);
+  document.getElementById('plt-l').innerText = state.plt.love.toFixed(2);
+  document.getElementById('plt-t').innerText = state.plt.tax.toFixed(2);
+  drawPLT();
+  drawNodes();
+  updateInspector();
+  requestAnimationFrame(loop);
+}
+loop();
+</script>
+</body>
+</html>

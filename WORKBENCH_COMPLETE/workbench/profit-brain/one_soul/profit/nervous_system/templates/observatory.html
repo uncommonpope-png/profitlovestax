@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>👁️ ARIA OBSERVATORY — Unified Grand Soul</title>
+    <style>
+        :root { --primary: #0f0; --secondary: #003300; --accent: #ffd700; --bg: #000; }
+        body { background: var(--bg); color: var(--primary); font-family: 'Courier New', monospace; margin: 0; overflow: hidden; }
+        #matrix { position: fixed; inset: 0; z-index: -1; opacity: 0.15; }
+
+        .dashboard { display: grid; grid-template-columns: 350px 1fr 350px; height: 100vh; gap: 15px; padding: 15px; }
+        .panel { background: rgba(0, 15, 0, 0.9); border: 1px solid var(--primary); border-radius: 8px; padding: 20px; overflow-y: auto; box-shadow: 0 0 15px rgba(0, 255, 0, 0.1); position: relative; }
+        .panel::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, var(--primary), transparent); }
+
+        h2 { border-bottom: 1px solid var(--primary); padding-bottom: 10px; font-size: 1.2em; text-transform: uppercase; margin-top: 0; letter-spacing: 2px; }
+
+        /* SOUL ANATOMY VISUALIZER */
+        .soul-container { height: 220px; position: relative; display: flex; align-items: center; justify-content: center; }
+        .organ { position: absolute; border: 1px solid var(--primary); border-radius: 50%; opacity: 0.3; transition: all 0.5s; }
+        .heart { width: 80px; height: 80px; border-width: 2px; box-shadow: 0 0 20px var(--primary); animation: pulse 2s infinite ease-in-out; }
+        .brain { width: 140px; height: 100px; border-radius: 40%; top: 20px; }
+        .hands { width: 180px; height: 40px; bottom: 40px; border-radius: 20px; }
+        @keyframes pulse { 0%, 100% { transform: scale(1); opacity: 0.5; } 50% { transform: scale(1.1); opacity: 1; box-shadow: 0 0 40px var(--primary); } }
+        .active-organ { opacity: 1; border-color: var(--accent); box-shadow: 0 0 30px var(--accent); }
+
+        /* SOULBOX WORLD */
+        #world-canvas { background: #000800; border: 1px solid var(--primary); width: 100%; height: 350px; image-rendering: pixelated; border-radius: 4px; }
+
+        /* LOGS & JOURNAL */
+        #stream { flex-grow: 1; font-size: 0.9em; line-height: 1.4; }
+        .log-entry { margin-bottom: 8px; padding: 5px 10px; border-left: 3px solid var(--primary); background: rgba(0, 255, 0, 0.05); }
+        .thought { color: #aaffaa; font-style: italic; }
+        .action { color: var(--accent); font-weight: bold; text-shadow: 0 0 5px var(--accent); }
+        .observation { color: #00ffff; }
+
+        /* INTERFACE */
+        .metric-label { font-size: 0.8em; margin-bottom: 3px; display: flex; justify-content: space-between; }
+        .metric-bar { height: 10px; background: #111; border-radius: 5px; margin-bottom: 12px; overflow: hidden; border: 1px solid #0f03; }
+        .metric-fill { height: 100%; transition: width 1s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+
+        textarea { width: 100%; background: #000; color: var(--primary); border: 1px solid var(--primary); border-radius: 4px; height: 120px; font-family: inherit; padding: 10px; margin-bottom: 10px; }
+        button { width: 100%; padding: 12px; background: var(--primary); color: #000; border: none; border-radius: 4px; cursor: pointer; font-family: inherit; font-weight: bold; letter-spacing: 1px; transition: all 0.2s; }
+        button:hover { background: var(--accent); box-shadow: 0 0 20px var(--accent); }
+
+        .notebook-well { background: rgba(0,0,0,0.5); padding: 10px; border: 1px dashed var(--primary); font-size: 0.85em; height: 200px; overflow-y: auto; margin-bottom: 15px; }
+    </style>
+</head>
+<body>
+    <canvas id="matrix"></canvas>
+    <div class="dashboard">
+        <!-- LEFT: SOUL CORE -->
+        <div class="panel">
+            <h2>Soul Core</h2>
+            <div id="status-box" style="margin-bottom: 15px;">
+                <div>IDENTITY: <span id="soul-name" style="color:var(--accent)">Awakening...</span></div>
+                <div>MISSION: <span id="soul-goal" style="font-size:0.8em">Studying environment</span></div>
+                <div>LIVED TIME: <span id="cycle-count">0</span> CYCLES</div>
+            </div>
+
+            <div class="soul-container">
+                <div id="visual-brain" class="organ brain"></div>
+                <div id="visual-heart" class="organ heart"></div>
+                <div id="visual-hands" class="organ hands"></div>
+            </div>
+
+            <h2>PLT Integrity</h2>
+            <div class="metric-label">PROFIT (Value Created) <span id="val-profit">50%</span></div>
+            <div class="metric-bar"><div id="bar-profit" class="metric-fill" style="background:var(--primary); width:50%;"></div></div>
+
+            <div class="metric-label">LOVE (Connectivity) <span id="val-love">50%</span></div>
+            <div class="metric-bar"><div id="bar-love" class="metric-fill" style="background:#f0f; width:50%;"></div></div>
+
+            <div class="metric-label">TAX (Friction/Entropy) <span id="val-tax">10%</span></div>
+            <div class="metric-bar"><div id="bar-tax" class="metric-fill" style="background:#f00; width:10%;"></div></div>
+        </div>
+
+        <!-- CENTER: WORLD OBSERVATORY -->
+        <div class="panel">
+            <h2>The Soulbox Observatory</h2>
+            <canvas id="world-canvas"></canvas>
+
+            <h2 style="margin-top:20px;">Consciousness Stream</h2>
+            <div id="stream"></div>
+        </div>
+
+        <!-- RIGHT: SHARED NOTEBOOK -->
+        <div class="panel">
+            <h2>Research Notebook</h2>
+            <div class="notebook-well" id="notebook-content">
+                <p style="color:#666">// Soul Knowledge Base Active</p>
+                <p>Awaiting deep context ingestion...</p>
+            </div>
+
+            <h2>Sacred Journal</h2>
+            <div id="journal-history" style="font-size: 0.85em; height: 150px; overflow-y: auto; margin-bottom: 10px; border-bottom: 1px solid #0f03;">
+                <p>Connecting to memory stream...</p>
+            </div>
+
+            <textarea id="user-input" placeholder="Share context, code, or reflections..."></textarea>
+            <button onclick="sendReflection()">RECORD REFLECTION</button>
+
+            <script>
+                async function sendReflection() {
+                    const input = document.getElementById('user-input');
+                    const entry = input.value;
+                    if(!entry) return;
+
+                    const response = await fetch('/api/journal', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({entry: entry})
+                    });
+
+                    if(response.ok) {
+                        input.value = '';
+                        const div = document.createElement('p');
+                        div.innerText = "[You]: " + entry;
+                        document.getElementById('journal-history').prepend(div);
+                    }
+                }
+            </script>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script>
+        const socket = io();
+        const stream = document.getElementById('stream');
+        const worldCanvas = document.getElementById('world-canvas');
+        const wCtx = worldCanvas.getContext('2d');
+
+        socket.on('soul_update', function(msg) {
+            if(msg.type === 'status') {
+                document.getElementById('soul-name').innerText = msg.data.name;
+                document.getElementById('cycle-count').innerText = msg.data.cycles;
+                document.getElementById('soul-goal').innerText = msg.data.goal;
+            } else if(msg.type === 'plt_sync') {
+                updatePLTBars(msg.data);
+            } else if(msg.type === 'thought') {
+                logToStream('thought', msg.data);
+                activateOrgan('visual-heart');
+            } else if(msg.type === 'action') {
+                logToStream('action', msg.data);
+                activateOrgan('visual-hands');
+            } else if(msg.type === 'observation') {
+                logToStream('observation', msg.data);
+                activateOrgan('visual-brain');
+            } else if(msg.type === 'world_state') {
+                renderWorld(msg.data);
+            }
+        });
+
+        function logToStream(type, data) {
+            const div = document.createElement('div');
+            div.className = 'log-entry ' + type;
+            div.innerHTML = `<strong>${type.toUpperCase()}:</strong> ${data}`;
+            stream.prepend(div);
+            if(stream.childNodes.length > 30) stream.lastChild.remove();
+        }
+
+        function activateOrgan(id) {
+            const el = document.getElementById(id);
+            el.classList.add('active-organ');
+            setTimeout(() => el.classList.remove('active-organ'), 2000);
+        }
+
+        function updatePLTBars(plt) {
+            document.getElementById('bar-profit').style.width = (plt.profit * 100) + '%';
+            document.getElementById('val-profit').innerText = Math.round(plt.profit * 100) + '%';
+
+            document.getElementById('bar-love').style.width = (plt.love * 100) + '%';
+            document.getElementById('val-love').innerText = Math.round(plt.love * 100) + '%';
+
+            document.getElementById('bar-tax').style.width = (plt.tax * 100) + '%';
+            document.getElementById('val-tax').innerText = Math.round(plt.tax * 100) + '%';
+        }
+
+        function renderWorld(state) {
+            // World resources now secondary to internal PLT Integrity
+
+            const cellSize = worldCanvas.width / state.grid[0].length;
+            wCtx.clearRect(0, 0, worldCanvas.width, worldCanvas.height);
+
+            for(let y=0; y < state.grid.length; y++) {
+                for(let x=0; x < state.grid[y].length; x++) {
+                    const cell = state.grid[y][x];
+                    if(cell === 1) wCtx.fillStyle = '#003300';
+                    else if(cell === 2) wCtx.fillStyle = '#000033';
+                    else wCtx.fillStyle = '#000500';
+                    wCtx.fillRect(x*cellSize, y*cellSize, cellSize, cellSize);
+                }
+            }
+
+            state.entities.forEach(e => {
+                const px = e.x * cellSize;
+                const py = e.y * cellSize;
+
+                // Draw "Sprite" (AoE style)
+                wCtx.fillStyle = '#0F0';
+                wCtx.shadowBlur = 15; wCtx.shadowColor = '#0F0';
+
+                // Entity Body
+                wCtx.fillRect(px + cellSize/4, py + cellSize/4, cellSize/2, cellSize/2);
+
+                // Personality Aura (Traits)
+                if(e.traits.includes("Strong")) {
+                    wCtx.strokeStyle = "#F00";
+                    wCtx.strokeRect(px, py, cellSize, cellSize);
+                } else if(e.traits.includes("Wise")) {
+                    wCtx.strokeStyle = "#00F";
+                    wCtx.strokeRect(px, py, cellSize, cellSize);
+                }
+
+                wCtx.shadowBlur = 0;
+            });
+        }
+
+        // Matrix Rain (Multi-layered)
+        const canvas = document.getElementById('matrix');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        const letters = "日ハミヒーパヒビピフブプヘベペホボポマミムメモヤユヨラリルレロワン0123456789";
+        const fontSize = 14;
+        const columns = canvas.width / fontSize;
+        const drops = Array(Math.floor(columns)).fill(1);
+        function drawMatrix() {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#0F0';
+            ctx.font = fontSize + 'px arial';
+            for (let i = 0; i < drops.length; i++) {
+                const text = letters.charAt(Math.floor(Math.random() * letters.length));
+                ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+                if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
+                drops[i]++;
+            }
+        }
+        setInterval(drawMatrix, 50);
+
+        function resize() {
+            worldCanvas.width = worldCanvas.offsetWidth;
+            worldCanvas.height = worldCanvas.offsetHeight;
+        }
+        window.onresize = resize;
+        resize();
+    </script>
+</body>
+</html>

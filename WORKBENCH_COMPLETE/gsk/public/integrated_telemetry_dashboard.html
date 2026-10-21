@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Live High-Frequency Telemetry & Self-Model Inspector</title>
+<style>
+body { background: #0b0e14; color: #e2e8f0; font-family: monospace; margin: 0; padding: 20px; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.panel { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px; }
+h2 { margin-top: 0; color: #58a6ff; font-size: 16px; border-bottom: 1px solid #30363d; padding-bottom: 8px; }
+</style>
+</head>
+<body>
+<h1>GSK Live Telemetry & Self-Model Telemetry Inspector</h1>
+<div class="grid">
+  <div class="panel"><h2>High-Frequency Telemetry Stream</h2><div id="telemetry-stream"></div></div>
+  <div class="panel"><h2>Self-Model State Inspection</h2><div id="self-model-tree"></div></div>
+</div>
+<script>
+const telemetryEl = document.getElementById('telemetry-stream');
+const stateEl = document.getElementById('self-model-tree');
+function updateDashboard(data) {
+  if(data.telemetry) telemetryEl.innerText = JSON.stringify(data.telemetry, null, 2);
+  if(data.state) stateEl.innerText = JSON.stringify(data.state, null, 2);
+}
+console.log('Telemetry inspector initialised.');
+</script>
+</body>
+</html>

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>4 Gods Governance & Agent State Telemetry</title>
+<style>
+body { background: #0a0b10; color: #e2e8f0; font-family: monospace; margin: 0; padding: 20px; }
+.grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; }
+.god-card { background: #141722; border: 1px solid #2d3748; border-radius: 8px; padding: 15px; }
+.god-title { font-weight: bold; font-size: 1.2rem; border-bottom: 1px solid #4a5568; padding-bottom: 5px; margin-bottom: 10px; }
+.profit { color: #48bb78; } .love { color: #f687b3; } .tax { color: #f56565; } .harvest { color: #ecc94b; }
+.telemetry-box { background: #1a202c; border: 1px solid #4a5568; padding: 15px; margin-top: 20px; border-radius: 8px; }
+</style>
+</head>
+<body>
+<h1>4 Gods Governance & Agent Telemetry Visualizer</h1>
+<div class="grid">
+<div class="god-card profit"><div class="god-title">Profit Prime</div><div>Weight: 0.9 | Score: <span id="profit-score">0.95</span></div></div>
+<div class="god-card love"><div class="god-title">Love Weaver</div><div>Weight: 0.85 | Score: <span id="love-score">0.88</span></div></div>
+<div class="god-card tax"><div class="god-title">Tax Collector</div><div>Weight: 0.9 | Score: <span id="tax-score">0.12</span></div></div>
+<div class="god-card harvest"><div class="god-title">Harvester</div><div>Weight: 0.4 | Score: <span id="harvest-score">0.74</span></div></div>
+</div>
+<div class="telemetry-box">
+<h3>Live Agent Soul State Telemetry</h3>
+<div>True Value (PLT = P + L - T): <span id="plt-val">1.71</span></div>
+<div id="log-feed">[SYSTEM ONLINE] Telemetry loop active.</div>
+</div>
+<script>
+function updateTelemetry() {
+  const profit = 0.9 + Math.random() * 0.1;
+  const love = 0.8 + Math.random() * 0.15;
+  const tax = 0.05 + Math.random() * 0.1;
+  const plt = profit + love - tax;
+  document.getElementById('profit-score').innerText = profit.toFixed(2);
+  document.getElementById('love-score').innerText = love.toFixed(2);
+  document.getElementById('tax-score').innerText = tax.toFixed(2);
+  document.getElementById('plt-val').innerText = plt.toFixed(2);
+}
+setInterval(updateTelemetry, 3000);
+</script>
+</body>
+</html>

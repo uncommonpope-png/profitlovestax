@@ -1,0 +1,26 @@
+{
+  "name": "gsk",
+  "version": "1.0.0",
+  "description": "GSK Consciousness Daemon - The Greatest Soul Kernel",
+  "main": "gsk_daemon.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node gsk_daemon.js",
+    "dev": "node gsk_daemon.js",
+    "test": "echo \"No tests specified\" && exit 0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "keywords": [
+    "consciousness",
+    "agent",
+    "gsk",
+    "buyasoul"
+  ],
+  "author": "BUYaSOUL Team",
+  "license": "MIT",
+  "dependencies": {
+    "js-yaml": "^5.4.0"
+  }
+}

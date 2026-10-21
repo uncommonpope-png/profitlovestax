@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Live Strategic PLT Self-Transparency Dashboard</title>
+<style>
+  body { background-color: #0b0f19; color: #e2e8f0; font-family: monospace; margin: 0; padding: 24px; }
+  h1 { color: #38bdf8; border-bottom: 2px solid #1e293b; padding-bottom: 12px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; font-size: 14px; }
+  .card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+  .metric-val { font-size: 28px; font-weight: bold; color: #4ade80; margin-top: 8px; }
+</style>
+</head>
+<body>
+<h1>GSK Agent Self-Transparency Telemetry Dashboard</h1>
+<div class="grid">
+  <div class="card"><h3>PLT Formula Optimizations</h3><div id="plt-val" class="metric-val">P: 0.92 | L: 0.85 | T: 0.10</div></div>
+  <div class="card"><h3>4-God Council Consensus</h3><div id="council-val">Profit Prime: ACTIVE (0.95)<br>Love Weaver: HARMONIOUS (0.88)<br>Tax Collector: LOW FRICTION (0.10)<br>Harvester: READY (0.80)</div></div>
+</div>
+<script>
+const BASE_URL = 'http://127.0.0.1:3001';
+function fetchTelemetry() {
+  fetch(`${BASE_URL}/api/telemetry`).then(res => res.json()).then(data => {
+    if(data && data.plt) {
+      document.getElementById('plt-val').innerText = `P: ${data.plt.p} | L: ${data.plt.l} | T: ${data.plt.t}`;
+    }
+  }).catch(() => {});
+}
+setInterval(fetchTelemetry, 3000);
+fetchTelemetry();
+</script>
+</body>
+</html>

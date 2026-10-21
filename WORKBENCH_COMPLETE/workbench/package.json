@@ -1,0 +1,129 @@
+{
+  "name": "buyasoul-workbench",
+  "private": true,
+  "version": "1.0.0",
+  "type": "commonjs",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "predist": "node scripts/stage-gsk.cjs",
+    "dist": "npm run build && electron-builder --win nsis --publish never",
+    "start": "npm run build && electron .",
+    "setup": "node setup.js",
+    "postinstall": "node setup.js",
+    "lint": "tsc --noEmit"
+  },
+  "main": "electron-main.cjs",
+  "build": {
+    "appId": "com.buyasoul.workbench",
+    "productName": "BUYASOUL Workbench",
+    "electronVersion": "44.0.0",
+    "npmRebuild": false,
+    "asar": false,
+    "files": [
+      "dist/**/*",
+      "!dist/**/*.map",
+      "!dist/win-unpacked/**",
+      "!dist/win-*/**",
+      "!dist/*.exe",
+      "!dist/*.blockmap",
+      "electron-main.cjs",
+      "preload.cjs",
+      "server.ts",
+      "hands.ts",
+      "profit-brain/**/*",
+      {
+        "from": "cpl-pkg",
+        "to": "cpl",
+        "filter": ["**/*"]
+      },
+      {
+        "from": "gsk-pkg",
+        "to": "gsk",
+        "filter": ["**/*"]
+      },
+      "src/**/*",
+      "vite.config.ts",
+      "tsconfig.json"
+    ],
+    "extraResources": [
+      {
+        "from": ".seshat-vectors",
+        "to": ".seshat-vectors",
+        "filter": ["**/*"]
+      },
+      {
+        "from": "node-runtime",
+        "to": "node-runtime",
+        "filter": ["**/*"]
+      },
+      {
+        "from": "profit-brain",
+        "to": "profit-brain",
+        "filter": ["**/*"]
+      },
+      {
+        "from": "scribe-pkg",
+        "to": "app/scribe",
+        "filter": ["**/*"]
+      }
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "public/icon.ico"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "BUYASOUL Workbench"
+    }
+  },
+  "dependencies": {
+    "@lancedb/lancedb": "^0.37.1",
+    "@xenova/transformers": "^2.17.2",
+    "chokidar": "^4.0.3",
+    "dotenv": "^17.2.3",
+    "express": "^4.21.2",
+    "node-pty": "^1.0.0",
+    "tsx": "^4.21.0",
+    "tree-sitter-wasms": "^0.1.13",
+    "web-tree-sitter": "^0.20.8",
+    "ws": "^8.18.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@google/genai": "^1.29.0",
+    "@monaco-editor/react": "^4.7.0",
+    "@solana/web3.js": "^1.98.4",
+    "@tailwindcss/vite": "^4.1.14",
+    "@types/express": "^4.17.21",
+    "@types/jszip": "^3.4.0",
+    "@types/node": "^22.14.0",
+    "@types/three": "^0.184.1",
+    "@types/ws": "^8.5.12",
+    "@types/xterm": "^3.0.0",
+    "@vitejs/plugin-react": "^5.0.4",
+    "@xterm/addon-fit": "^0.10.0",
+    "@xterm/addon-webgl": "^0.18.0",
+    "@xterm/xterm": "^5.5.0",
+    "autoprefixer": "^10.4.21",
+    "dockview": "^4.1.0",
+    "electron": "^30.0.0",
+    "electron-builder": "^24.0.0",
+    "html2canvas": "^1.4.1",
+    "jszip": "^3.10.1",
+    "lucide-react": "^0.546.0",
+    "motion": "^12.23.24",
+    "monaco-editor": "^0.56.0",
+    "react": "^19.0.1",
+    "react-dom": "^19.0.1",
+    "react-markdown": "^10.1.0",
+    "tailwindcss": "^4.1.14",
+    "three": "^0.184.0",
+    "typescript": "~5.8.2",
+    "vite": "^6.2.3"
+  }
+}

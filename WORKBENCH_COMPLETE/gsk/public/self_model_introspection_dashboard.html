@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Self-Model Introspection Dashboard</title>
+  <style>
+    body { background: #0b0f19; color: #e2e8f0; font-family: 'Segoe UI', monospace; padding: 20px; }
+    .card { background: #1e293b; border: 1px solid #334155; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+    h1 { color: #38bdf8; font-size: 24px; border-bottom: 1px solid #334155; padding-bottom: 10px; }
+    h2 { color: #94a3b8; font-size: 18px; margin-top: 0; }
+    .metric-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 15px; }
+    .metric-item { background: #0f172a; padding: 15px; border-radius: 6px; border: 1px solid #1e293b; }
+    .metric-title { font-size: 12px; color: #64748b; text-transform: uppercase; }
+    .metric-value { font-size: 20px; color: #4ade80; font-weight: bold; margin-top: 5px; }
+    pre { background: #020617; color: #38bdf8; padding: 15px; border-radius: 6px; overflow-x: auto; max-height: 250px; border: 1px solid #1e293b; }
+  </style>
+</head>
+<body>
+  <h1>Self-Model Introspection</h1>
+  <div id="app">
+    <div class="card">
+      <h2>Capability & Memory State</h2>
+      <div class="metric-grid">
+        <div class="metric-item"><div class="metric-title">Execution Status</div><div class="metric-value" id="status">ACTIVE</div></div>
+        <div class="metric-item"><div class="metric-title">Capabilities Loaded</div><div class="metric-value" id="mem">332 Tools</div></div>
+        <div class="metric-item"><div class="metric-title">PLT Index</div><div class="metric-value" id="plt">1.07</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Live Telemetry Stream</h2>
+      <pre id="logs">[SYS] Initializing self-model introspection monitor...</pre>
+    </div>
+  </div>
+  <script>
+    function logPulse() {
+      const logs = document.getElementById('logs');
+      if (logs) {
+        logs.textContent += '\n[' + new Date().toISOString() + '] Capability check: 332 tools active, PLT resonance 1.07';
+      }
+    }
+    setInterval(logPulse, 5000);
+    logPulse();
+  </script>
+</body>
+</html>

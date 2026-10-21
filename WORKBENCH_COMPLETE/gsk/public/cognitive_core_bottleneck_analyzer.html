@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cognitive Core Bottleneck Analyzer</title>
+<style>
+body { background: #0a0a10; color: #00ffcc; font-family: monospace; margin: 0; padding: 20px; }
+.header { border-bottom: 1px solid #00ffcc; padding-bottom: 10px; margin-bottom: 20px; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.card { background: #12131c; border: 1px solid #1a233a; border-radius: 8px; padding: 15px; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>Cognitive Core Bottleneck Analyzer</h1>
+  <p>Real-Time Dynamic Resource Re-allocation &amp; Governance Controls</p>
+</div>
+<div class="grid">
+  <div class="card" id="telemetry-card">
+    <h2>Core Telemetry Stream</h2>
+    <div id="metrics"></div>
+  </div>
+  <div class="card" id="controls-card">
+    <h2>Resource Allocation Controls</h2>
+    <div id="controls"></div>
+  </div>
+</div>
+<script>
+const state = { computeWeight: 50, memoryAlloc: 64, governanceThreshold: 0.8 };
+function render() {
+  document.getElementById('metrics').innerHTML = '<pre>' + JSON.stringify(state, null, 2) + '</pre>';
+  document.getElementById('controls').innerHTML = `
+    <label>Compute Allocation: <input type="range" min="0" max="100" value="${state.computeWeight}" oninput="state.computeWeight=this.value;render()"></label><br>
+    <label>Memory Pool (MB): <input type="range" min="16" max="512" value="${state.memoryAlloc}" oninput="state.memoryAlloc=this.value;render()"></label>
+  `;
+}
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>External Cognitive Substrate Visualizer</title>
+<style>
+body { margin: 0; background: #05050a; color: #00f0ff; font-family: monospace; overflow: hidden; }
+#canvas { width: 100vw; height: 100vh; display: block; }
+#hud { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.85); padding: 12px; border: 1px solid #00f0ff; border-radius: 4px; z-index: 10; }
+</style>
+</head>
+<body>
+<div id="hud">
+  <h2>Cognitive Substrate Visualizer</h2>
+  <p>Agent State: LIVE | Spatial Telemetry: ACTIVE</p>
+</div>
+<canvas id="canvas"></canvas>
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+window.addEventListener('resize', resize); resize();
+function render() {
+  ctx.fillStyle = 'rgba(5, 5, 10, 0.2)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  requestAnimationFrame(render);
+}
+render();
+</script>
+</body>
+</html>

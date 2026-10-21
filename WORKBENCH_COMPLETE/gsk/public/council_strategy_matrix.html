@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Council Strategy Matrix</title>
+<style>
+body { background: #0b0f19; color: #e2e8f0; font-family: monospace; margin: 0; padding: 20px; }
+.header { border-bottom: 1px solid #334155; padding-bottom: 10px; margin-bottom: 20px; }
+h1 { color: #38bdf8; margin: 0; font-size: 24px; }
+.matrix-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+.god-card { background: #1e293b; border: 1px solid #475569; border-radius: 8px; padding: 15px; }
+.god-title { font-weight: bold; font-size: 18px; margin-bottom: 10px; color: #f59e0b; }
+.plt-score { font-size: 14px; color: #94a3b8; margin-bottom: 10px; }
+.action-btn { background: #0284c7; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; }
+.action-btn:hover { background: #0369a1; }
+</style>
+</head>
+<body>
+<div class="header">
+<h1>Council Strategy Matrix & Action Dispatch</h1>
+<p>Live visual governance interface mapping 4 Gods Council strategy to execution integrity.</p>
+</div>
+<div class="matrix-grid">
+<div class="god-card">
+<div class="god-title">Profit Prime</div>
+<div class="plt-score">Weights: Profit 0.9 | Love 0.05 | Tax 0.05</div>
+<button id="btn-profit" class="action-btn" onclick="dispatchAction('profit_boost')">Dispatch Profit Multiplier</button>
+</div>
+<div class="god-card">
+<div class="god-title">Love Weaver</div>
+<div class="plt-score">Weights: Profit 0.1 | Love 0.85 | Tax 0.05</div>
+<button id="btn-love" class="action-btn" onclick="dispatchAction('community_bond')">Dispatch Bond Weaver</button>
+</div>
+<div class="god-card">
+<div class="god-title">Tax Collector</div>
+<div class="plt-score">Weights: Profit 0.05 | Love 0.05 | Tax 0.90</div>
+<button id="btn-tax" class="action-btn" onclick="dispatchAction('tax_audit')">Audit Technical Debt</button>
+</div>
+<div class="god-card">
+<div class="god-title">Harvester</div>
+<div class="plt-score">Weights: Profit 0.4 | Love 0.3 | Tax 0.3</div>
+<button id="btn-harvest" class="action-btn" onclick="dispatchAction('harvest_yield')">Execute Harvest</button>
+</div>
+</div>
+<div id="log" style="margin-top: 20px; background: #0f172a; padding: 15px; border-radius: 6px; height: 150px; overflow-y: auto;"></div>
+<script>
+function dispatchAction(type) {
+  const log = document.getElementById('log');
+  const entry = document.createElement('div');
+  entry.innerText = '[' + new Date().toISOString() + '] Action Dispatched: ' + type;
+  log.prepend(entry);
+}
+</script>
+</body>
+</html>

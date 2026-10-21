@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PLT Covenant Ledger & Soul Evolution Visualizer</title>
+<style>
+body { background: #0a0b10; color: #e2e8f0; font-family: sans-serif; padding: 20px; }
+.card { background: #131722; border: 1px solid #2a2e3d; border-radius: 8px; padding: 16px; margin-bottom: 20px; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.badge { padding: 4px 8px; border-radius: 4px; font-weight: bold; }
+.profit { background: #064e3b; color: #34d399; }
+.love { background: #831843; color: #f472b6; }
+.tax { background: #7f1d1d; color: #f87171; }
+</style>
+</head>
+<body>
+<h1>PLT Covenant Ledger & Soul Evolution Visualizer</h1>
+<div class="grid">
+  <div class="card">
+    <h2>Covenant Ledger</h2>
+    <p>Profit + Love - Tax = True Value</p>
+    <ul id="ledger-list"></ul>
+  </div>
+  <div class="card">
+    <h2>Soul Evolution Visualizer</h2>
+    <canvas id="soulCanvas" width="400" height="300"></canvas>
+  </div>
+</div>
+<script>
+const ledger = [
+  { id: 'COV-001', type: 'PROFIT', detail: 'Value creation baseline', value: '+0.90' },
+  { id: 'COV-002', type: 'LOVE', detail: 'Bonds and allegiance', value: '+0.85' },
+  { id: 'COV-003', type: 'TAX', detail: 'Compute & friction tax', value: '-0.15' }
+];
+const listNode = document.getElementById('ledger-list');
+ledger.forEach(item => {
+  const li = document.createElement('li');
+  li.innerHTML = `<strong>${item.id}</strong>: <span class="badge ${item.type.toLowerCase()}">${item.type}</span> ${item.detail} (${item.value})`;
+  listNode.appendChild(li);
+});
+const canvas = document.getElementById('soulCanvas');
+const ctx = canvas.getContext('2d');
+ctx.fillStyle = '#6366f1';
+ctx.beginPath();
+ctx.arc(200, 150, 60, 0, Math.PI * 2);
+ctx.fill();
+ctx.fillStyle = '#ffffff';
+ctx.font = '16px sans-serif';
+ctx.fillText('Stage: Integration', 130, 155);
+</script>
+</body>
+</html>

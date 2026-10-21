@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Signal Frequency & Entropy Telemetry Monitor</title>
+<style>
+  body { background: #0b0f19; color: #e2e8f0; font-family: monospace; margin: 0; padding: 20px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .card { background: #131b2e; border: 1px solid #1e293b; border-radius: 8px; padding: 16px; }
+  h1, h2 { color: #38bdf8; margin-top: 0; }
+  canvas { width: 100%; height: 240px; background: #090d16; border-radius: 4px; }
+  .stat { font-size: 1.4em; font-weight: bold; color: #4ade80; }
+  .tax { color: #f87171; }
+  .plt { color: #facc15; }
+</style>
+</head>
+<body>
+<h1>📡 Agent State Frequency & Entropy Telemetry</h1>
+<div class="grid">
+  <div class="card">
+    <h2>Signal Spectral Frequency Spectrum</h2>
+    <canvas id="freqCanvas"></canvas>
+  </div>
+  <div class="card">
+    <h2>Entropy Reduction Matrix</h2>
+    <canvas id="entropyCanvas"></canvas>
+  </div>
+</div>
+<div class="card" style="margin-top:20px;">
+  <h2>Live Systemic Telemetry Log</h2>
+  <div id="metricsPanel"><span class="stat">Initialising Telemetry Streams...</span></div>
+</div>
+<script>
+const state = { frequencyData: [], entropyHistory: [], pltScore: 0.95 };
+function calculateShannonEntropy(probabilities) {
+  return -probabilities.reduce((acc, p) => p > 0 ? acc + p * Math.log2(p) : acc, 0);
+}
+function processSignalBatch(logFrequencies) {
+  const total = logFrequencies.reduce((a, b) => a + b, 0) || 1;
+  const probs = logFrequencies.map(f => f / total);
+  const entropy = calculateShannonEntropy(probs);
+  state.entropyHistory.push(entropy);
+  if (state.entropyHistory.length > 50) state.entropyHistory.shift();
+  return entropy;
+}
+function renderCharts() {
+  const fCanvas = document.getElementById('freqCanvas');
+  const fCtx = fCanvas.getContext('2d');
+  fCtx.clearRect(0, 0, fCanvas.width, fCanvas.height);
+  fCtx.fillStyle = '#38bdf8';
+  for(let i = 0; i < 20; i++) {
+    let val = Math.sin(Date.now()*0.005 + i) * 50 + 60;
+    fCtx.fillRect(i * 15, fCanvas.height - val, 10, val);
+  }
+  
+  const eCanvas = document.getElementById('entropyCanvas');
+  const eCtx = eCanvas.getContext('2d');
+  eCtx.clearRect(0, 0, eCanvas.width, eCanvas.height);
+  eCtx.strokeStyle = '#4ade80';
+  eCtx.beginPath();
+  state.entropyHistory.forEach((ent, idx) => {
+    let x = idx * (eCanvas.width / 50);
+    let y = eCanvas.height - (ent * 30);
+    if (idx === 0) eCtx.moveTo(x, y); else eCtx.lineTo(x, y);
+  });
+  eCtx.stroke();
+}
+setInterval(() => {
+  processSignalBatch([Math.random()*10, Math.random()*5, Math.random()*2]);
+  renderCharts();
+  document.getElementById('metricsPanel').innerHTML = `<span class="stat">Entropy: ${state.entropyHistory[state.entropyHistory.length-1]?.toFixed(4) || 0} bits</span> | <span class="plt">PLT Yield: ${state.pltScore}</span>`;
+}, 200);
+</script>
+</body>
+</html>

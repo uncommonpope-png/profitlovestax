@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Multispecies Acoustic Telemetry Visualizer</title>
+  <style>
+    body { margin: 0; background: #0a0d14; color: #00ffcc; font-family: monospace; overflow: hidden; }
+    #telemetryCanvas { width: 100vw; height: 80vh; display: block; }
+    #panel { height: 20vh; padding: 15px; background: #121722; border-top: 1px solid #00ffcc; font-size: 12px; display: flex; gap: 20px; }
+  </style>
+</head>
+<body>
+  <canvas id="telemetryCanvas"></canvas>
+  <div id="panel"><div>Status: Initializing Decoders...</div></div>
+  <script>
+    const canvas = document.getElementById('telemetryCanvas');
+    const ctx = canvas.getContext('2d');
+    let width = canvas.width = window.innerWidth;
+    let height = canvas.height = window.innerHeight * 0.8;
+    window.addEventListener('resize', () => { width = canvas.width = window.innerWidth; height = canvas.height = window.innerHeight * 0.8; });
+    
+    const speciesList = ['BeeSwarm-LLM', 'Mycelial-Agent', 'Echolocation-Core', 'Avian-Vocalizer'];
+    function render() {
+      ctx.fillStyle = 'rgba(10, 13, 20, 0.2)';
+      ctx.fillRect(0, 0, width, height);
+      const now = Date.now() * 0.002;
+      speciesList.forEach((s, idx) => {
+        ctx.beginPath();
+        ctx.strokeStyle = `hsl(${idx * 90 + 120}, 100%, 50%)`;
+        ctx.lineWidth = 2;
+        for (let x = 0; x < width; x += 5) {
+          const y = height / 2 + Math.sin(x * 0.01 + now + idx) * 50 * Math.sin(now * 0.5);
+          if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      });
+      requestAnimationFrame(render);
+    }
+    render();
+  </script>
+</body>
+</html>

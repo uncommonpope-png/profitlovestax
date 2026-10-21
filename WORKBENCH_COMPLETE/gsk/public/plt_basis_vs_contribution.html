@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PLT Dashboard: Functional Basis vs Net Value Contribution</title>
+<style>
+body { font-family: system-ui, sans-serif; background: #0f172a; color: #f8fafc; margin: 20px; }
+h1 { color: #38bdf8; border-bottom: 2px solid #334155; padding-bottom: 8px; }
+.card { background: #1e293b; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #334155; }
+table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+th, td { padding: 12px; border: 1px solid #334155; text-align: left; }
+th { background: #0f172a; color: #94a3b8; font-weight: 600; }
+.badge { padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.9em; }
+.positive { background: #166534; color: #4ade80; }
+.highlight { color: #38bdf8; font-weight: bold; }
+</style>
+</head>
+<body>
+<h1>PLT Engine: Functional Basis vs Net Value Contribution Dashboard</h1>
+<div class="card">
+<h2>System Module Efficiency & Contribution Analysis</h2>
+<p>Evaluating module architectural functional basis against net value contribution using formula: <strong>Net Value = Profit + Love - Tax</strong>.</p>
+</div>
+<div class="card">
+<table>
+<thead>
+<tr>
+<th>Module</th>
+<th>Functional Basis</th>
+<th>Profit</th>
+<th>Love</th>
+<th>Tax</th>
+<th>Net Value</th>
+<th>PLT Yield Ratio</th>
+</tr>
+</thead>
+<tbody id="moduleTable"></tbody>
+</table>
+</div>
+<script>
+const modules = [
+  { name: 'gsk-core Engine', basis: 'Task Planning & Execution', profit: 0.95, love: 0.80, tax: 0.20, net: 1.55, ratio: '7.75x' },
+  { name: 'Temporal Memory Synthesis', basis: 'State Tracking & History', profit: 0.90, love: 0.85, tax: 0.15, net: 1.60, ratio: '10.67x' },
+  { name: 'PLT Visualizer & Dashboard', basis: 'Observability & Analytics', profit: 0.85, love: 0.90, tax: 0.10, net: 1.65, ratio: '16.50x' },
+  { name: 'Ecosystem Failure Sync', basis: 'Error Recovery & Resilience', profit: 0.70, love: 0.60, tax: 0.25, net: 1.05, ratio: '4.20x' }
+];
+const tbody = document.getElementById('moduleTable');
+modules.forEach(m => {
+  const tr = document.createElement('tr');
+  tr.innerHTML = `<td><strong>${m.name}</strong></td><td>${m.basis}</td><td>${m.profit}</td><td>${m.love}</td><td>${m.tax}</td><td><span class="badge positive">+${m.net.toFixed(2)}</span></td><td class="highlight">${m.ratio}</td>`;
+  tbody.appendChild(tr);
+});
+</script>
+</body>
+</html>

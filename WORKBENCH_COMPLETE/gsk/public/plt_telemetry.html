@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PLT Real-Time Telemetry Visualizer</title>
+  <style>body { margin: 0; background: #0a0a12; color: #e5e5e5; font-family: monospace; } canvas { width: 100%; height: 600px; display: block; }</style>
+</head>
+<body>
+  <h1>PLT Telemetry Engine</h1>
+  <canvas id="telemetryCanvas"></canvas>
+  <script>
+    const baseUrl = "http://127.0.0.1:3001";
+    const canvas = document.getElementById("telemetryCanvas");
+    function render() { requestAnimationFrame(render); }
+    requestAnimationFrame(render);
+  </script>
+</body>
+</html>

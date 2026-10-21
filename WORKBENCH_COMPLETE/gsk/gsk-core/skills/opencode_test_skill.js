@@ -1,0 +1,1 @@
+module.exports.execute = async function(input) { return 'injected skill works: ' + input; };

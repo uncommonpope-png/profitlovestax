@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Strategic Telemetry Visualizer</title>
+<style>
+body { background: #0a0a0f; color: #00ffcc; font-family: monospace; margin: 0; padding: 20px; }
+.card { border: 1px solid #00ffcc; padding: 15px; border-radius: 8px; margin-bottom: 20px; background: rgba(0,255,204,0.05); }
+canvas { width: 100%; height: 300px; background: #050508; border: 1px solid #333; }
+</style>
+</head>
+<body>
+<h1>Strategic Telemetry Visualizer</h1>
+<div class="card">
+<h2>Live Agent State & PLT Matrix</h2>
+<canvas id="telemetryCanvas"></canvas>
+<div id="metrics">Loading telemetry stream...</div>
+</div>
+<script>
+const canvas = document.getElementById('telemetryCanvas');
+const ctx = canvas.getContext('2d');
+function render() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#00ffcc';
+  ctx.fillText('Agent State: ONLINE | PLT Optimization Active', 20, 30);
+  requestAnimationFrame(render);
+}
+render();
+</script>
+</body>
+</html>

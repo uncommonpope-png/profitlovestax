@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Strategic Telemetry Visualizer - Real-Time PLT Optimization</title>
+<style>
+body { background: #0b0f19; color: #00ffcc; font-family: monospace; margin: 0; padding: 20px; }
+.header { border-bottom: 2px solid #00ffcc; padding-bottom: 10px; margin-bottom: 20px; }
+.grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+.card { border: 1px solid #1e293b; background: rgba(15,23,42,0.8); border-radius: 8px; padding: 16px; }
+.metric { font-size: 24px; font-weight: bold; color: #38bdf8; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>Strategic Telemetry Visualizer</h1>
+  <p>Real-Time PLT Value Optimization & Agent State Telemetry</p>
+</div>
+<div class="grid">
+  <div class="card">
+    <h2>PLT Vector Dynamics</h2>
+    <canvas id="pltCanvas" width="700" height="350"></canvas>
+  </div>
+  <div class="card">
+    <h2>Agent Interoceptive State</h2>
+    <div id="metricsContainer">
+      <p>Profit Score: <span id="profitVal" class="metric">0.00</span></p>
+      <p>Love Metric: <span id="loveVal" class="metric">0.00</span></p>
+      <p>Tax Coefficient: <span id="taxVal" class="metric">0.00</span></p>
+      <p>Net True Value: <span id="pltVal" class="metric">0.00</span></p>
+    </div>
+  </div>
+</div>
+<script>
+const canvas = document.getElementById('pltCanvas');
+const ctx = canvas.getContext('2d');
+let history = [];
+function tick() {
+  const p = 0.90 + Math.sin(Date.now() / 1000) * 0.05;
+  const l = 0.85 + Math.cos(Date.now() / 1200) * 0.04;
+  const t = 0.08 + Math.sin(Date.now() / 800) * 0.02;
+  const tv = p + l - t;
+  document.getElementById('profitVal').innerText = p.toFixed(3);
+  document.getElementById('loveVal').innerText = l.toFixed(3);
+  document.getElementById('taxVal').innerText = t.toFixed(3);
+  document.getElementById('pltVal').innerText = tv.toFixed(3);
+  history.push(tv);
+  if (history.length > 50) history.shift();
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.strokeStyle = '#00ffcc';
+  ctx.beginPath();
+  history.forEach((val, idx) => {
+    const x = (idx / 50) * canvas.width;
+    const y = canvas.height - ((val - 1.5) * 300);
+    if (idx === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+}
+setInterval(tick, 200);
+</script>
+</body>
+</html>

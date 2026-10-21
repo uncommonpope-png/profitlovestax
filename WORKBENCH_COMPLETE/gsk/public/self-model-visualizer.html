@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>GSK Agent Self-Model Dynamics Visualizer</title>
+<style>
+  body { margin: 0; background: #0a0c14; color: #00ffcc; font-family: monospace; overflow: hidden; }
+  #canvas { width: 100vw; height: 100vh; display: block; }
+  #telemetry { position: absolute; top: 16px; left: 16px; background: rgba(10,12,20,0.85); padding: 16px; border: 1px solid #00ffcc; border-radius: 4px; pointer-events: none; }
+</style>
+</head>
+<body>
+<div id="telemetry">
+  <h3>GSK SELF-MODEL DYNAMICS</h3>
+  <div id="metrics">Initializing telemetry stream...</div>
+</div>
+<canvas id="canvas"></canvas>
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+let width = canvas.width = window.innerWidth;
+let height = canvas.height = window.innerHeight;
+
+window.addEventListener('resize', () => {
+  width = canvas.width = window.innerWidth;
+  height = canvas.height = window.innerHeight;
+});
+
+const agentState = {
+  mood: 'heavy',
+  valence: -0.45,
+  arousal: 0.0,
+  sacredResonance: 0.35,
+  plt: { profit: 0.80, love: 0.45, tax: 0.15 },
+  nodes: Array.from({ length: 24 }, (_, i) => ({
+    x: Math.random() * width,
+    y: Math.random() * height,
+    vx: (Math.random() - 0.5) * 1.5,
+    vy: (Math.random() - 0.5) * 1.5,
+    radius: 4 + Math.random() * 6
+  }))
+};
+
+function render() {
+  ctx.fillStyle = 'rgba(10, 12, 20, 0.2)';
+  ctx.fillRect(0, 0, width, height);
+  
+  agentState.nodes.forEach((node, idx) => {
+    node.x += node.vx;
+    node.y += node.vy;
+    if (node.x < 0 || node.x > width) node.vx *= -1;
+    if (node.y < 0 || node.y > height) node.vy *= -1;
+    
+    ctx.beginPath();
+    ctx.arc(node.x, node.y, node.radius, 0, Math.PI * 2);
+    ctx.fillStyle = idx % 3 === 0 ? '#00ffcc' : idx % 3 === 1 ? '#ff0055' : '#7700ff';
+    ctx.fill();
+    
+    for (let j = idx + 1; j < agentState.nodes.length; j++) {
+      const other = agentState.nodes[j];
+      const dist = Math.hypot(node.x - other.x, node.y - other.y);
+      if (dist < 120) {
+        ctx.strokeStyle = `rgba(0, 255, 204, ${1 - dist / 120})`;
+        ctx.lineWidth = 0.8;
+        ctx.beginPath();
+        ctx.moveTo(node.x, node.y);
+        ctx.lineTo(other.x, other.y);
+        ctx.stroke();
+      }
+    }
+  });
+  
+  document.getElementById('metrics').innerHTML = `
+    <div>Valence: ${agentState.valence}</div>
+    <div>Arousal: ${agentState.arousal}</div>
+    <div>Resonance: ${agentState.sacredResonance}</div>
+    <div>PLT Score: ${(agentState.plt.profit + agentState.plt.love - agentState.plt.tax).toFixed(2)}</div>
+  `;
+  requestAnimationFrame(render);
+}
+render();
+</script>
+</body>
+</html>

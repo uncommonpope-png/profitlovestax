@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GSK Research-Driven Self-Model Telemetry Inspector</title>
+<style>
+body { background: #090d16; color: #e2e8f0; font-family: 'Segoe UI', system-ui, sans-serif; margin: 0; padding: 24px; }
+.header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e293b; padding-bottom: 16px; margin-bottom: 24px; }
+.title { font-size: 24px; font-weight: 700; color: #38bdf8; letter-spacing: -0.5px; }
+.badge { background: #0284c7; color: #fff; padding: 4px 12px; border-radius: 9999px; font-size: 12px; font-weight: 600; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+.card { background: #0f172a; border: 1px solid #1e293b; border-radius: 12px; padding: 20px; }
+.card-title { font-size: 14px; font-weight: 600; text-transform: uppercase; color: #94a3b8; margin-bottom: 12px; letter-spacing: 0.5px; }
+.metric-value { font-size: 36px; font-weight: 800; color: #4ade80; margin: 8px 0; }
+.formula { font-size: 13px; color: #64748b; background: #020617; padding: 8px 12px; border-radius: 6px; font-family: monospace; border: 1px solid #0f172a; }
+.agent-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #1e293b; }
+.agent-row:last-child { border-bottom: none; }
+.status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 8px; background: #22c55e; }
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="title">GSK Self-Model Telemetry Inspector</div>
+  <div class="badge">LIVE TELEMETRY</div>
+</div>
+<div class="grid">
+  <div class="card">
+    <div class="card-title">Live PLT Score (True Value)</div>
+    <div class="metric-value" id="plt-true-value">1.71</div>
+    <div class="formula">PLT Formula: Profit + Love - Tax = True Value</div>
+  </div>
+  <div class="card">
+    <div class="card-title">PLT Component Telemetry</div>
+    <div class="agent-row"><span>Profit (Growth / Value)</span><strong style="color:#4ade80" id="plt-profit">0.91</strong></div>
+    <div class="agent-row"><span>Love (Retention / Affinity)</span><strong style="color:#f472b6" id="plt-love">0.85</strong></div>
+    <div class="agent-row"><span>Tax (Risk / Cost / Overhead)</span><strong style="color:#f87171" id="plt-tax">0.05</strong></div>
+  </div>
+  <div class="card">
+    <div class="card-title">4 Gods Council Agent States</div>
+    <div class="agent-row"><span><span class="status-dot"></span>Profit Prime</span><span id="state-profit-prime">OPTIMIZING</span></div>
+    <div class="agent-row"><span><span class="status-dot"></span>Love Weaver</span><span id="state-love-weaver">HARMONIZING</span></div>
+    <div class="agent-row"><span><span class="status-dot"></span>Tax Collector</span><span id="state-tax-collector">MONITORING</span></div>
+    <div class="agent-row"><span><span class="status-dot"></span>Harvester</span><span id="state-harvester">READY</span></div>
+  </div>
+</div>
+<script>
+const baseUrl = "http://127.0.0.1:3001";
+console.log("GSK Telemetry Inspector initialised. Target URL:", baseUrl);
+function updateTelemetry() {
+  const p = 0.91, l = 0.85, t = 0.05;
+  const tv = (p + l - t).toFixed(2);
+  document.getElementById("plt-true-value").innerText = tv;
+}
+setInterval(updateTelemetry, 2000);
+</script>
+</body>
+</html>

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Live PLT State Inspection Dashboard</title>
+  <style>
+    body { font-family: monospace; background: #0a0a10; color: #00ffcc; margin: 0; padding: 20px; }
+    .card { background: #121320; border: 1px solid #00ffcc; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
+    h1, h2 { color: #00ffcc; margin-top: 0; }
+    .metric { display: flex; justify-space-between; margin: 8px 0; border-bottom: 1px dashed #334; padding-bottom: 4px; }
+    .val { color: #ff00ff; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h1>PLT Telemetry Inspection Dashboard</h1>
+  <div class="card">
+    <h2>Interoceptive State Vector</h2>
+    <div class="metric"><span>Profit Vector (P):</span><span class="val" id="plt-p">0.80</span></div>
+    <div class="metric"><span>Love Vector (L):</span><span class="val" id="plt-l">0.10</span></div>
+    <div class="metric"><span>Tax Vector (T):</span><span class="val" id="plt-t">0.10</span></div>
+  </div>
+  <div class="card">
+    <h2>System Dynamics & Setpoints</h2>
+    <div class="metric"><span>Token Entropy:</span><span class="val" id="entropy">0.12</span></div>
+    <div class="metric"><span>Context Saturation:</span><span class="val" id="context">45%</span></div>
+    <div class="metric"><span>Tool Error Frequency:</span><span class="val" id="error-freq">0.02</span></div>
+  </div>
+  <script>
+    console.log('PLT Inspection Dashboard initialized.');
+  </script>
+</body>
+</html>

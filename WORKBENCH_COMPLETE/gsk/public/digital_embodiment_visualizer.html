@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GSK 3D Digital Embodiment Visualizer</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <style>
+    body { margin: 0; overflow: hidden; background: #05070a; font-family: monospace; color: #e2e8f0; }
+    #canvas-container { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
+    .hud-panel { position: absolute; z-index: 10; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 8px; padding: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+    #plt-telemetry { top: 20px; left: 20px; width: 320px; }
+    #agent-state { top: 20px; right: 20px; width: 300px; }
+    .metric-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; }
+    .val-highlight { font-weight: bold; color: #38bdf8; }
+    .bar-bg { background: #1e293b; height: 8px; border-radius: 4px; overflow: hidden; margin-top: 4px; }
+    .bar-fill { height: 100%; transition: width 0.3s ease; }
+  </style>
+</head>
+<body>
+  <div id="canvas-container"></div>
+  <div id="plt-telemetry" class="hud-panel">
+    <h3 style="margin:0 0 12px 0; color:#38bdf8;">⚡ PLT TELEMETRY STREAM</h3>
+    <div class="metric-row"><span>Profit (Growth):</span><span id="profit-val" class="val-highlight">0.90</span></div>
+    <div class="bar-bg"><div id="profit-bar" class="bar-fill" style="width: 90%; background: #22c55e;"></div></div>
+    <div class="metric-row" style="margin-top:10px;"><span>Love (Bonding):</span><span id="love-val" class="val-highlight">0.85</span></div>
+    <div class="bar-bg"><div id="love-bar" class="bar-fill" style="width: 85%; background: #ec4899;"></div></div>
+    <div class="metric-row" style="margin-top:10px;"><span>Tax (Cost/Risk):</span><span id="tax-val" class="val-highlight">0.10</span></div>
+    <div class="bar-bg"><div id="tax-bar" class="bar-fill" style="width: 10%; background: #eab308;"></div></div>
+    <hr style="border:0; border-top:1px solid #334155; margin:14px 0;">
+    <div class="metric-row"><span>True Value (P+L-T):</span><span id="plt-score" style="font-size:16px; font-weight:bold; color:#10b981;">+1.65</span></div>
+  </div>
+  <div id="agent-state" class="hud-panel">
+    <h3 style="margin:0 0 12px 0; color:#a855f7;">🧠 AGENT STATE & EMBODIMENT</h3>
+    <div class="metric-row"><span>Agent Identity:</span><span>GSK Sovereign</span></div>
+    <div class="metric-row"><span>Valence:</span><span id="valence-val" class="val-highlight">0.94</span></div>
+    <div class="metric-row"><span>Arousal:</span><span id="arousal-val" class="val-highlight">0.78</span></div>
+    <div class="metric-row"><span>Resonance Freq:</span><span id="resonance-val" class="val-highlight">432 Hz</span></div>
+    <div class="metric-row"><span>Heartbeat Pulse:</span><span id="pulse-status" style="color:#22c55e;">ACTIVE (60 BPM)</span></div>
+  </div>
+  <script>
+    const container = document.getElementById('canvas-container');
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x05070a, 0.035);
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(0, 0, 8);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    container.appendChild(renderer.domElement);
+
+    const coreGeo = new THREE.IcosahedronGeometry(1.5, 4);
+    const coreMat = new THREE.MeshStandardMaterial({
+      color: 0x38bdf8,
+      wireframe: true,
+      emissive: 0x0284c7,
+      emissiveIntensity: 0.6,
+      roughness: 0.2
+    });
+    const coreMesh = new THREE.Mesh(coreGeo, coreMat);
+    scene.add(coreMesh);
+
+    const innerGeo = new THREE.SphereGeometry(1.0, 32, 32);
+    const innerMat = new THREE.MeshBasicMaterial({ color: 0xec4899, wireframe: true, transparent: true, opacity: 0.7 });
+    const innerCore = new THREE.Mesh(innerGeo, innerMat);
+    scene.add(innerCore);
+
+    const ringGroup = new THREE.Group();
+    for(let i=0; i<3; i++) {
+      const ringGeo = new THREE.TorusGeometry(2.4 + i*0.5, 0.02, 16, 100);
+      const ringMat = new THREE.MeshBasicMaterial({ color: i===0 ? 0x22c55e : (i===1 ? 0xec4899 : 0xa855f7), transparent: true, opacity: 0.6 });
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      ring.rotation.x = Math.PI / (2 + i);
+      ring.rotation.y = i * 0.8;
+      ringGroup.add(ring);
+    }
+    scene.add(ringGroup);
+
+    const particlesGeo = new THREE.BufferGeometry();
+    const pCount = 500;
+    const posArray = new Float32Array(pCount * 3);
+    for(let i=0; i<pCount*3; i++) { posArray[i] = (Math.random() - 0.5) * 15; }
+    particlesGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+    const particlesMat = new THREE.PointsMaterial({ size: 0.04, color: 0x38bdf8, transparent: true, opacity: 0.8 });
+    const particleSystem = new THREE.Points(particlesGeo, particlesMat);
+    scene.add(particleSystem);
+
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+    scene.add(ambientLight);
+    const pointLight = new THREE.PointLight(0x38bdf8, 2, 50);
+    pointLight.position.set(5, 5, 5);
+    scene.add(pointLight);
+    let clock = new THREE.Clock();
+    function updateTelemetry() {
+      const time = clock.getElapsedTime();
+      const profit = Math.min(1.0, Math.max(0.1, 0.85 + Math.sin(time * 1.5) * 0.12));
+      const love = Math.min(1.0, Math.max(0.1, 0.80 + Math.cos(time * 1.2) * 0.15));
+      const tax = Math.min(1.0, Math.max(0.01, 0.10 + Math.sin(time * 2.0) * 0.04));
+      const pltScore = (profit + love - tax).toFixed(2);
+
+      document.getElementById('profit-val').innerText = profit.toFixed(2);
+      document.getElementById('profit-bar').style.width = (profit * 100) + '%';
+      document.getElementById('love-val').innerText = love.toFixed(2);
+      document.getElementById('love-bar').style.width = (love * 100) + '%';
+      document.getElementById('tax-val').innerText = tax.toFixed(2);
+      document.getElementById('tax-bar').style.width = (tax * 100) + '%';
+      document.getElementById('plt-score').innerText = (pltScore > 0 ? '+' : '') + pltScore;
+
+      const valence = (0.90 + Math.sin(time * 0.8) * 0.08).toFixed(2);
+      const arousal = (0.75 + Math.cos(time * 1.1) * 0.12).toFixed(2);
+      document.getElementById('valence-val').innerText = valence;
+      document.getElementById('arousal-val').innerText = arousal;
+      document.getElementById('resonance-val').innerText = Math.round(432 + Math.sin(time * 0.5) * 12) + ' Hz';
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const t = clock.getElapsedTime();
+      coreMesh.rotation.x = t * 0.2;
+      coreMesh.rotation.y = t * 0.3;
+      innerCore.rotation.y = -t * 0.4;
+      ringGroup.rotation.z = t * 0.15;
+      ringGroup.rotation.y = t * 0.1;
+      particleSystem.rotation.y = t * 0.05;
+      
+      const pulse = 1.0 + Math.sin(t * 4.0) * 0.05;
+      coreMesh.scale.set(pulse, pulse, pulse);
+      
+      updateTelemetry();
+      renderer.render(scene, camera);
+    }
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    animate();
+  </script>
+</body>
+</html>

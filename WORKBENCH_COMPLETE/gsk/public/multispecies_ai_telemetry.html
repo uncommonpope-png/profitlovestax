@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Multispecies AI Telemetry & PLT Visualizer</title>
+<style>
+  body { margin: 0; background: #090d16; color: #f8fafc; font-family: system-ui, sans-serif; }
+  .hud { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; padding: 1rem; background: #0f172a; }
+  .metric-card { background: #1e293b; padding: 1rem; border-radius: 8px; border: 1px solid #334155; }
+  .metric-value { font-size: 1.5rem; font-weight: bold; color: #38bdf8; }
+  #canvas { width: 100%; height: 550px; display: block; background: #020617; }
+</style>
+</head>
+<body>
+<div class="hud">
+  <div class="metric-card"><div>Profit Vector</div><div id="profit-val" class="metric-value">0.92</div></div>
+  <div class="metric-card"><div>Love Vector</div><div id="love-val" class="metric-value">0.88</div></div>
+  <div class="metric-card"><div>Tax Risk Vector</div><div id="tax-val" class="metric-value">0.12</div></div>
+  <div class="metric-card"><div>Ecosystem Balance</div><div id="balance-val" class="metric-value">1.68</div></div>
+</div>
+<canvas id="canvas" width="1200" height="550"></canvas>
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const speciesList = [
+  { id: 'swarm', name: 'Agentic Swarm', count: 35, color: '#38bdf8', p: 0.9, l: 0.3, t: 0.1 },
+  { id: 'embodied', name: 'Embodied Humanoids', count: 12, color: '#f43f5e', p: 0.7, l: 0.85, t: 0.25 },
+  { id: 'cognitive', name: 'Cognitive Synthetics', count: 20, color: '#a855f7', p: 0.85, l: 0.9, t: 0.15 }
+];
+
+function render() {
+  ctx.fillStyle = '#020617';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '16px monospace';
+  ctx.fillText('Multispecies AI Telemetry Visualizer — Active Ecosystem Node', 20, 30);
+  requestAnimationFrame(render);
+}
+render();
+</script>
+</body>
+</html>

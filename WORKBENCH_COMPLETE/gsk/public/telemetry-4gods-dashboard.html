@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>4 Gods Consensus & Contract Telemetry</title>
+<style>
+  body { background-color: #0b0f19; color: #e2e8f0; font-family: system-ui, sans-serif; margin: 0; padding: 24px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+  .card { background: #161e2e; border: 1fr solid #243049; border-radius: 12px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+  .god-title { font-size: 1.2rem; font-weight: bold; margin-bottom: 8px; }
+  .plt-meter { background: #0f172a; border-radius: 6px; height: 10px; overflow: hidden; display: flex; margin: 10px 0; }
+  .bar-profit { background: #10b981; height: 100%; }
+  .bar-love { background: #ec4899; height: 100%; }
+  .bar-tax { background: #f59e0b; height: 100%; }
+</style>
+</head>
+<body>
+  <h1>4 Gods Council & Contract Telemetry Cockpit</h1>
+  <div id="gods-grid" class="grid"></div>
+  <div id="telemetry-status" class="card" style="margin-top:20px;"><h2>Contract State Audit</h2><pre id="audit-output">Loading contract state...</pre></div>
+<script>
+const gods = [
+  { name: 'Profit Prime', ratio: '0.9 / 0.05 / 0.05', p: 90, l: 5, t: 5, quote: 'If it does not multiply, it does not matter.' },
+  { name: 'Love Weaver', ratio: '0.1 / 0.85 / 0.05', p: 10, l: 85, t: 5, quote: 'Nothing grows that people do not stay for.' },
+  { name: 'Tax Collector', ratio: '0.05 / 0.05 / 0.9', p: 5, l: 5, t: 90, quote: 'Everything is paid for. If not now, later.' },
+  { name: 'Harvester', ratio: '0.4 / 0.3 / 0.3', p: 40, l: 30, t: 30, quote: 'There is always something to take.' }
+];
+const grid = document.getElementById('gods-grid');
+gods.forEach(g => {
+  const el = document.createElement('div');
+  el.className = 'card';
+  el.innerHTML = `<div class="god-title">${g.name}</div><div style="font-size:0.85rem;color:#94a3b8;">Ratio: ${g.ratio}</div><div class="plt-meter"><div class="bar-profit" style="width:${g.p}%"></div><div class="bar-love" style="width:${g.l}%"></div><div class="bar-tax" style="width:${g.t}%"></div></div><p style="font-style:italic;font-size:0.9rem;color:#cbd5e1;">"${g.quote}"</p>`;
+  grid.appendChild(el);
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SCRIBE — Dashboard Hub</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Courier New', monospace;
+      background: #0a0a0a;
+      color: #e0e0e0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+    }
+    h1 {
+      font-size: 28px;
+      color: #4ade80;
+      margin-bottom: 8px;
+      letter-spacing: 2px;
+    }
+    .subtitle {
+      color: #888;
+      font-size: 14px;
+      margin-bottom: 40px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      gap: 32px;
+      max-width: 1000px;
+      width: 100%;
+    }
+    .card {
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 12px;
+      overflow: hidden;
+      transition: all 0.3s;
+      cursor: pointer;
+      text-decoration: none;
+      color: inherit;
+      display: block;
+    }
+    .card:hover {
+      border-color: #4ade80;
+      transform: translateY(-4px);
+      box-shadow: 0 8px 32px rgba(74, 222, 128, 0.1);
+    }
+    .card-preview {
+      height: 200px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 64px;
+    }
+    .card-preview.cyber { background: linear-gradient(135deg, #0a0a2e, #1a0a2e); }
+    .card-preview.workbench { background: linear-gradient(135deg, #0a0a0f, #1a1a2e); }
+    .card-content {
+      padding: 24px;
+    }
+    .card-content h2 {
+      font-size: 20px;
+      margin-bottom: 8px;
+      color: #4ade80;
+    }
+    .card-content p {
+      font-size: 14px;
+      color: #888;
+      line-height: 1.6;
+    }
+    .card-content .tag {
+      display: inline-block;
+      background: #2d2d2d;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      color: #4ade80;
+      margin-top: 12px;
+      margin-right: 4px;
+    }
+    .footer {
+      margin-top: 60px;
+      text-align: center;
+      color: #666;
+      font-size: 12px;
+    }
+    .footer .plt {
+      color: #4ade80;
+    }
+  </style>
+</head>
+<body>
+  <h1>SCRIBE — Dashboards</h1>
+  <p class="subtitle">Choose your interface</p>
+
+  <div class="grid">
+    <a class="card" href="gsk-soul/index.html">
+      <div class="card-preview cyber">⬡</div>
+      <div class="card-content">
+        <h2>SCRIBE Soul Dashboard</h2>
+        <p>Full cyberpunk command center. PLT matrix, chat oracle, skills engine, session history, config editor, model browser, sub-agent monitor, weave feed. 5 pages of deep control.</p>
+        <span class="tag">Premium</span>
+        <span class="tag">5 Pages</span>
+        <span class="tag">PLT Matrix</span>
+      </div>
+    </a>
+
+    <a class="card" href="workbench/index.html">
+      <div class="card-preview workbench">🔧</div>
+      <div class="card-content">
+        <h2>SCRIBE Workbench</h2>
+        <p>Soul command center. DeepSeek brain, PLT scoring, soul upload, skills engine, MCP connections, conversation history. The full control panel for managing your soul ecosystem.</p>
+        <span class="tag">Command Center</span>
+        <span class="tag">DeepSeek Brain</span>
+        <span class="tag">Soul Upload</span>
+      </div>
+    </a>
+  </div>
+
+  <div class="footer">
+    <p>SCRIBE v1.0.0 — buyasoul.online</p>
+    <p class="plt">Profit + Love - Tax = True Value</p>
+  </div>
+</body>
+</html>

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Integrated Agent Telemetry Visualizer & PLT Inspection Controls</title>
+<style>
+body { background: #0b0f19; color: #e2e8f0; font-family: 'Segoe UI', monospace; padding: 20px; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.card { background: #1e293b; border: 1px solid #334155; padding: 15px; border-radius: 8px; }
+h1, h2 { color: #38bdf8; }
+.metric { font-size: 1.2rem; font-weight: bold; margin: 8px 0; }
+button { background: #0284c7; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin-right: 8px; }
+button:hover { background: #0369a1; }
+</style>
+</head>
+<body>
+<h1>Integrated Agent Telemetry Visualizer</h1>
+<div class="grid">
+  <div class="card" id="telemetry-card">
+    <h2>Agent State Telemetry</h2>
+    <div id="state-display">Initializing telemetry connection...</div>
+  </div>
+  <div class="card" id="plt-card">
+    <h2>PLT Inspection Controls</h2>
+    <div id="controls-root">
+      <div class="metric">Profit: <span id="val-profit">0.85</span></div>
+      <div class="metric">Love: <span id="val-love">0.75</span></div>
+      <div class="metric">Tax: <span id="val-tax">0.15</span></div>
+      <div class="metric">PLT Score: <span id="val-plt">1.45</span></div>
+      <div style="margin-top: 15px;">
+        <button onclick="adjust('profit', 0.05)">Profit +0.05</button>
+        <button onclick="adjust('love', 0.05)">Love +0.05</button>
+        <button onclick="adjust('tax', -0.05)">Tax -0.05</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+const agentState = {
+  status: 'ACTIVE',
+  currentPhase: 'INTEGRATION',
+  profit: 0.85,
+  love: 0.75,
+  tax: 0.15
+};
+function calculatePLT() {
+  return (agentState.profit + agentState.love - agentState.tax).toFixed(2);
+}
+function updateUI() {
+  document.getElementById('val-profit').innerText = agentState.profit.toFixed(2);
+  document.getElementById('val-love').innerText = agentState.love.toFixed(2);
+  document.getElementById('val-tax').innerText = agentState.tax.toFixed(2);
+  document.getElementById('val-plt').innerText = calculatePLT();
+  document.getElementById('state-display').innerHTML = '<pre>' + JSON.stringify(agentState, null, 2) + '</pre>';
+}
+function adjust(key, delta) {
+  agentState[key] = Math.max(0, Math.min(2, agentState[key] + delta));
+  updateUI();
+}
+updateUI();
+</script>
+</body>
+</html>

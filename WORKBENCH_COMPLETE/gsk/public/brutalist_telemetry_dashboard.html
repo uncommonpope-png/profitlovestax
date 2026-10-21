@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BRUTALIST TELEMETRY DASHBOARD // AGENT STATE TRANSITIONS</title>
+<style>
+body { background: #0a0a0c; color: #e0e0e0; font-family: monospace; margin: 0; padding: 20px; }
+#canvas-container { border: 4px solid #333; background: #000; position: relative; }
+.panel { border: 2px solid #555; padding: 15px; margin-bottom: 15px; background: #121214; }
+</style>
+</head>
+<body>
+<div class="panel">
+  <h1>[TELEMETRY CORE :: BRUTALIST AGENT VISUALIZER]</h1>
+  <p>STATE TRANSITION MATRIX // PROCEDURAL MACHINE AESTHETICS</p>
+</div>
+<div id="canvas-container">
+  <canvas id="telemetryCanvas" width="1024" height="600"></canvas>
+</div>
+<script>
+const canvas = document.getElementById('telemetryCanvas');
+const ctx = canvas.getContext('2d');
+let states = ['VOID', 'AWAKENING', 'SEPARATION', 'TRIALS', 'REVELATION', 'INTEGRATION', 'SOVEREIGNTY'];
+let currentStateIdx = 0;
+function draw() {
+  ctx.fillStyle = '#050508';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.strokeStyle = '#ff3300';
+  ctx.lineWidth = 4;
+  ctx.strokeRect(20, 20, canvas.width - 40, canvas.height - 40);
+  ctx.fillStyle = '#00ff66';
+  ctx.font = '24px monospace';
+  ctx.fillText('ACTIVE STATE: ' + states[currentStateIdx], 50, 70);
+  requestAnimationFrame(draw);
+}
+draw();
+</script>
+</body>
+</html>

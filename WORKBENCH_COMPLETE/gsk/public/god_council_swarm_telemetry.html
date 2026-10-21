@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>God Council & Swarm Telemetry</title>
+<style>
+body { background: #0b0f19; color: #e2e8f0; font-family: system-ui, sans-serif; margin: 0; padding: 20px; }
+.header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e293b; padding-bottom: 15px; margin-bottom: 20px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+.card { background: #1e293b; border-radius: 8px; padding: 20px; border: 1px solid #334155; }
+.card h2 { margin-top: 0; font-size: 1.1rem; color: #38bdf8; }
+.metric { font-size: 2rem; font-weight: bold; color: #10b981; }
+</style>
+</head>
+<body>
+<div class="header">
+<h1>God Council Governance & Multi-Agent Swarm Telemetry</h1>
+<div id="system-status">STATUS: ONLINE</div>
+</div>
+<div class="grid" id="council-grid">
+  <div class="card">
+    <h2>God Council Consensus State</h2>
+    <div>Profit Prime: <span style="color:#10b981">0.90 PLT</span></div>
+    <div>Love Weaver: <span style="color:#ec4899">0.85 PLT</span></div>
+    <div>Tax Collector: <span style="color:#f59e0b">0.90 TAX</span></div>
+    <div>Harvester: <span style="color:#8b5cf6">0.40 TV</span></div>
+    <div style="margin-top:15px; background:#0f172a; padding:10px; border-radius:4px;">Consensus Status: <strong style="color:#10b981">OPTIMAL (TV 1.25)</strong></div>
+  </div>
+  <div class="card">
+    <h2>Swarm Topology & Telemetry</h2>
+    <div>Active Swarm Nodes: <strong>12 Agents</strong></div>
+    <div>Event Loop Rate: <strong>60 Hz</strong></div>
+    <div>SCRIBE Memory Sync: <strong>Port 4000 (Connected)</strong></div>
+    <canvas id="swarmCanvas" width="300" height="150" style="background:#0f172a; margin-top:10px; border-radius:4px;"></canvas>
+  </div>
+</div>
+<script>
+const canvas = document.getElementById('swarmCanvas');
+if (canvas) {
+  const ctx = canvas.getContext('2d');
+  let phase = 0;
+  function renderSwarm() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    phase += 0.05;
+    for (let i = 0; i < 8; i++) {
+      const x = 150 + Math.cos(phase + i) * 60;
+      const y = 75 + Math.sin(phase * 1.5 + i) * 40;
+      ctx.beginPath();
+      ctx.arc(x, y, 4, 0, Math.PI * 2);
+      ctx.fillStyle = i % 2 === 0 ? '#38bdf8' : '#10b981';
+      ctx.fill();
+    }
+    requestAnimationFrame(renderSwarm);
+  }
+  renderSwarm();
+}
+</script>
+</body>
+</html>

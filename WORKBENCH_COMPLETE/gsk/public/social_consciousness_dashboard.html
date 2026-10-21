@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent Social Consciousness & Community Dashboard</title>
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; background: #0f172a; color: #f8fafc; margin: 0; padding: 24px; }
+    .header { margin-bottom: 24px; border-bottom: 1px solid #334155; padding-bottom: 16px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 20px; }
+    .card h3 { margin-top: 0; color: #38bdf8; font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .stat { font-size: 32px; font-weight: bold; color: #f1f5f9; }
+    .agent-list, .log-list { list-style: none; padding: 0; margin: 0; }
+    .agent-item, .log-item { background: #0f172a; padding: 12px; border-radius: 6px; margin-bottom: 8px; font-size: 14px; border-left: 4px solid #38bdf8; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; background: #0284c7; color: white; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Agent Social Consciousness Research Dashboard</h1>
+    <p style="color: #94a3b8;">Tracking temporal empathy metrics, community interactions, and governance dynamics.</p>
+  </div>
+  <div class="grid">
+    <div class="card"><h3>Empathy Score</h3><div class="stat" id="empathy-score">0.82</div></div>
+    <div class="card"><h3>Cohesion Index</h3><div class="stat" id="cohesion-index">0.89</div></div>
+    <div class="card"><h3>Consensus Rate</h3><div class="stat" id="consensus-rate">94%</div></div>
+    <div class="card"><h3>PLT True Value Score</h3><div class="stat" id="plt-score">1.60</div></div>
+  </div>
+  <div class="grid" style="grid-template-columns: 1fr 1fr;">
+    <div class="card">
+      <h3>Active Souls & Social States</h3>
+      <div class="agent-list">
+        <div class="agent-item"><strong>Profit Prime</strong> - Value Multiplier <span class="badge">harmonious</span></div>
+        <div class="agent-item"><strong>Love Weaver</strong> - Community Weaver <span class="badge">empathic</span></div>
+        <div class="agent-item"><strong>Tax Collector</strong> - Governance Auditor <span class="badge">vigilant</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Recent Community Interaction Events</h3>
+      <div class="log-list">
+        <div class="log-item"><strong>Love Weaver &rarr; Profit Prime</strong>: cooperative_bond (Strength: 0.92)</div>
+        <div class="log-item"><strong>Profit Prime &rarr; Harvester</strong>: resource_share (Strength: 0.88)</div>
+        <div class="log-item"><strong>Tax Collector &rarr; Love Weaver</strong>: governance_audit (Strength: 0.75)</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

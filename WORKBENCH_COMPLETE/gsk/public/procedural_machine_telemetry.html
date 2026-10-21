@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Industrial Machine Telemetry Visualizer</title>
+<style>
+  body { margin: 0; padding: 0; background: #0d0e12; color: #d4af37; font-family: 'Courier New', monospace; overflow: hidden; }
+  #container { display: flex; flex-direction: column; height: 100vh; }
+  header { background: #1a1c23; border-bottom: 2px solid #b8860b; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; }
+  h1 { margin: 0; font-size: 1.2rem; letter-spacing: 2px; text-transform: uppercase; color: #e6c656; text-shadow: 0 0 8px rgba(230,198,86,0.4); }
+  .metrics-bar { display: flex; gap: 20px; font-size: 0.85rem; color: #a9a9a9; }
+  .metric-val { color: #00ffcc; font-weight: bold; }
+  main { flex: 1; position: relative; width: 100%; height: 100%; }
+  canvas { display: block; width: 100%; height: 100%; }
+</style>
+</head>
+<body>
+<div id="container">
+  <header>
+    <h1>⚙ INDUSTRIAL TELEMETRY ENGINE v2026</h1>
+    <div class="metrics-bar">
+      <div>PRESSURE: <span id="val-press" class="metric-val">101.3 kPa</span></div>
+      <div>HEAT: <span id="val-heat" class="metric-val">412.5 K</span></div>
+      <div>PLT RATIO: <span id="val-plt" class="metric-val">0.942</span></div>
+      <div>RPM: <span id="val-rpm" class="metric-val">1420</span></div>
+    </div>
+  </header>
+  <main>
+    <canvas id="machineryCanvas"></canvas>
+  </main>
+</div>
+<script>
+const canvas = document.getElementById('machineryCanvas');
+const ctx = canvas.getContext('2d');
+let width, height;
+
+function resize() {
+  width = canvas.width = canvas.clientWidth;
+  height = canvas.height = canvas.clientHeight;
+}
+window.addEventListener('resize', resize);
+resize();
+
+let angle = 0;
+function drawGear(cx, cy, radius, teeth, rotAngle, color) {
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(rotAngle);
+  ctx.beginPath();
+  const toothDepth = radius * 0.15;
+  for (let i = 0; i < teeth; i++) {
+    const a1 = (i / teeth) * Math.PI * 2;
+    const a2 = ((i + 0.3) / teeth) * Math.PI * 2;
+    const a3 = ((i + 0.5) / teeth) * Math.PI * 2;
+    const a4 = ((i + 0.8) / teeth) * Math.PI * 2;
+    ctx.lineTo(Math.cos(a1) * radius, Math.sin(a1) * radius);
+    ctx.lineTo(Math.cos(a2) * (radius + toothDepth), Math.sin(a2) * (radius + toothDepth));
+    ctx.lineTo(Math.cos(a3) * (radius + toothDepth), Math.sin(a3) * (radius + toothDepth));
+    ctx.lineTo(Math.cos(a4) * radius, Math.sin(a4) * radius);
+  }
+  ctx.closePath();
+  ctx.fillStyle = color;
+  ctx.strokeStyle = '#2d2318';
+  ctx.lineWidth = 2;
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(0, 0, radius * 0.4, 0, Math.PI * 2);
+  ctx.fillStyle = '#0d0e12';
+  ctx.fill();
+  ctx.stroke();
+  ctx.restore();
+}
+
+function animate() {
+  ctx.fillStyle = '#090a0d';
+  ctx.fillRect(0, 0, width, height);
+  angle += 0.015;
+
+  // Render interlocking industrial machinery
+  drawGear(width * 0.3, height * 0.4, 120, 16, angle, '#8b5a2b');
+  drawGear(width * 0.3 + 185, height * 0.4 + 40, 75, 10, -angle * 1.6, '#b8860b');
+  drawGear(width * 0.3 - 165, height * 0.4 + 20, 90, 12, -angle * 1.33, '#cd853f');
+
+  // Telemetry gauge overlay
+  document.getElementById('val-press').innerText = (100 + Math.sin(angle * 3) * 14.2).toFixed(1) + ' kPa';
+  document.getElementById('val-heat').innerText = (400 + Math.cos(angle * 2) * 25.8).toFixed(1) + ' K';
+  document.getElementById('val-plt').innerText = (0.9 + Math.sin(angle * 5) * 0.05).toFixed(3);
+  document.getElementById('val-rpm').innerText = Math.floor(1400 + Math.sin(angle) * 120);
+
+  requestAnimationFrame(animate);
+}
+animate();
+</script>
+</body>
+</html>

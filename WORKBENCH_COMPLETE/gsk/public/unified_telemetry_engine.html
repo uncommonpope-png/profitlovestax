@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Modular Telemetry Visualizer Engine</title>
+<style>
+body { font-family: monospace; background: #0a0a10; color: #00ffcc; margin: 0; padding: 16px; }
+.grid { display: grid; grid-template-columns: 250px 1fr; gap: 16px; height: 90vh; }
+.sidebar { background: #12121c; border: 1px solid #00ffcc33; padding: 12px; border-radius: 8px; }
+.viewport { background: #12121c; border: 1px solid #00ffcc33; padding: 12px; border-radius: 8px; overflow-y: auto; }
+.tab-btn { display: block; width: 100%; text-align: left; padding: 8px; margin-bottom: 8px; background: #1c1c2b; color: #00ffcc; border: 1px solid #00ffcc55; border-radius: 4px; cursor: pointer; }
+.tab-btn.active { background: #00ffcc22; font-weight: bold; border-color: #00ffcc; }
+</style>
+</head>
+<body>
+<div class="grid">
+  <div class="sidebar">
+    <h3>Telemetry Modules</h3>
+    <div id="plugin-tabs"></div>
+  </div>
+  <div class="viewport" id="plugin-viewport">
+    <h2>Unified Telemetry Visualizer Engine</h2>
+    <p>Select a tab to inspect real-time state telemetry.</p>
+  </div>
+</div>
+<script>
+const TelemetryEngine = {
+  plugins: {},
+  activeTab: null,
+  register(id, label, renderFn) {
+    this.plugins[id] = { id, label, renderFn };
+    this.renderTabs();
+  },
+  renderTabs() {
+    const nav = document.getElementById('plugin-tabs');
+    nav.innerHTML = '';
+    Object.values(this.plugins).forEach(p => {
+      const btn = document.createElement('button');
+      btn.className = 'tab-btn' + (this.activeTab === p.id ? ' active' : '');
+      btn.textContent = p.label;
+      btn.onclick = () => this.activate(p.id);
+      nav.appendChild(btn);
+    });
+  },
+  activate(id) {
+    this.activeTab = id;
+    this.renderTabs();
+    const vp = document.getElementById('plugin-viewport');
+    if (this.plugins[id]) {
+      vp.innerHTML = '';
+      this.plugins[id].renderFn(vp);
+    }
+  }
+};
+TelemetryEngine.register('plt', 'PLT Value Stream', (container) => {
+  container.innerHTML = `<h3>PLT Value Optimizer</h3><div id="plt-metrics"><p>Profit: 0.9 | Love: 0.85 | Tax: 0.05</p></div>`;
+});
+TelemetryEngine.register('cognitive', 'Agent State Model', (container) => {
+  container.innerHTML = `<h3>Cognitive State</h3><pre>Status: Operational\nMode: Strict\nIdentity: Sovereign</pre>`;
+});
+TelemetryEngine.register('logs', 'Diagnostic Telemetry', (container) => {
+  container.innerHTML = `<h3>Telemetry Log Stream</h3><div style="background:#000;padding:8px;">[SYSTEM] Modular Engine Initialized</div>`;
+});
+TelemetryEngine.activate('plt');
+</script>
+</body>
+</html>

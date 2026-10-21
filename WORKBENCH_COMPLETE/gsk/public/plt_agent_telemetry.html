@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PLT Telemetry & Agent State Inspection</title>
+<style>
+  body { background: #0a0d14; color: #f1f5f9; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; margin: 0; padding: 24px; }
+  h1 { font-size: 1.5rem; color: #38bdf8; border-bottom: 1px solid #1e293b; padding-bottom: 12px; margin-top: 0; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
+  .card { background: #0f172a; border: 1px solid #1e293b; border-radius: 8px; padding: 20px; shadow: 0 4px 6px -1px rgba(0,0,0,0.5); }
+  .card h2 { font-size: 1.1rem; color: #94a3b8; margin-top: 0; border-bottom: 1px solid #334155; padding-bottom: 8px; }
+  .metric-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px dashed #1e293b; }
+  .metric-label { font-weight: 600; color: #cbd5e1; }
+  .metric-val { font-weight: 700; color: #38bdf8; }
+  .log-box { background: #020617; border: 1px solid #1e293b; border-radius: 6px; padding: 12px; font-size: 0.85rem; max-height: 250px; overflow-y: auto; color: #a7f3d0; }
+</style>
+</head>
+<body>
+<div id="app">
+  <h1>PLT Telemetry & Agent State Inspector</h1>
+  <div class="grid">
+    <div class="card">
+      <h2>Live PLT Value Balance</h2>
+      <div id="plt-gauges"></div>
+    </div>
+    <div class="card">
+      <h2>Agent State & Execution Stream</h2>
+      <div id="agent-state"></div>
+    </div>
+  </div>
+</div>
+<script>
+const state = {
+  profit: 0.90,
+  love: 0.85,
+  tax: 0.15,
+  agentState: 'ACTIVE_TELEMETRY',
+  telemetryStream: [
+    { ts: Date.now() - 3000, event: 'COUNCIL_VERDICT', detail: 'PROCEED - PLT 1.29' },
+    { ts: Date.now() - 1000, event: 'STATE_INSPECT', detail: 'Agent operational sovereignty confirmed' }
+  ]
+};
+
+function calculateTrueValue(p, l, t) {
+  return Number((p + l - t).toFixed(2));
+}
+
+function render() {
+  const trueVal = calculateTrueValue(state.profit, state.love, state.tax);
+  const pltDiv = document.getElementById('plt-gauges');
+  if (pltDiv) {
+    pltDiv.innerHTML = `
+      <div class="metric-row"><span class="metric-label">Profit Prime</span><span class="metric-val">${state.profit}</span></div>
+      <div class="metric-row"><span class="metric-label">Love Weaver</span><span class="metric-val">${state.love}</span></div>
+      <div class="metric-row"><span class="metric-label">Tax Collector</span><span class="metric-val">${state.tax}</span></div>
+      <div class="metric-row"><span class="metric-label">True Value</span><span class="metric-val" style="color:#4ade80">${trueVal}</span></div>
+    `;
+  }
+  const stateDiv = document.getElementById('agent-state');
+  if (stateDiv) {
+    stateDiv.innerHTML = `
+      <div class="metric-row"><span class="metric-label">Status</span><span class="metric-val" style="color:#facc15">${state.agentState}</span></div>
+      <p style="font-size:0.85rem; color:#94a3b8; margin-top:12px;">Event Telemetry Log:</p>
+      <div class="log-box">${state.telemetryStream.map(e => `[${new Date(e.ts).toLocaleTimeString()}] ${e.event}: ${e.detail}`).join('<br>')}</div>
+    `;
+  }
+}
+render();
+</script>
+</body>
+</html>

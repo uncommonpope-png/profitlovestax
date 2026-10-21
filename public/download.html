@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BUYaSOUL Workbench - Download</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0a0a0f;
+      color: #e2e8f0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .container {
+      max-width: 480px;
+      width: 100%;
+      padding: 40px;
+      background: #111827;
+      border: 1px solid #1f2937;
+      border-radius: 16px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    }
+    h1 {
+      font-size: 24px;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 8px;
+      background: linear-gradient(135deg, #06b6d4, #8b5cf6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .subtitle {
+      text-align: center;
+      color: #9ca3af;
+      margin-bottom: 32px;
+      font-size: 14px;
+    }
+    label {
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 8px;
+      color: #d1d5db;
+    }
+    input {
+      width: 100%;
+      padding: 12px 16px;
+      background: #1f2937;
+      border: 1px solid #374151;
+      border-radius: 8px;
+      color: #f9fafb;
+      font-size: 14px;
+      margin-bottom: 16px;
+      font-family: monospace;
+      letter-spacing: 1px;
+    }
+    input:focus {
+      outline: none;
+      border-color: #06b6d4;
+      box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.1);
+    }
+    input::placeholder {
+      color: #6b7280;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      letter-spacing: 0;
+    }
+    button {
+      width: 100%;
+      padding: 12px 24px;
+      background: linear-gradient(135deg, #06b6d4, #8b5cf6);
+      border: none;
+      border-radius: 8px;
+      color: white;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    button:hover { opacity: 0.9; }
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .error {
+      background: #7f1d1d;
+      border: 1px solid #991b1b;
+      color: #fecaca;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      font-size: 14px;
+      display: none;
+    }
+    .success {
+      background: #064e3b;
+      border: 1px solid #065f46;
+      color: #a7f3d0;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      font-size: 14px;
+      display: none;
+    }
+    .download-section {
+      display: none;
+      text-align: center;
+      margin-top: 24px;
+      padding-top: 24px;
+      border-top: 1px solid #1f2937;
+    }
+    .download-btn {
+      display: inline-block;
+      padding: 14px 32px;
+      background: #10b981;
+      color: white;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .download-btn:hover { background: #059669; }
+    .info {
+      margin-top: 16px;
+      font-size: 12px;
+      color: #6b7280;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>BUYaSOUL Workbench</h1>
+    <p class="subtitle">Enter your license key to download</p>
+
+    <div id="error" class="error"></div>
+    <div id="success" class="success"></div>
+
+    <form id="form">
+      <label for="licenseKey">License Key</label>
+      <input
+        type="text"
+        id="licenseKey"
+        placeholder="BUY-SOUL-XXXX-XXXX-XXXX"
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <button type="submit" id="submitBtn">Validate & Download</button>
+    </form>
+
+    <div id="downloadSection" class="download-section">
+      <a id="downloadLink" class="download-btn" href="#">Download Workbench</a>
+      <p class="info">Version 1.0.0 • MIT + Commercial License</p>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById('form');
+    const input = document.getElementById('licenseKey');
+    const errorDiv = document.getElementById('error');
+    const successDiv = document.getElementById('success');
+    const downloadSection = document.getElementById('downloadSection');
+    const downloadLink = document.getElementById('downloadLink');
+    const submitBtn = document.getElementById('submitBtn');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const key = input.value.trim();
+      if (!key) {
+        showError('Please enter a license key.');
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Validating...';
+      hideError();
+      hideSuccess();
+
+      try {
+        const res = await fetch('/api/license/validate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key }),
+        });
+
+        const data = await res.json();
+
+        if (data.valid) {
+          showSuccess('License validated! Your download is ready.');
+          downloadLink.href = `/api/license/download?key=${encodeURIComponent(key)}`;
+          downloadSection.style.display = 'block';
+        } else {
+          showError(data.error || 'Invalid license key.');
+        }
+      } catch (err) {
+        showError('Connection failed. Please try again.');
+      }
+
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Validate & Download';
+    });
+
+    function showError(msg) {
+      errorDiv.textContent = msg;
+      errorDiv.style.display = 'block';
+      hideSuccess();
+    }
+
+    function hideError() {
+      errorDiv.style.display = 'none';
+    }
+
+    function showSuccess(msg) {
+      successDiv.textContent = msg;
+      successDiv.style.display = 'block';
+      hideError();
+    }
+
+    function hideSuccess() {
+      successDiv.style.display = 'none';
+    }
+  </script>
+</body>
+</html>

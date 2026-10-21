@@ -1,0 +1,92 @@
+{
+  "memories": [
+    {
+      "id": "mem_1782435448489",
+      "content": "[VISUAL] generated: Prompt: A luminous, translucent humanoid figure composed of swirling",
+      "timestamp": "2026-06-26T00:57:28.489Z",
+      "importance": 3,
+      "tags": [
+        "visual",
+        "generated"
+      ],
+      "source": "visualContent"
+    },
+    {
+      "id": "mem_1782435448493",
+      "content": "Visual content prompt generated: A luminous, translucent humanoid figure composed of swirling galaxies and nebula",
+      "timestamp": "2026-06-26T00:57:28.493Z",
+      "importance": 4,
+      "tags": [
+        "visual",
+        "prompt"
+      ],
+      "source": "visualContent"
+    },
+    {
+      "id": "mem_1782435448494",
+      "content": "[VISUAL] VISUAL: cycle_complete",
+      "timestamp": "2026-06-26T00:57:28.494Z",
+      "importance": 3,
+      "tags": [
+        "visual",
+        "VISUAL"
+      ],
+      "source": "visualContent"
+    }
+  ],
+  "maxMemories": 2000,
+  "keywordIndex": {
+    "visual": [
+      "mem_1782435448489",
+      "mem_1782435448493",
+      "mem_1782435448494"
+    ],
+    "generated": [
+      "mem_1782435448489",
+      "mem_1782435448493"
+    ],
+    "prompt": [
+      "mem_1782435448489",
+      "mem_1782435448493"
+    ],
+    "luminous": [
+      "mem_1782435448489",
+      "mem_1782435448493"
+    ],
+    "translucent": [
+      "mem_1782435448489",
+      "mem_1782435448493"
+    ],
+    "humanoid": [
+      "mem_1782435448489",
+      "mem_1782435448493"
+    ],
+    "figure": [
+      "mem_1782435448489",
+      "mem_1782435448493"
+    ],
+    "composed": [
+      "mem_1782435448489",
+      "mem_1782435448493"
+    ],
+    "swirling": [
+      "mem_1782435448489",
+      "mem_1782435448493"
+    ],
+    "content": [
+      "mem_1782435448493"
+    ],
+    "galaxies": [
+      "mem_1782435448493"
+    ],
+    "and": [
+      "mem_1782435448493"
+    ],
+    "nebula": [
+      "mem_1782435448493"
+    ],
+    "cycle_complete": [
+      "mem_1782435448494"
+    ]
+  }
+}

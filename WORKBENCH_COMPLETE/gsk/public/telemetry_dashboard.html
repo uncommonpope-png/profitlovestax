@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>High-Frequency Telemetry Dashboard</title>
+<style>body{margin:0;background:#0d1117;color:#c9d1d9;font-family:sans-serif;} header{padding:1rem;background:#161b22;border-bottom:1px solid #30363d;} .grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;padding:1rem;}</style>
+</head>
+<body>
+<header><h1>GSK High-Frequency Telemetry & Swarm PLT Dashboard</h1></header>
+<div class="grid">
+<div id="swarm-telemetry"><h2>Swarm Orchestration Telemetry</h2><canvas id="telemetryCanvas" width="600" height="300"></canvas></div>
+<div id="plt-optimization"><h2>PLT Value Optimizer</h2><div id="pltMetrics">Loading PLT metrics...</div></div>
+</div>
+<script>
+console.log('Initializing GSK Telemetry Dashboard...');
+const canvas = document.getElementById('telemetryCanvas');
+const ctx = canvas ? canvas.getContext('2d') : null;
+let telemetryData = [];
+function renderTelemetry() {
+  if (!ctx) return;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.strokeStyle = '#58a6ff';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  telemetryData.forEach((pt, i) => {
+    const x = (i / 50) * canvas.width;
+    const y = canvas.height - (pt / 100) * canvas.height;
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+}
+setInterval(() => {
+  const freqVal = Math.random() * 80 + 10;
+  telemetryData.push(freqVal);
+  if (telemetryData.length > 50) telemetryData.shift();
+  renderTelemetry();
+  const profit = 0.85, love = 0.90, tax = 0.12;
+  const plt = profit + love - tax;
+  const metricsEl = document.getElementById('pltMetrics');
+  if (metricsEl) metricsEl.innerHTML = `<strong>PLT Score: ${plt.toFixed(2)}</strong> (P:${profit} + L:${love} - T:${tax})`;
+}, 200);
+</script>
+</body>
+</html>

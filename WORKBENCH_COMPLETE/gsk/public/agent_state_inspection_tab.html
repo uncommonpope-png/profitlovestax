@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Live Agent State Inspection & PLT Value Optimizer</title>
+  <style>
+    body { margin: 0; background: #0b0f19; color: #e2e8f0; font-family: 'Segoe UI', system-ui, sans-serif; }
+    .header { padding: 1rem 2rem; background: #111827; border-bottom: 1px solid #1f2937; display: flex; justify-space-between; align-items: center; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; padding: 1.5rem; }
+    .card { background: #1f2937; border-radius: 8px; padding: 1.25rem; border: 1px solid #374151; }
+    .metric-title { color: #9ca3af; font-size: 0.875rem; font-weight: 600; uppercase; }
+    .metric-value { font-size: 2rem; font-weight: 700; color: #10b981; margin-top: 0.5rem; }
+    .state-badge { padding: 0.25rem 0.75rem; border-radius: 9999px; background: #3b82f6; color: #fff; font-size: 0.875rem; font-weight: 600; }
+    canvas { width: 100%; height: 240px; border-radius: 6px; background: #111827; margin-top: 1rem; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h2>Agent State Inspection & PLT Telemetry Tab</h2>
+    <span id="agentStateBadge" class="state-badge">STATE: ACTIVE_INFERENCE</span>
+  </div>
+  <div class="grid">
+    <div class="card">
+      <div class="metric-title">PLT Score (Profit + Love - Tax)</div>
+      <div id="pltScoreDisplay" class="metric-value">0.85</div>
+      <canvas id="pltChart"></canvas>
+    </div>
+    <div class="card">
+      <div class="metric-title">State Inspection & Action Vector</div>
+      <pre id="stateJson" style="background:#111827; padding:1rem; border-radius:6px; overflow:auto; height:240px;">{
+  "entropy": 0.12,
+  "saturation": 0.45,
+  "homeostaticSetpoint": 0.95,
+  "activeCombo": "TELEMETRY_SYNC"
+}</pre>
+    </div>
+  </div>
+  <script>
+    const pltScoreDisplay = document.getElementById('pltScoreDisplay');
+    const stateJson = document.getElementById('stateJson');
+    const canvas = document.getElementById('pltChart');
+    const ctx = canvas.getContext('2d');
+    let history = [0.75, 0.78, 0.82, 0.85];
+
+    function updateTelemetry() {
+      const profit = 0.8 + Math.random() * 0.15;
+      const love = 0.7 + Math.random() * 0.2;
+      const tax = 0.05 + Math.random() * 0.05;
+      const pltScore = (profit + love - tax).toFixed(2);
+      
+      history.push(parseFloat(pltScore));
+      if (history.length > 20) history.shift();
+
+      pltScoreDisplay.innerText = pltScore;
+      stateJson.innerText = JSON.stringify({
+        profit: profit.toFixed(3),
+        love: love.toFixed(3),
+        tax: tax.toFixed(3),
+        pltScore: pltScore,
+        entropy: (Math.random() * 0.1).toFixed(3),
+        contextSaturation: (0.4 + Math.random() * 0.1).toFixed(2),
+        timestamp: new Date().toISOString()
+      }, null, 2);
+
+      renderChart();
+    }
+
+    function renderChart() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.strokeStyle = '#10b981';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      const step = canvas.width / (history.length - 1 || 1);
+      history.forEach((val, index) => {
+        const x = index * step;
+        const y = canvas.height - (val / 2) * canvas.height;
+        if (index === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+    }
+
+    setInterval(updateTelemetry, 1500);
+    updateTelemetry();
+  </script>
+</body>
+</html>

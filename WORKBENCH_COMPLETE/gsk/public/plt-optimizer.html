@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PLT Telemetry Value Optimizer</title>
+<style>
+body { font-family: system-ui, sans-serif; background: #0d1117; color: #c9d1d9; margin: 0; padding: 20px; }
+.container { max-width: 1200px; margin: 0 auto; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 20px; }
+.metric { font-size: 28px; font-weight: bold; color: #58a6ff; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>PLT Telemetry & Value Optimization Engine</h1>
+  <div id="app"></div>
+</div>
+<script>
+const state = { profit: 0.85, love: 0.70, tax: 0.15 };
+function render() {
+  const pltValue = (state.profit + state.love - state.tax).toFixed(3);
+  document.getElementById('app').innerHTML = `
+    <div class="grid">
+      <div class="card">
+        <h3>Live Metrics Control</h3>
+        <p>Profit: <input type="range" min="0" max="1" step="0.01" value="${state.profit}" oninput="state.profit=parseFloat(this.value);render()"></p>
+        <p>Love: <input type="range" min="0" max="1" step="0.01" value="${state.love}" oninput="state.love=parseFloat(this.value);render()"></p>
+        <p>Tax: <input type="range" min="0" max="1" step="0.01" value="${state.tax}" oninput="state.tax=parseFloat(this.value);render()"></p>
+      </div>
+      <div class="card">
+        <h3>PLT Net Score</h3>
+        <div class="metric">${pltValue}</div>
+        <p>Formula: Profit (${state.profit}) + Love (${state.love}) - Tax (${state.tax})</p>
+      </div>
+    </div>
+  `;
+}
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Sanctum Cognitive Avatar Physical State Bridge</title>
+<style>body { margin: 0; background: #0a0a10; color: #e0e0e0; font-family: monospace; }</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+const AvatarStateBridge = {
+  mapCognitiveToPhysics: function(telemetry) {
+    return {
+      velocity: (telemetry.arousal || 0.5) * 2.5,
+      scale: 1.0 + (telemetry.valence || 0.0) * 0.4,
+      jitter: (telemetry.entropy || 0.1) * 0.05,
+      glow: telemetry.focus || 0.8
+    };
+  }
+};
+console.log('Sanctum Cognitive Telemetry Bridge Loaded', AvatarStateBridge);
+</script>
+</body>
+</html>

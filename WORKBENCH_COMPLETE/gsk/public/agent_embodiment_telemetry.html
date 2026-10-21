@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent Embodiment Telemetry Visualizer</title>
+<style>
+  :root { --bg: #090d16; --glass: rgba(255,255,255,0.05); --border: rgba(255,255,255,0.1); --accent: #00f2fe; --text: #e0e6ed; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; display: grid; grid-template-columns: 1fr 340px; height: 100vh; overflow: hidden; }
+  #viewport { position: relative; width: 100%; height: 100%; background: radial-gradient(circle at center, #101929 0%, #060911 100%); }
+  #inspector { background: var(--glass); backdrop-filter: blur(16px); border-left: 1px solid var(--border); padding: 20px; display: flex; flex-direction: column; gap: 16px; overflow-y: auto; }
+  canvas { width: 100%; height: 100%; display: block; }
+</style>
+</head>
+<body>
+<div id="viewport"><canvas id="telemetryCanvas"></canvas></div>
+<div id="inspector">
+  <h2>State Inspection</h2>
+  <div id="agentStats"></div>
+  <div id="telemetryLog"></div>
+</div>
+<script>
+const canvas = document.getElementById('telemetryCanvas');
+const ctx = canvas.getContext('2d');
+let state = { position: { x: 400, y: 300 }, orientation: 0, sensoryRays: [], memoryNodes: [], health: 100, momentum: 0.95 };
+function resize() { canvas.width = canvas.parentElement.clientWidth; canvas.height = canvas.parentElement.clientHeight; }
+window.addEventListener('resize', resize); resize();
+function render() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.strokeStyle = 'rgba(0, 242, 254, 0.15)';
+  ctx.lineWidth = 1;
+  for(let x = 0; x < canvas.width; x += 40) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,canvas.height); ctx.stroke(); }
+  for(let y = 0; y < canvas.height; y += 40) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvas.width,y); ctx.stroke(); }
+  ctx.save();
+  ctx.translate(state.position.x, state.position.y);
+  ctx.fillStyle = '#00f2fe';
+  ctx.beginPath(); ctx.arc(0, 0, 16, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+  requestAnimationFrame(render);
+}
+render();
+function updateInspector(telemetry) {
+  const statsDiv = document.getElementById('agentStats');
+  statsDiv.innerHTML = `<pre style="background:rgba(0,0,0,0.3);padding:10px;border-radius:8px;">${JSON.stringify(telemetry, null, 2)}</pre>`;
+}
+setInterval(() => {
+  state.position.x += (Math.random() - 0.5) * 4;
+  state.position.y += (Math.random() - 0.5) * 4;
+  updateInspector(state);
+}, 200);
+</script>
+</body>
+</html>

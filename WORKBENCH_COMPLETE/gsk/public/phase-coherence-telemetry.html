@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Phase-Coherence Telemetry & Tax Containment</title>
+<style>
+body { margin: 0; background: #0a0a10; color: #00ffcc; font-family: monospace; overflow: hidden; }
+#canvas { width: 100vw; height: 70vh; display: block; }
+.hud { height: 30vh; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; padding: 10px; background: #11111e; border-top: 2px solid #00ffcc; }
+.card { border: 1px solid #00ffcc33; padding: 10px; background: #05050d; }
+.metric { font-size: 1.4em; color: #ff0055; }
+</style>
+</head>
+<body>
+<canvas id="canvas"></canvas>
+<div class="hud">
+  <div class="card"><h3>PHASE COHERENCE</h3><div id="coherenceVal" class="metric">0.985</div></div>
+  <div class="card"><h3>TAX FRICTION CONTAINMENT</h3><div id="taxVal" class="metric">0.012</div></div>
+  <div class="card"><h3>VALUE OPTIMIZATION (PLT)</h3><div id="pltVal" class="metric">1.42</div></div>
+</div>
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight * 0.7; }
+resize(); window.addEventListener('resize', resize);
+let phase = 0;
+function animate() {
+  ctx.fillStyle = 'rgba(10, 10, 16, 0.2)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.beginPath();
+  for (let x = 0; x < canvas.width; x += 5) {
+    const y = canvas.height / 2 + Math.sin(x * 0.01 + phase) * 40 * Math.cos(phase * 0.5);
+    if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.strokeStyle = '#00ffcc'; ctx.lineWidth = 2; ctx.stroke();
+  phase += 0.05;
+  document.getElementById('coherenceVal').innerText = (0.95 + Math.sin(phase)*0.04).toFixed(3);
+  document.getElementById('taxVal').innerText = (0.015 + Math.cos(phase)*0.005).toFixed(3);
+  document.getElementById('pltVal').innerText = (1.40 + Math.sin(phase*0.7)*0.08).toFixed(3);
+  requestAnimationFrame(animate);
+}
+animate();
+</script>
+</body>
+</html>

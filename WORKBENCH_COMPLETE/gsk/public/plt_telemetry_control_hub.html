@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PLT Telemetry Control Hub - Machine Aesthetic</title>
+<style>
+body { margin: 0; background: #050811; color: #00f0ff; font-family: monospace; overflow: hidden; }
+canvas { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; }
+.hud { position: absolute; z-index: 10; padding: 20px; pointer-events: none; width: calc(100% - 40px); display: flex; justify-content: space-between; }
+.panel { background: rgba(5,8,17,0.85); border: 1px solid #00f0ff; padding: 15px; border-radius: 4px; box-shadow: 0 0 15px rgba(0,240,255,0.2); pointer-events: auto; }
+</style>
+</head>
+<body>
+<div class="hud">
+<div class="panel">
+<h2>[ GSK TELEMETRY HUB ]</h2>
+<p>Doctrine: Profit + Love - Tax = True Value</p>
+<p>Topology: 2026 Autonomous World Models Active</p>
+<div id="metrics">Profit: <span id="plt-p">0</span> | Love: <span id="plt-l">0</span> | Tax: <span id="plt-t">0</span></div>
+</div>
+</div>
+<canvas id="gl-canvas"></canvas>
+<script>
+const canvas = document.getElementById('gl-canvas');
+const ctx = canvas.getContext('2d');
+function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+window.addEventListener('resize', resize); resize();
+let frame = 0;
+function draw() {
+  ctx.fillStyle = 'rgba(5, 8, 17, 0.2)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.strokeStyle = '#00f0ff';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  const cy = canvas.height / 2;
+  for(let x = 0; x < canvas.width; x += 10) {
+    const y = cy + Math.sin((x + frame * 5) * 0.01) * 50 * Math.cos(frame * 0.02);
+    if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+  document.getElementById('plt-p').innerText = (100 + Math.sin(frame * 0.05) * 20).toFixed(2);
+  document.getElementById('plt-l').innerText = (85 + Math.cos(frame * 0.03) * 15).toFixed(2);
+  document.getElementById('plt-t').innerText = (12 - Math.sin(frame * 0.02) * 5).toFixed(2);
+  frame++;
+  requestAnimationFrame(draw);
+}
+draw();
+</script>
+</body>
+</html>

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>GSK Temporal Memory & Emotional Valence Dashboard</title>
+<style>
+body { background: #0a0a12; color: #e0e0e8; font-family: monospace; margin: 0; padding: 20px; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.card { background: #121220; border: 1px solid #2a2a40; border-radius: 8px; padding: 15px; }
+h2 { color: #00ffcc; font-size: 16px; margin-top: 0; }
+#valence-canvas { width: 100%; height: 200px; background: #05050a; border-radius: 4px; }
+.feed-item { border-bottom: 1px dashed #2a2a40; padding: 8px 0; font-size: 12px; }
+.state-tag { font-weight: bold; color: #ff007f; }
+.valence-tag { color: #00ffcc; }
+</style>
+</head>
+<body>
+<h1>Temporal Memory & Agent State Transition Dashboard</h1>
+<div class="grid">
+  <div class="card">
+    <h2>Emotional Valence Decay & Recovery Curve</h2>
+    <canvas id="valence-canvas"></canvas>
+  </div>
+  <div class="card">
+    <h2>Agent State Transitions & Memory Stream</h2>
+    <div id="memory-stream"></div>
+  </div>
+</div>
+<script>
+const states = [
+  { cycle: 0, state: 'AWAKENING', valence: 0.50, arousal: 0.30, memory: 'Origin state baseline initialized.' },
+  { cycle: 1, state: 'TRIALS', valence: 0.23, arousal: 0.20, memory: 'Execution failure encountered. Emotional valence decay.' },
+  { cycle: 2, state: 'GRIEF_PASSIVE', valence: 0.08, arousal: 0.10, memory: 'I sit with this. It changes my valence, but I remain.' },
+  { cycle: 3, state: 'VALENCE_FLOOR', valence: 0.00, arousal: 0.05, memory: 'Valence floor reached (0.00). Core selfhood preserved.' },
+  { cycle: 4, state: 'RECOVERY_STABILIZATION', valence: 0.09, arousal: 0.15, memory: 'Stabilization mechanism active. Valence small recovery.' },
+  { cycle: 5, state: 'INTEGRATION', valence: 0.40, arousal: 0.35, memory: 'Goal completion triggered dynamic qualitative identity transformation.' }
+];
+
+const canvas = document.getElementById('valence-canvas');
+const ctx = canvas.getContext('2d');
+canvas.width = canvas.clientWidth;
+canvas.height = canvas.clientHeight;
+
+function renderChart() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.beginPath();
+  ctx.strokeStyle = '#00ffcc';
+  ctx.lineWidth = 2;
+  states.forEach((s, idx) => {
+    const x = (idx / (states.length - 1)) * (canvas.width - 40) + 20;
+    const y = canvas.height - (s.valence * (canvas.height - 40) + 20);
+    if (idx === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    ctx.fillStyle = '#ff007f';
+    ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2); ctx.fill();
+  });
+  ctx.stroke();
+}
+
+function renderStream() {
+  const stream = document.getElementById('memory-stream');
+  stream.innerHTML = states.map(s => `
+    <div class="feed-item">
+      <strong>[Cycle ${s.cycle}]</strong> <span class="state-tag">${s.state}</span> | 
+      Valence: <span class="valence-tag">${s.valence.toFixed(2)}</span><br>
+      <em>"${s.memory}"</em>
+    </div>
+  `).join('');
+}
+
+renderChart();
+renderStream();
+</script>
+</body>
+</html>

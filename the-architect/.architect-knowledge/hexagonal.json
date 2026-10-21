@@ -1,0 +1,11 @@
+{
+  "id": "hexagonal",
+  "title": "Hexagonal Architecture",
+  "content": "Hexagonal architecture, also known as ports and adapters, places the domain at the center. Dependencies point inward. Infrastructure is on the outside.",
+  "tags": [
+    "hexagonal",
+    "ports",
+    "adapters",
+    "clean"
+  ]
+}

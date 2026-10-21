@@ -1,0 +1,11 @@
+{
+  "id": "xstate",
+  "title": "XState",
+  "content": "XState implements statecharts and finite state machines with actors, actions, guards, and event-driven orchestration.",
+  "tags": [
+    "xstate",
+    "state-machine",
+    "statechart",
+    "actor"
+  ]
+}

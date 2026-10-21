@@ -1,0 +1,66 @@
+const fs = require('fs');
+const path = require('path');
+
+function generateScribeShell(config = {}) {
+  const title = config.title || 'SCRIBE Telemetry Visualizer Dashboard';
+  const targetPath = config.targetPath || path.join(__dirname, '..', 'public', 'scribe_telemetry_shell.html');
+  
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>${title}</title>
+  <style>
+    body { background: #0a0a10; color: #00ffcc; font-family: monospace; margin: 0; padding: 20px; }
+    .header { font-size: 18px; font-weight: bold; margin-bottom: 15px; text-transform: uppercase; border-bottom: 1px solid #00ffcc; padding-bottom: 5px; }
+    .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
+    .metric-card { background: #121420; border: 1px solid #1a233a; padding: 15px; border-radius: 4px; }
+    .metric-card .val { font-size: 24px; color: #fff; margin-top: 5px; }
+    canvas { background: #07080d; border: 1px solid #1a233a; width: 100%; height: 300px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <div class="header">SCRIBE Telemetry Dashboard - Real-time Memory & PLT Telemetry</div>
+  <div class="metric-grid">
+    <div class="metric-card"><div>Token Entropy</div><div id="val-entropy" class="val">0.00</div></div>
+    <div class="metric-card"><div>Context Saturation</div><div id="val-sat" class="val">0%</div></div>
+    <div class="metric-card"><div>Error Frequency</div><div id="val-err" class="val">0/s</div></div>
+    <div class="metric-card"><div>PLT Score</div><div id="val-plt" class="val">0.98</div></div>
+  </div>
+  <canvas id="telemetryCanvas"></canvas>
+  <script>
+    const canvas = document.getElementById('telemetryCanvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = canvas.clientWidth;
+    canvas.height = canvas.clientHeight;
+    let history = [];
+    function updateGraph() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.strokeStyle = '#00ffcc';
+      ctx.beginPath();
+      history.forEach((pt, i) => {
+        const x = (i / 50) * canvas.width;
+        const y = canvas.height - (pt * canvas.height);
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+    }
+    setInterval(() => {
+      if (history.length > 50) history.shift();
+      history.push(Math.random());
+      updateGraph();
+    }, 1000);
+  </script>
+</body>
+</html>`;
+  
+  fs.writeFileSync(targetPath, html, 'utf8');
+  console.log(`Generated SCRIBE shell at ${targetPath}`);
+  return targetPath;
+}
+
+if (require.main === module) {
+  generateScribeShell();
+}
+
+module.exports = { generateScribeShell };

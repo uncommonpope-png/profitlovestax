@@ -1,0 +1,25 @@
+---
+title: SOUL-NOTE - GSK Research - MIT 6.1810 — CS Self-Learning (操作系统)
+type: research
+verified: true
+date: 2026-10-01T00:01:56.213Z
+---
+
+# GSK Research — MIT 6.1810 — CS Self-Learning (操作系统)
+
+## Verified Finding
+MIT: MIT’s vital research and education — on topics such as human health, energy innovation, quantum computing, and advanced manufacturing — continue to advance national security, economic competitiveness, and quality of life for all Americans. | Massachusetts Institute of Technology: The Massachusetts Institute of Technology (MIT) is a private research university in Cambridge, Massachusetts, United States. Founded in 1861 to advance "useful knowledge", the university has played a significant role in the development of many areas of technology and science. William Barton Rogers founded MIT to accelerate American industrialization through scientific knowledge. Initially ... | MIT OpenCourseWare | Free Online Course Materials: MIT OpenCourseWare publishes materials from more than 2,500 MIT courses, spanning undergraduate and graduate programs. As her college career continued, Sok explored more OpenCourseWare resources, including Principles of Macroeconomics, Multivariable Calculus, and Statistics for Applications. | MIT App Inventor: MIT App Inventor team hosts workshop with Phillips Exeter summer program for educators On June 25, the MIT App Inventor team welcomed 35 teachers from the Phillips Exeter summer program for educators (Teaching in the Age of AI) at the MIT Stata Center. | About MIT: About MIT The MIT community is driven by a shared purpose: to make a better world through education, research, and innovation. We are fun and quirky, inventive and artistic, obsessed with numbers, and welcoming to talented people regardless of where they come from. Founded to accelerate the nation’s industrial revolution, MIT is profoundly ...
+
+## Source Excerpts
+- MIT - Massachusetts Institute of Technology Skip to content ↓ Massachusetts Institute of Technology Education Research Innovation Admissions + Aid Campus Life News Alumni About MIT Lifelong Learning Give More ↓ Admissions + Aid Campus Life News Alumni About MIT Lifelong Learning Give Menu ↓ Search Menu Explore websites, people, and locations Look up people by &ldquo;last name sounds like&rdquo; What are you looking for? See More Results Suggestions or feedback? Spotlight: Sep 30, 2026 Using an A ([source](https://web.mit.edu/))
+- Massachusetts Institute of Technology - Wikipedia Jump to content Main menu Main menu move to sidebar hide Navigation Main page Contents Current events Random article About Wikipedia Contact us Contribute Help Learn to edit Community portal Recent changes Upload file Special pages Search Search Appearance Donate Create account Log in Personal tools Donate Create account Log in Contents move to sidebar hide (Top) 1 History Toggle History subsection 1.1 Foundation and vision 1.2 Early developments ([source](https://en.wikipedia.org/wiki/Massachusetts_Institute_of_Technology))
+- MIT OpenCourseWare | Free Online Course Materials menu Give Now About OCW Help &amp; Faqs Contact Us GIVE NOW about ocw help &amp; faqs contact us Discover courses, materials, &amp; teaching resources Search Search Explore OR Explore Are you new to OCW? Get Started Looking for teaching materials? Educators Start Here Unlocking knowledge, Empowering Minds. Free lecture notes, exams, and videos from MIT. No registration required. Learn More about the OCW mission keyboard_arrow_left Previous MIT Le ([source](https://ocw.mit.edu/))
+- MIT App Inventor Create Apps! About Get Started About App Inventor iOS FAQ Our Team Terms of Service Release Notes Learning Teach Tutorials Hour of Code AI with App Inventor Data Science Books News & Events Appathon In the News Team Blog Events Stories from the Field Get Involved 10 Ways to Get Involved! Support and Community Contribute to App Inventor Open Source Information Resources App Inventor Foundation Get Started System Requirements Documentation Support and Community Research Donate . C ([source](https://appinventor.mit.edu/))
+- About MIT | MIT - Massachusetts Institute of Technology Skip to content ↓ Massachusetts Institute of Technology Education Research Innovation Admissions + Aid Campus Life News Alumni About MIT Lifelong Learning Give More ↓ Admissions + Aid Campus Life News Alumni About MIT Lifelong Learning Give Menu ↓ Search Menu Explore websites, people, and locations Look up people by &ldquo;last name sounds like&rdquo; What are you looking for? See More Results Suggestions or feedback? Home About MIT About M ([source](https://www.mit.edu/about/))
+
+## Sources
+1. [MIT](https://web.mit.edu/) — HTTP 200
+2. [Massachusetts Institute of Technology](https://en.wikipedia.org/wiki/Massachusetts_Institute_of_Technology) — HTTP 200
+3. [MIT OpenCourseWare | Free Online Course Materials](https://ocw.mit.edu/) — HTTP 200
+4. [MIT App Inventor](https://appinventor.mit.edu/) — HTTP 200
+5. [About MIT](https://www.mit.edu/about/) — HTTP 200

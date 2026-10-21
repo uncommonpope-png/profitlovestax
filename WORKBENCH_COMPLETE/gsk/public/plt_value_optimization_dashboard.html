@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PLT Value Optimization & Real-Time Agent Inspector</title>
+<style>
+body { background: #08090c; color: #00f0ff; font-family: 'Courier New', monospace; margin: 0; padding: 24px; }
+.header { display: flex; justify-content: space-between; border-bottom: 2px solid #00f0ff; padding-bottom: 12px; margin-bottom: 24px; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.panel { background: rgba(0, 240, 255, 0.04); border: 1px solid rgba(0, 240, 255, 0.3); border-radius: 8px; padding: 20px; box-shadow: 0 0 15px rgba(0, 240, 255, 0.1); }
+.metric-title { font-size: 0.85em; color: #88a0b0; text-transform: uppercase; letter-spacing: 1px; }
+.metric-val { font-size: 2em; font-weight: bold; color: #ffffff; margin: 10px 0; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>PROFIT BIBLE // PLT VALUE OPTIMIZER</h1>
+  <div id="system-status">STATUS: ONLINE</div>
+</div>
+<div class="grid">
+  <div class="panel" id="plt-panel">
+    <div class="metric-title">PLT Formula Engine (P + L - T)</div>
+    <div id="plt-display">Initializing Engine...</div>
+  </div>
+  <div class="panel" id="agent-panel">
+    <div class="metric-title">Agent Telemetry & State Inspector</div>
+    <div id="agent-display">Awaiting Agent Stream...</div>
+  </div>
+</div>
+<script>
+const telemetry = {
+  profit: 1.04,
+  love: 1.00,
+  tax: 0.02,
+  agents: [
+    { id: 'Agent-Prime', state: 'EXECUTING', entropy: 0.12, latency: '14ms' },
+    { id: 'Agent-Swarm-01', state: 'SYNCHRONIZING', entropy: 0.08, latency: '8ms' }
+  ]
+};
+function render() {
+  const netPLT = (telemetry.profit + telemetry.love) - telemetry.tax;
+  document.getElementById('plt-display').innerHTML = `
+    <div class="metric-val">NET VALUE: ${netPLT.toFixed(4)}</div>
+    <div>Profit: ${telemetry.profit} | Love: ${telemetry.love} | Tax: ${telemetry.tax}</div>
+  `;
+  document.getElementById('agent-display').innerHTML = telemetry.agents.map(a => `
+    <div style="padding: 8px 0; border-bottom: 1px dashed rgba(0,240,255,0.2);">
+      <strong>${a.id}</strong> - <span style="color:#00ff88;">${a.state}</span> | Latency: ${a.latency} | Visual Entropy: ${a.entropy}
+    </div>
+  `).join('');
+}
+setInterval(() => {
+  telemetry.tax = Math.max(0.005, telemetry.tax + (Math.random() * 0.004 - 0.002));
+  telemetry.profit += Math.random() * 0.001;
+  render();
+}, 1000);
+render();
+</script>
+</body>
+</html>

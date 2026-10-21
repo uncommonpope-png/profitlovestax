@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Live State Inspection Telemetry</title>
+<style>
+body { background: #0a0a12; color: #e0e0e0; font-family: monospace; padding: 20px; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.panel { background: #12121e; border: 1fr solid #2a2a40; padding: 15px; border-radius: 8px; }
+</style>
+</head>
+<body>
+<h1>Live State Inspection - Dual-Journal Telemetry & PLT Metrics</h1>
+<div class="grid">
+<div class="panel" id="autonomy-stream"><h2>Autonomy Stream</h2><pre id="autonomy-log">Connecting...</pre></div>
+<div class="panel" id="genesis-stream"><h2>Genesis Stream</h2><pre id="genesis-log">Connecting...</pre></div>
+</div>
+<script>
+async function fetchTelemetry() {
+  try {
+    const res = await fetch('/api/telemetry');
+    const data = await res.json();
+    document.getElementById('autonomy-log').textContent = JSON.stringify(data.autonomy || [], null, 2);
+    document.getElementById('genesis-log').textContent = JSON.stringify(data.genesis || [], null, 2);
+  } catch (e) {
+    console.log('Telemetry poll cycle:', e);
+  }
+}
+setInterval(fetchTelemetry, 3000);
+fetchTelemetry();
+</script>
+</body>
+</html>

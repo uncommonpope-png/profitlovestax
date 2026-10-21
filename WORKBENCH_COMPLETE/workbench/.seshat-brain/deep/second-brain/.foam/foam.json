@@ -1,0 +1,35 @@
+{
+  "features": {
+    "graph": {
+      "enabled": true,
+      "zoomSpeed": 1
+    },
+    "linkReferenceDefinitions": "withExtension",
+    "markdown": {
+      "enhancedPreview": true
+    }
+  },
+  "folders": {
+    "journal": "journal",
+    "patterns": "patterns",
+    "decisions": "decisions",
+    "research": "research",
+    "souls": "souls",
+    "scratch": "scratch",
+    "templates": "templates"
+  },
+  "templates": [
+    {
+      "name": "Daily Journal",
+      "path": "templates/template-daily-journal.md"
+    },
+    {
+      "name": "Pattern",
+      "path": "templates/template-pattern.md"
+    },
+    {
+      "name": "Decision",
+      "path": "templates/template-decision.md"
+    }
+  ]
+}

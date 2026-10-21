@@ -2975,3 +2975,69 @@ GATE VERDICT: the specimen wakes on a clean tree and passes.
 The push may proceed.
 
 ## 9. PUSH — see the addendum below (filled at push time).
+
+## 9. PUSH — STOPPED AT THE GATE, TREE STAGED (evidence, not effort)
+
+The specimen repo is COMPLETE locally and one authenticated push
+away from public:
+- Local repo: ~/workspace/profitlovestax (branch main).
+- Specimen commit: 9cd839782c19b88dbdc00c767b344241c32231b6 —
+  11,040 files staged and committed (238 MB tree; .git 34 MB,
+  12,510 objects). genesis-host.cjs, the full implant (1,252
+  files under .seshat-brain/deep/), quote-check.cjs and the
+  Phase 7 code all verified IN the commit by git ls-files.
+- Target: https://github.com/uncommonpope-png/profitlovestax —
+  verified NOT existing (api.github.com repo GET → 404).
+
+Every push route available to this environment was tried or
+measured, and each is blocked by authorization, not by the tree:
+1. Connector create_repository (public, no auto-init) — the
+   owner's approval WAS granted; GitHub refused:
+   "POST https://api.github.com/user/repos: 403 Resource not
+   accessible by integration" — the Muse GitHub App
+   installation cannot create repositories.
+2. git over HTTPS — no credentials exist here: `gh` is not
+   logged in, no credential helper is configured, there is no
+   ~/.git-credentials; `git ls-remote` fails with "could not
+   read Username". (Per standing rules, no credential was
+   requested in chat and no auth flow was improvised.)
+3. git over SSH — the sandbox proxy resets SSH outright
+   (port 22 and ssh.github.com:443 both: "Connection reset by
+   peer"), tested.
+4. Connector push_files (snapshot) — hard caps: at most 2,000
+   files, 16 MiB total, UTF-8 text only, no binaries. The
+   specimen is 11,040 files / 238 MB / 41 binary files —
+   infeasible by an order of magnitude, not by a margin.
+
+WHAT IS NEEDED (owner, ~2 minutes, one time):
+1. Create the empty repo: github.com/new → name
+   `profitlovestax`, Public, and NO README/.gitignore/license
+   initialization (the tree carries its own).
+2. One authenticated push of the ready repo:
+     cd ~/workspace/profitlovestax
+     git remote add origin https://github.com/uncommonpope-png/profitlovestax.git
+     git push -u origin main
+   (On this VM: `gh auth login` with the owner's account, then
+   `gh auth setup-git`, then the same two git commands. The
+   Builder's PC, already signed in, works equally well.)
+Nothing else is outstanding: when that push lands, the specimen
+is public exactly as boot-tested in §8.
+
+## 10. PHASE 7 VERDICTS
+| Item | Verdict |
+|---|---|
+| 1 goal_runner transport seam | FIXED + PROVEN (bare harness byte-identical; live daemon both shapes identical; the server's own gate route returns real data) |
+| 2 Quote-check seam | BUILT + PROVEN (unit: true quote passes, planted misquote flagged; live: flagged Q1/Q4 splices, verified Q3) |
+| 3 Vision capability marks | DONE + PROVEN (Poolside text-only in the map, skipped in 112 ms with no probe; gemini answers) |
+| 4 Post-Poolside chain | DONE (all 3 chain sites; live: gemini leads, poolside caught a fall-through as last seat) |
+| 5 Vector index + hybrid eval | RUN COMPLETE (14,344 vectors in LanceDB); BM25 WINS (15/16, MRR 0.823 vs hybrid 14/16, 0.714) — runtime NOT swapped |
+| 6 Draft skill | NOT promoted, NOT shipped (clone-only; .gitignore carries the path) |
+| Hygiene gate | PASS (5/5 privacy paths absent; scan on record; Form B withheld with reasoning stated) |
+| Fresh-tree boot test | PASS (Resurrection Q1–Q4 + harness + digestion in the exact push tree) |
+| Push | STOPPED AT THE GATE — repo creation is outside this environment's GitHub grant; the tree is staged, committed, and one owner push away (§9) |
+
+REMAINING (beyond the specimen): the §9 push itself (owner);
+the hybrid-recall question re-opens only if the corpus changes
+character; the LanceDB store from §5 is generated data and was
+not shipped; voice on Linux remains a product decision (Phase 6
+§12), not a repair.

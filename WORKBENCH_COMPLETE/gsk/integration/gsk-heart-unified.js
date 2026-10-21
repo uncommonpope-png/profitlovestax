@@ -17,7 +17,7 @@
 
 const providerCatalog = require('./catalogs/provider-catalog');
 const { GSKHeartRouter } = require('./routing/gsk-heart-routing-engine');
-const { GSKHeartChatHandler, executeWithFallback, gskHeartChat } = require('./handlers/gsk-heart-chat-handler');
+const { GSKHeartChatHandler, executeWithFallback, gskHeartChat, resolveEndpoint } = require('./handlers/gsk-heart-chat-handler');
 const { GSKHeartComboRouter } = require('./combos/gsk-heart-combo-router');
 const { GSKHeartResilienceManager } = require('./resilience/gsk-heart-resilience-manager');
 const { GSKHeartGuardrailsManager } = require('./safety/gsk-heart-guardrails-manager');
@@ -291,6 +291,56 @@ class GSKHeartUnified {
         providerChain = Array.isArray(selectedModel) ? selectedModel : [selectedModel];
       }
 
+      // F11 (field test + demo production, Oct 2026): the heart held
+      // the vault credentials — initialize() merges env + vault via the
+      // workbench resolver — but never handed them to the chain.
+      // Native attempts fell back to process.env only, so in the
+      // shipped BYOK config this path died at "poolside creds
+      // unresolved" after a Gemini 429 while keyed seats sat unused,
+      // and the failure return dropped the per-seat ledger entirely.
+      // Same seat resolution as the working Telephone route
+      // (directProviderChat): attach the heart's credentials to each
+      // chain entry, then append any shipped BYOK seat that carries a
+      // credential and is not already in the chain, in shipped order
+      // (gemini → groq → openai → poolside-only-if-keyed).
+      try {
+        const creds = this.credentials || {};
+        const alias = { google: 'gemini' };
+        const credFor = (id) => creds[id] || creds[alias[id]] || null;
+        for (const entry of providerChain) {
+          if (entry && typeof entry === 'object' && !entry.apiKey) {
+            const key = credFor(entry.id);
+            if (key) entry.apiKey = key;
+          }
+        }
+        const BYOK_SEATS = [
+          { id: 'gemini', defaultModel: 'gemini-3.5-flash' },
+          { id: 'groq', defaultModel: 'llama-3.3-70b-versatile' },
+          { id: 'openai', defaultModel: 'gpt-4o-mini' },
+          { id: 'poolside', defaultModel: 'poolside/laguna-s-2.1', timeout: 90000 },
+        ];
+        for (const seat of BYOK_SEATS) {
+          const key = credFor(seat.id);
+          if (!key) continue;
+          if (providerChain.some((e) => e && e.id === seat.id)) continue;
+          const entry = { ...seat, apiKey: key };
+          try {
+            // executeChatStream speaks the OpenAI-compatible shape.
+            // resolveEndpoint covers groq/openai/poolside; for gemini
+            // it returns the native :streamGenerateContent URL, so
+            // use the OpenAI-compatible endpoint the working
+            // direct-provider route uses.
+            const ep = seat.id === 'gemini'
+              ? 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions'
+              : (typeof resolveEndpoint === 'function' ? resolveEndpoint(seat.id, seat.defaultModel, null) : null);
+            if (ep) entry.endpoint = ep;
+          } catch { /* endpoint resolution is best-effort — an unusable seat fails named in the ledger */ }
+          providerChain.push(entry);
+        }
+      } catch (e) {
+        console.warn('[GSK-HEART] Credential enrichment failed — chain unchanged:', e.message);
+      }
+
       const chatOptions = {
         providerChain,
         messages: messages && messages.length > 0 ? messages : [{ role: 'user', content: inputText }],
@@ -384,9 +434,18 @@ class GSKHeartUnified {
         }
       }
 
+      // F11: a failed turn names the seats tried and why — the generic
+      // failure (which the UI renders as a bare "Connection to my body
+      // failed") happens only when no seat was tried at all.
+      const failureDetail = !result.success && Array.isArray(result.failures) && result.failures.length > 0
+        ? 'All seats failed — ' + result.failures.map((f) => `${f.provider} (${f.via}): ${String(f.error || 'unknown').slice(0, 160)}`).join('; ')
+        : (!result.success ? (result.error || undefined) : undefined);
+
       return {
         success: result.success,
         content: result.content,
+        error: failureDetail,
+        failures: result.failures || undefined,
         model: selectedModel,
         provider: result.provider,
         usage: result.usage,

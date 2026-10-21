@@ -60,6 +60,7 @@ function buildBrief(input = {}) {
     lines.push('ACCEPTANCE (your result will be checked against these, exactly):');
     const accLines = [];
     if (Array.isArray(acceptance.contains)) for (const c of acceptance.contains) accLines.push(`- result must contain, verbatim: ${JSON.stringify(c)}`);
+    else if (acceptance.contains !== undefined) accLines.push(`- WARNING: acceptance.contains is malformed (must be an array of strings) — verification of this handoff will FAIL CLOSED until the brief is fixed`);
     if (typeof acceptance.equals === 'string') accLines.push(`- result must equal, exactly: ${JSON.stringify(acceptance.equals)}`);
     if (acceptance.pltCheck) accLines.push(`- result must state TRUE_VALUE=${trimNum(acceptance.pltCheck.profit + acceptance.pltCheck.love - acceptance.pltCheck.tax)} for PLT P=${acceptance.pltCheck.profit}, L=${acceptance.pltCheck.love}, T=${acceptance.pltCheck.tax} (Profit + Love − Tax)`);
     if (acceptance.minLength) accLines.push(`- result must be at least ${acceptance.minLength} characters`);
@@ -103,6 +104,17 @@ function verifyHandoff(input = {}) {
         for (const needle of acceptance.contains) {
             checks.push({ name: `contains:${String(needle).slice(0, 60)}`, ok: text.includes(needle), detail: `result ${text.includes(needle) ? 'contains' : 'does NOT contain'} ${JSON.stringify(String(needle).slice(0, 80))}` });
         }
+    } else if (acceptance.contains !== undefined) {
+        // F5 (field test, Oct 2026): a non-array `contains` used to be
+        // silently SKIPPED here — the check never ran, yet `verified`
+        // could still come back true on the remaining checks: a false
+        // VERIFIED on a malformed spec. Fail closed instead: the
+        // malformed acceptance is itself a failed check.
+        checks.push({
+            name: 'acceptance_shape',
+            ok: false,
+            detail: 'malformed acceptance — contains must be an array of strings; the contains check was NOT silently skipped: this handoff fails closed',
+        });
     }
     if (typeof acceptance.equals === 'string') {
         checks.push({ name: 'equals', ok: text.trim() === acceptance.equals.trim(), detail: `expected exactly ${JSON.stringify(acceptance.equals.slice(0, 80))}` });

@@ -21,6 +21,7 @@
   "author": "BUYaSOUL Team",
   "license": "MIT",
   "dependencies": {
-    "js-yaml": "^5.4.0"
+    "js-yaml": "^5.4.0",
+    "ws": "^8.21.3"
   }
 }

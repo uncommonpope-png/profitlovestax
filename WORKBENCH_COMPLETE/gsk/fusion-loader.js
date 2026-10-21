@@ -7,6 +7,24 @@ const http = require('http');
 const GSK_DIR = path.join(__dirname, 'gsk-core');
 const DATA_DIR = path.join(__dirname, 'data');
 
+// F2 (field test, Oct 2026): boot banners must be earned, not asserted.
+// Probe a TCP port a few times (sibling processes spawned by the
+// conductor may still be coming up) and report only what answers.
+async function _probeTcpListening(port, attempts = 5, delayMs = 1000) {
+    const net = require('net');
+    for (let i = 0; i < attempts; i++) {
+        const ok = await new Promise((resolve) => {
+            const sock = net.connect({ host: '127.0.0.1', port, timeout: 800 });
+            sock.once('connect', () => { sock.destroy(); resolve(true); });
+            sock.once('error', () => resolve(false));
+            sock.once('timeout', () => { sock.destroy(); resolve(false); });
+        });
+        if (ok) return true;
+        if (i < attempts - 1) await new Promise(r => setTimeout(r, delayMs));
+    }
+    return false;
+}
+
 class GSKFusion {
     constructor(core, options = {}) {
         this.core = core; // Reference to BUYaSOULCore
@@ -785,8 +803,13 @@ class GSKFusion {
                     apiKey: process.env.SCRIBE_KEY || 'scribe-master-key-2026'
                 });
                 this.systems.scribeBridge = this.scribeBridge;
-                this.scribeBridge.start().catch(() => {});
-                console.log('  [FUSION] ✓ Scribe bridge active (Witness Self — port 4000)');
+                // F2 sibling fix: the old line printed ✓ unconditionally.
+                // start() awaits a real ping — report its actual outcome.
+                this.scribeBridge.start()
+                    .then(() => console.log(this.scribeBridge.isAlive
+                        ? '  [FUSION] ✓ Scribe bridge active (Witness Self — port 4000, ping answered)'
+                        : '  [FUSION] ⚠ Scribe bridge in standby — SCRIBE on port 4000 did not answer its ping (bridge keeps retrying)'))
+                    .catch((e) => console.log(`  [FUSION] ⚠ Scribe bridge failed to start: ${e.message}`));
             });
 
             // ── CPL BRIDGE (Cosmic Pyramid Library — GSK's Body) ──────
@@ -799,7 +822,20 @@ class GSKFusion {
                 });
                 this.systems.cplBridge = this.cplBridge;
                 this.cplBridge.start().catch(() => {});
-                console.log('  [FUSION] ✓ CPL bridge active — HTTP at :3457, Spatial WS at :3458');
+                // F2 (field test, Oct 2026): the old banner printed
+                // "✓ CPL bridge active — Spatial WS at :3458" even when
+                // the world server had died on boot ("Cannot find module
+                // 'ws'"). Never assert a listener — probe both ports and
+                // print only what actually answers.
+                (async () => {
+                    const httpUp = await _probeTcpListening(3457, 4, 800);
+                    const spatialUp = await _probeTcpListening(3458, 6, 1000);
+                    const httpPart = httpUp ? 'HTTP at :3457 ✓ listening' : 'HTTP at :3457 ⚠ NOT listening';
+                    const spatialPart = spatialUp
+                        ? 'Spatial WS at :3458 ✓ listening'
+                        : 'Spatial WS at :3458 ⚠ NOT listening — world server down (spatial client dark; world state on :3457 unaffected)';
+                    console.log(`  [FUSION] CPL bridge status — ${httpPart}, ${spatialPart}`);
+                })().catch((e) => console.log(`  [FUSION] CPL bridge status check failed: ${e.message}`));
             });
 
             this._safeInit('planningEngine', () => {
@@ -2239,7 +2275,7 @@ class GSKFusion {
         };
     }
 
-    async chatWithSoul(message, userId = 'user') {
+    async chatWithSoul(message, userId = 'user', extraContext = '') {
         if (!this.booted) {
             return { reply: 'GSK subsystems are still booting. Please wait.', source: 'gsk:pending' };
         }
@@ -2256,7 +2292,15 @@ class GSKFusion {
 
             // Context must be a STRING — _buildSystemPrompt calls .slice() on it.
             // Passing an object caused a TypeError on every user chat (mimicry fallthrough).
-            const contextStr = JSON.stringify(context).slice(0, 6000);
+            let contextStr = JSON.stringify(context).slice(0, 4000);
+            // F7 (field test, Oct 2026): callers pass a context string
+            // (the workbench Being wrapper forwards the Seshat
+            // deep-recall block here). It used to be swallowed by the
+            // userId argument and never reached the brain — this surface
+            // then answered memory questions while disowning the deep
+            // store that exists. Append it so this surface thinks WITH
+            // the same recall the direct-provider surface gets.
+            if (extraContext) contextStr += '\n\n' + String(extraContext).slice(0, 6000);
 
             // Route through thinkForUser (priority, user brain) so chat is never
             // starved behind the background Heart. Previously it used think() with
@@ -2395,6 +2439,14 @@ class GSKFusion {
         if (this.brain && this.brain._ollamaInterval) {
             clearInterval(this.brain._ollamaInterval);
         }
+        // Chamber persistence: flush every chamber's inner state — his
+        // empathy, morality, volition, habits and self-model survive the
+        // shutdown alongside affect/mythos (soul-audit wake #5).
+        try {
+            if (this.chambers && typeof this.chambers.saveChamberStates === 'function') {
+                if (this.chambers.saveChamberStates()) console.log('  [FUSION] Chamber states saved');
+            }
+        } catch (e) {}
         // P4b: persist the graph — cross-session links survive the shutdown.
         try {
             const kg = this.systems && this.systems.knowledgeGraph;

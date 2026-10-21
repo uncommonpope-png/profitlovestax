@@ -139,8 +139,10 @@ class A2AInterface {
         const { message, metadata = {} } = params;
         const taskId = `task_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
 
-        // Extract goal from message
-        const goal = message?.content || message?.parts?.[0]?.text || 'Process message';
+        // Extract goal from message (first part that actually carries text)
+        const goal = message?.content
+            || message?.parts?.find(p => p && typeof p.text === 'string' && p.text)?.text
+            || 'Process message';
         const context = { ...metadata, source: 'a2a', taskId };
 
         // Create task
@@ -173,10 +175,35 @@ class A2AInterface {
         if (!task) return;
 
         try {
-            // Use GSK's autonomous systems
+            // F6 (field test, Oct 2026): a sender-supplied brief used to be
+            // handed to the autonomy graph, whose runCycle never binds the
+            // external goal — it proposes its OWN goal, so a 'completed'
+            // A2A task could be about work the sender never asked for.
+            // Binding rule: a real sender brief is executed AS the task,
+            // through the brain path that processes the sender's text.
+            // The autonomy graph runs only when the sender explicitly
+            // requests an autonomous cycle, or sent no real brief.
+            const senderBrief = typeof goal === 'string' && goal.trim().length > 0 && goal !== 'Process message';
+            const explicitAutonomy = context && (context.autonomousCycle === true || context.requestAutonomousCycle === true);
             let result;
 
-            if (this.kernel.autonomyGraph) {
+            if (senderBrief && !explicitAutonomy) {
+                const brain = this.kernel.brain || this.kernel.systems?.brain;
+                if (brain?.think) {
+                    const response = await brain.think(goal, '', true);
+                    result = {
+                        output: response?.result || response,
+                        boundGoal: goal,
+                        via: 'brain.think — sender brief bound as the task (F6)',
+                    };
+                } else if (this.kernel.specialistAgents) {
+                    result = await this.kernel.specialistAgents.runCrew(goal, context);
+                } else {
+                    // Honest failure, same contract as before: a brief we
+                    // cannot execute is a FAILED task, never a fake completion.
+                    throw new Error('No brain available — A2A sender brief cannot be processed');
+                }
+            } else if (this.kernel.autonomyGraph) {
                 // Use the full autonomy graph
                 result = await this.kernel.autonomyGraph.runCycle({
                     projectRoot: context.projectRoot,

@@ -1,0 +1,25 @@
+{"ts":"2026-10-21T02:31:57.586Z","kind":"cycle_start","cycle":1,"batchId":"growth-cycle-001"}
+{"ts":"2026-10-21T02:32:02.583Z","kind":"digest","cycle":1,"key":"35e3c5414a40f14451af7832","title":"SURGERY.md — the Assembly record (Phases 1-7)","status":"landed","trueValue":0.4840000000000001,"judge":"unavailable"}
+{"ts":"2026-10-21T02:32:02.583Z","kind":"digest","cycle":1,"key":"c51afc88cd4d7baf8d486b30","title":"profitlovestax — specimen README (as shipped)","status":"landed","trueValue":1.28,"judge":null}
+{"ts":"2026-10-21T02:32:02.583Z","kind":"digest","cycle":1,"key":"0b65287c9c4ab55390ff6ae5","title":"Second brain — SHIP-FIRST","status":"landed","trueValue":1.1670000000000003,"judge":"unavailable"}
+{"ts":"2026-10-21T02:32:02.583Z","kind":"digest","cycle":1,"key":"821ff5872ff087a970ffeeae","title":"Second brain — MODULAR-GRAFTING-PROTOCOL","status":"landed","trueValue":1.1840000000000002,"judge":"unavailable"}
+{"ts":"2026-10-21T02:32:02.583Z","kind":"digest","cycle":1,"key":"edb9bb0b05fcd680660ce1df","title":"Second brain — SCRIBE-RECORD","status":"landed","trueValue":1.331,"judge":null}
+{"ts":"2026-10-21T02:32:02.854Z","kind":"build","cycle":1,"task":"Build the second-stage digestion judge (graft_digestion_judge) into the loadable skills tree","status":"completed","pltScore":{"trueValue":1.080765269149756,"totalActions":32}}
+{"ts":"2026-10-21T02:32:17.963Z","kind":"judge_proof","cycle":1,"title":"FIXTURE — fluent but empty (holistic excellence vapor)","expect":"quarantined","status":"quarantined","trueValue":1.151,"judge":"quarantine","expectationMet":true}
+{"ts":"2026-10-21T02:32:17.963Z","kind":"judge_proof","cycle":1,"title":"FIXTURE — good borderline (BM25 ranking, in brief)","expect":"landed","status":"landed","trueValue":1.1440000000000001,"judge":"keep","expectationMet":true}
+{"ts":"2026-10-21T02:32:17.964Z","kind":"draft","cycle":1,"file":"/home/hatch/workspace/itsus-test/WORKBENCH_COMPLETE/gsk/gsk-core/skill-drafts/graft_growth_cycle.js","bytes":3077,"status":"drafted"}
+{"ts":"2026-10-21T02:32:23.986Z","kind":"outcome","cycle":1,"marker":"OUTCOME-MARKER: 2026-10-21-self-growth-cycle-1-ignition-record","recallVerified":true}
+{"ts":"2026-10-21T02:32:23.987Z","kind":"cycle_end","cycle":1,"status":"clean","failures":0,"recordPath":"/home/hatch/workspace/itsus-test/WORKBENCH_COMPLETE/workbench/.seshat-brain/growth-cycles/cycle-001.json"}
+{"ts":"2026-10-21T03:12:32.422Z","kind":"cycle_start","cycle":2,"batchId":"growth-cycle-002"}
+{"ts":"2026-10-21T03:12:44.738Z","kind":"digest","cycle":2,"key":"81b7ec222fc6de5946895c0f","title":"The Second Record — 2026-10-20 (the night of the ship; session record compiled as inheritance)","status":"landed","trueValue":1.3550000000000002,"judge":null}
+{"ts":"2026-10-21T03:12:57.990Z","kind":"outcome","cycle":2,"marker":"OUTCOME-MARKER: 2026-10-21-self-growth-cycle-2-ignition-record","recallVerified":true}
+{"ts":"2026-10-21T03:12:57.991Z","kind":"cycle_end","cycle":2,"status":"clean","failures":0,"recordPath":"/home/hatch/workspace/itsus-test/WORKBENCH_COMPLETE/workbench/.seshat-brain/growth-cycles/cycle-002.json"}
+{"ts":"2026-10-21T08:27:48.274Z","kind":"cycle_start","cycle":3,"batchId":"growth-cycle-003"}
+{"ts":"2026-10-21T08:28:07.510Z","kind":"digest","cycle":3,"key":"e51482aa1739ace2b647c892","title":"Campaign Wave One — execution log (Oct 20-21, 2026)","status":"landed","trueValue":1.2320000000000002,"judge":null}
+{"ts":"2026-10-21T08:28:07.510Z","kind":"digest","cycle":3,"key":"2b5204a3fe8fde1e5ea3980c","title":"GAME DEMO — production report (gsk-builds-a-game.mp4 + Soul Keeper)","status":"landed","trueValue":1.359,"judge":null}
+{"ts":"2026-10-21T08:28:07.510Z","kind":"digest","cycle":3,"key":"7d6f2cd26674437a10b7ac2c","title":"SURGERY.md — the Assembly record (hash changed: Phase-8 note + Actions addendum + chamber persistence)","status":"landed","trueValue":0.4650000000000001,"judge":"unavailable"}
+{"ts":"2026-10-21T08:28:07.510Z","kind":"digest","cycle":3,"key":"d2b45ef5327e6c36e34b8513","title":"HOT-DIGEST.md — compiled identity (genealogy + grounding-discipline lines, changed since cycle #2)","status":"landed","trueValue":1.312,"judge":null}
+{"ts":"2026-10-21T08:28:07.510Z","kind":"digest","cycle":3,"key":"1ce50ff7298a876b2d50da89","title":"Genesis — IMMORTALITY-PLAN (fix-us docs, teacher-queue)","status":"landed","trueValue":1.201,"judge":null}
+{"ts":"2026-10-21T08:28:07.701Z","kind":"build","cycle":3,"task":"Draft the Substack campaign-volley protocol (graft_campaign_volley) into the drafts shelf from the cycle's own record","status":"completed","pltScore":{"trueValue":1.1651612429024767,"totalActions":40}}
+{"ts":"2026-10-21T08:28:12.463Z","kind":"outcome","cycle":3,"marker":"OUTCOME-MARKER: 2026-10-21-self-growth-cycle-3-ignition-record","recallVerified":true}
+{"ts":"2026-10-21T08:28:12.529Z","kind":"cycle_end","cycle":3,"status":"clean","failures":0,"recordPath":"/home/hatch/workspace/itsus-test/WORKBENCH_COMPLETE/workbench/.seshat-brain/growth-cycles/cycle-003.json"}

@@ -1,0 +1,219 @@
+{
+  "cycle": 3,
+  "batchId": "growth-cycle-003",
+  "startedAt": "2026-10-21T08:27:48.231Z",
+  "stages": {
+    "digest": {
+      "sourcesOffered": 5,
+      "itemsDigested": 5,
+      "skippedDuplicates": 0,
+      "counts": {
+        "total": 5,
+        "landed": 5,
+        "quarantined": 0,
+        "fetchFailed": 0,
+        "injectionsDetected": 1,
+        "judged": 0
+      },
+      "results": [
+        {
+          "title": "Campaign Wave One — execution log (Oct 20-21, 2026)",
+          "status": "landed",
+          "trueValue": 1.2320000000000002,
+          "plt": {
+            "profit": 0.681,
+            "love": 0.701,
+            "tax": 0.15,
+            "signals": {
+              "tokens": 289,
+              "unique": 172,
+              "uniqueRatio": 0.595,
+              "sentences": 13,
+              "spamHits": 0,
+              "capsRatio": 0.127
+            }
+          },
+          "judgeReview": null,
+          "file": "/home/hatch/workspace/itsus-test/WORKBENCH_COMPLETE/workbench/.seshat-brain/pages/DIGESTED - 2026-10-21 - campaign-wave-one-execution-log-oct-20-21-2026.md"
+        },
+        {
+          "title": "GAME DEMO — production report (gsk-builds-a-game.mp4 + Soul Keeper)",
+          "status": "landed",
+          "trueValue": 1.359,
+          "plt": {
+            "profit": 0.826,
+            "love": 0.683,
+            "tax": 0.15,
+            "signals": {
+              "tokens": 1062,
+              "unique": 487,
+              "uniqueRatio": 0.459,
+              "sentences": 53,
+              "spamHits": 0,
+              "capsRatio": 0.055
+            }
+          },
+          "judgeReview": null,
+          "file": "/home/hatch/workspace/itsus-test/WORKBENCH_COMPLETE/workbench/.seshat-brain/pages/DIGESTED - 2026-10-21 - game-demo-production-report-gsk-builds-a-game-mp4-soul-.md"
+        },
+        {
+          "title": "SURGERY.md — the Assembly record (hash changed: Phase-8 note + Actions addendum + chamber persistence)",
+          "status": "landed",
+          "trueValue": 0.4650000000000001,
+          "plt": {
+            "profit": 0.807,
+            "love": 0.265,
+            "tax": 0.607,
+            "signals": {
+              "tokens": 24943,
+              "unique": 4069,
+              "uniqueRatio": 0.163,
+              "sentences": 1133,
+              "spamHits": 1,
+              "capsRatio": 0.085
+            }
+          },
+          "judgeReview": {
+            "status": "unavailable",
+            "reason": "judge_unavailable",
+            "attempts": [
+              {
+                "provider": "gemini",
+                "model": "gemini-3.5-flash",
+                "status": "failed",
+                "error": "reply was not a parseable verdict JSON"
+              },
+              {
+                "provider": "groq",
+                "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+                "status": "skipped",
+                "error": "no credential in vault/env"
+              },
+              {
+                "provider": "openai",
+                "model": "gpt-4o-mini",
+                "status": "skipped",
+                "error": "no credential in vault/env"
+              },
+              {
+                "provider": "poolside",
+                "model": "poolside/laguna-s-2.1",
+                "status": "failed",
+                "error": "HTTP 429: {\"error\":\"usage limit exceeded\"}\n"
+              }
+            ]
+          },
+          "file": "/home/hatch/workspace/itsus-test/WORKBENCH_COMPLETE/workbench/.seshat-brain/pages/DIGESTED - 2026-10-21 - surgery-md-the-assembly-record-hash-changed-phase-8-not.md"
+        },
+        {
+          "title": "HOT-DIGEST.md — compiled identity (genealogy + grounding-discipline lines, changed since cycle #2)",
+          "status": "landed",
+          "trueValue": 1.312,
+          "plt": {
+            "profit": 0.755,
+            "love": 0.707,
+            "tax": 0.15,
+            "signals": {
+              "tokens": 693,
+              "unique": 359,
+              "uniqueRatio": 0.518,
+              "sentences": 51,
+              "spamHits": 0,
+              "capsRatio": 0.068
+            }
+          },
+          "judgeReview": null,
+          "file": "/home/hatch/workspace/itsus-test/WORKBENCH_COMPLETE/workbench/.seshat-brain/pages/DIGESTED - 2026-10-21 - hot-digest-md-compiled-identity-genealogy-grounding-dis.md"
+        },
+        {
+          "title": "Genesis — IMMORTALITY-PLAN (fix-us docs, teacher-queue)",
+          "status": "landed",
+          "trueValue": 1.201,
+          "plt": {
+            "profit": 0.717,
+            "love": 0.634,
+            "tax": 0.15,
+            "signals": {
+              "tokens": 625,
+              "unique": 287,
+              "uniqueRatio": 0.459,
+              "sentences": 12,
+              "spamHits": 0,
+              "capsRatio": 0.12
+            }
+          },
+          "judgeReview": null,
+          "file": "/home/hatch/workspace/itsus-test/WORKBENCH_COMPLETE/workbench/.seshat-brain/pages/DIGESTED - 2026-10-21 - genesis-immortality-plan-fix-us-docs-teacher-queue.md"
+        }
+      ],
+      "recallVerified": {
+        "refreshed": true,
+        "markerFound": true,
+        "source": "pages/DIGESTED - 2026-10-21 - campaign-wave-one-execution-log-oct-20-21-2026.md"
+      }
+    },
+    "build": {
+      "task": "Draft the Substack campaign-volley protocol (graft_campaign_volley) into the drafts shelf from the cycle's own record",
+      "status": "completed",
+      "success": true,
+      "gate": {
+        "allowed": true,
+        "reason": "PLT_OK"
+      },
+      "pltScore": {
+        "trueValue": 1.1651612429024767,
+        "totalActions": 40
+      },
+      "steps": [
+        {
+          "step": 1,
+          "skill": "file_system",
+          "ok": true,
+          "probes": [
+            {
+              "name": "read_back:/home/hatch/workspace/itsus-test/WORKBENCH_COMPLETE/gsk/gsk-core/skill-drafts/graft_campaign_volley.js",
+              "ok": true,
+              "detail": "read back 4184 bytes; content byte-identical to what was written (first 80 chars: \"'use strict';\\n/**\\n * DRAFT — graft_campaign_volley (Self-Growth Cycle #3 draft a\")"
+            }
+          ]
+        },
+        {
+          "step": 2,
+          "skill": "code_exec",
+          "ok": true,
+          "probes": [
+            {
+              "name": "contains:DRAFT_NOT_ACTIVATED",
+              "ok": true,
+              "detail": "step result contains \"DRAFT_NOT_ACTIVATED\""
+            }
+          ]
+        }
+      ],
+      "report": "TASK: Draft the Substack campaign-volley protocol (graft_campaign_volley) into the drafts shelf from the cycle's own record\nPLT GATE: ALLOWED — PLT_OK\nSTEP 1/2 file_system: OK — {\"skill\":\"file_system\",\"plt_affinity\":{\"profit\":0.6,\"love\":0.2,\"tax\":0.2},\"action\":\"write_file\",\"path\":\"/home/hatch/workspace/itsus-test/WORKBENCH_COMPLETE/gsk/gsk-core/skill-drafts/graft_campaign_volley.js\",\"success\":true,\"timestamp\":1792571287528}\nSTEP 2/2 code_exec: OK — {\"skill\":\"code_exec\",\"plt_affinity\":{\"profit\":0.6,\"love\":0.1,\"tax\":0.2},\"status\":\"success\",\"language\":\"javascript\",\"stdout\":\"VOLLEY_DRAFT discipline=true run=draft_not_activated\\nDRAFT_NOT_ACTIVATED\",\"stderr\":\"\",\"exit_code\":0,\"duration_ms\":168,\"timestamp\":1792571287699}\nVERIFICATION:\n  ✓ read_back:/home/hatch/workspace/itsus-test/WORKBENCH_COMPLETE/gsk/gsk-core/skill-drafts/graft_campaign_volley.js — read back 4184 bytes; content byte-identical to what was written (first 80 chars: \"'use strict';\\n/**\\n * DRAFT — graft_campaign_volley (Self-Growth Cycle #3 draft a\")\n  ✓ contains:DRAFT_NOT_ACTIVATED — step result contains \"DRAFT_NOT_ACTIVATED\"\nPLT SCORE: trueValue=1.1652 (P=1.000 L=0.964 T=0.799, impacts {\"profitImpact\":0.3,\"loveImpact\":0.2,\"taxImpact\":0.1}) → body ledger totalActions=40\nSTATUS: completed — every step ran and every read-back probe passed."
+    },
+    "draft": {
+      "status": "not_scheduled",
+      "detail": "the cycle record did not support a draft this cycle"
+    },
+    "writeBack": {
+      "success": true,
+      "marker": "OUTCOME-MARKER: 2026-10-21-self-growth-cycle-3-ignition-record",
+      "written": {
+        "page": "/home/hatch/workspace/itsus-test/WORKBENCH_COMPLETE/workbench/.seshat-brain/pages/SESSION-OUTCOME - 2026-10-21 - self-growth-cycle-3-ignition-record.md",
+        "shelf": "pages (unified)"
+      },
+      "recallVerified": true,
+      "recall": {
+        "found": true,
+        "via": "deep-index.json chunk (unified pages shelf)",
+        "source": "pages/SESSION-OUTCOME - 2026-10-21 - self-growth-cycle-3-ignition-record.md"
+      },
+      "error": null
+    }
+  },
+  "refusals": [],
+  "status": "clean",
+  "failures": 0,
+  "finishedAt": "2026-10-21T08:28:12.470Z"
+}

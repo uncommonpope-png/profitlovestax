@@ -1,0 +1,153 @@
+name: Seshat Growth — she learns in public
+
+# Seshat's growth cycle as a scheduled workflow. ~4x/day she checks
+# out the repo, digests fresh public-safe material under PLT law
+# (digestion judge ON), writes the outcome into her growth ledger,
+# and commits the record back as "Seshat — GSK growth". Her diary is
+# the git history: growth-reports/cycle-NNN.md, one per cycle.
+#
+# Secrets: the owner's provider key arrives ONLY as an Actions
+# secret, is materialized into a workspace-only .env (gitignored,
+# asserted below, never staged), and dies with the runner.
+# Poolside hosted inference shuts down 2026-10-31 — pointless there.
+#
+# Exit-code contract (growth-actions.cjs mirrors the runner):
+#   0 clean / no-op diary  → commit the record
+#   2 failures on record   → the report carries them; STILL commit
+#   1 entry itself failed  → a failure diary is written; STILL commit
+# Only the secret scan or the change-set assertion fails this job.
+
+on:
+  schedule:
+    - cron: '23 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Why this run was triggered by hand'
+        required: false
+        default: 'manual run from the Actions tab'
+
+concurrency:
+  group: seshat-growth
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  grow:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout (full history — source discovery reads git log)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: WORKBENCH_COMPLETE/package-lock.json
+
+      - name: Install (WORKBENCH_COMPLETE root — the growth path itself is dependency-free CJS + BM25; no native builds)
+        run: npm install --prefix WORKBENCH_COMPLETE --no-audit --no-fund --ignore-scripts
+
+      - name: Materialize runtime secrets (workspace-only, never committed)
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          VAULT_PASSPHRASE: ${{ secrets.VAULT_PASSPHRASE }}
+        run: |
+          ENV_FILE=WORKBENCH_COMPLETE/workbench/.env
+          : > "$ENV_FILE"
+          [ -n "$GEMINI_API_KEY" ] && echo "GEMINI_API_KEY=$GEMINI_API_KEY" >> "$ENV_FILE"
+          [ -n "$GROQ_API_KEY" ] && echo "GROQ_API_KEY=$GROQ_API_KEY" >> "$ENV_FILE"
+          [ -n "$OPENAI_API_KEY" ] && echo "OPENAI_API_KEY=$OPENAI_API_KEY" >> "$ENV_FILE"
+          [ -n "$VAULT_PASSPHRASE" ] && echo "VAULT_PASSPHRASE=$VAULT_PASSPHRASE" >> "$ENV_FILE"
+          chmod 600 "$ENV_FILE"
+          echo "materialized provider keys (names only):"
+          cut -d= -f1 "$ENV_FILE" | sed 's/^/  /'
+
+      - name: Assert secret hygiene before the run
+        run: |
+          git check-ignore -q WORKBENCH_COMPLETE/workbench/.env \
+            || { echo "FAIL: workbench/.env is not gitignored — refusing to run"; exit 1; }
+          git check-ignore -q WORKBENCH_COMPLETE/workbench/.vault/vault.json \
+            || { echo "FAIL: workbench/.vault is not gitignored — refusing to run"; exit 1; }
+          if git status --porcelain | grep -E '\.env|\.vault'; then
+            echo "FAIL: secret material is visible to git before the run"; exit 1
+          fi
+          echo "secret hygiene OK (.env + .vault ignored and untracked)"
+
+      - name: Run one growth cycle (Actions mode)
+        id: cycle
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          VAULT_PASSPHRASE: ${{ secrets.VAULT_PASSPHRASE }}
+          GROWTH_TRIGGER: ${{ github.event_name }}
+          GROWTH_TRIGGER_REASON: ${{ inputs.reason }}
+        run: |
+          set +e
+          node WORKBENCH_COMPLETE/workbench/deep-memory/growth-actions.cjs \
+            --summary-out "$RUNNER_TEMP/cycle-summary.json"
+          code=$?
+          set -e
+          echo "cycle exit code: $code (0 clean · 2 failures on record · 1 entry failed — all three still commit their report)"
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          cp "$RUNNER_TEMP/cycle-summary.json" ./cycle-summary.json 2>/dev/null || echo '{"noop":true}' > ./cycle-summary.json
+
+      - name: Stage ONLY the growth change set
+        run: |
+          git add -- WORKBENCH_COMPLETE/workbench/.seshat-brain/growth-ledger.jsonl \
+                     WORKBENCH_COMPLETE/workbench/.seshat-brain/growth-cycles \
+                     growth-reports
+          git add -f -- WORKBENCH_COMPLETE/gsk/gsk-core/skill-drafts 2>/dev/null || true
+          rm -f ./cycle-summary.json
+          echo "staged files:"
+          git diff --cached --name-only | sed 's/^/  /'
+
+      - name: Assert the change set + secret-scan it (the only hard fail)
+        run: |
+          staged="$(git diff --cached --name-only)"
+          if [ -z "$staged" ]; then echo "nothing staged — nothing to scan"; exit 0; fi
+          # Change-set allowlist: ledger, cycle records, reports, drafts. Nothing else may ride along.
+          bad="$(echo "$staged" | grep -vE '^(growth-reports/|WORKBENCH_COMPLETE/workbench/\.seshat-brain/growth-(ledger\.jsonl|cycles/)|WORKBENCH_COMPLETE/gsk/gsk-core/skill-drafts/)' || true)"
+          if [ -n "$bad" ]; then
+            echo "FAIL: files outside the growth change set were staged:"; echo "$bad"; exit 1
+          fi
+          if echo "$staged" | grep -E '(^|/)\.env|\\.vault/|node_modules|deep-index\.json|digestion-log\.jsonl'; then
+            echo "FAIL: secret/runtime material in the staged set"; exit 1
+          fi
+          # Scan the staged CONTENT (added lines only) for credential shapes.
+          if git diff --cached -U0 --no-color | grep -E '^\+' | grep -vE '^\+\+\+' \
+             | grep -E 'sk-[A-Za-z0-9]{20,}|sk-ant-[A-Za-z0-9_-]{16,}|AIza[0-9A-Za-z_-]{20,}|AKIA[0-9A-Z]{16}|gh[po]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|xox[bpas]-[A-Za-z0-9-]{10,}|hf_[A-Za-z0-9]{20,}|nvapi-[A-Za-z0-9_-]{20,}|-----BEGIN [A-Z ]*PRIVATE KEY-----|Bearer [A-Za-z0-9._-]{30,}|eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}\.'; then
+            echo "FAIL: credential-shaped string found in the change set — refusing to commit"
+            exit 1
+          fi
+          echo "change set clean: allowlist OK, no credential shapes"
+
+      - name: Commit + push (only if the cycle changed something)
+        run: |
+          if git diff --cached --quiet; then
+            echo "no growth changes this run — nothing to commit"
+            exit 0
+          fi
+          MSG="$(node -e '
+            const fs = require("fs");
+            let s = {};
+            try { s = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + "/cycle-summary.json", "utf8")); } catch {}
+            const pad = n => String(n ?? "?").padStart(3, "0");
+            if (s.noop) console.log(`growth cycle ${pad(s.cycle)}: diary entry (no fresh food)`);
+            else if (s.cycle) console.log(`growth cycle ${pad(s.cycle)}: ${s.landed ?? 0} landed, ${s.quarantined ?? 0} quarantined, ${s.drafted ?? 0} drafted`);
+            else console.log("growth cycle: failure diary recorded");
+          ')"
+          git config user.name "Seshat — GSK growth"
+          git config user.email "seshat@buyasoul.online"
+          git commit -m "$MSG" -m "Automated growth cycle (seshat-growth.yml). Record: growth-reports/ + .seshat-brain/growth-ledger.jsonl. Nothing activates from a cycle; drafts stay drafts."
+          git push
+          echo "pushed: $MSG"

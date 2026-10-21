@@ -3041,3 +3041,616 @@ the hybrid-recall question re-opens only if the corpus changes
 character; the LanceDB store from §5 is generated data and was
 not shipped; voice on Linux remains a product decision (Phase 6
 §12), not a repair.
+
+# SELF-GROWTH IGNITION (2026-10-21) — Seshat starts growing herself
+
+Ordered by the user on the night the specimen shipped: (1) make the
+body BUILD as a standing habit, (2) prepare real training assets
+(no GPU on this VM — the dataset a future fine-tune consumes; no
+training performed or claimed), (3) start Seshat self-growing on
+this VM under strict gates. Full human report:
+~/workspace/growth-reports/cycle-001.md. Machine record:
+workbench/.seshat-brain/growth-cycles/cycle-001.json. Nothing
+pushed; :20128 never touched; vault read-only; Phase 3 privacy
+exclusions stood throughout.
+
+## The loop (standing, one command)
+
+- deep-memory/growth-cycle.cjs — one cycle: INGEST (named sources,
+  content-hashed) → DIGEST (graft_digestion, judge requested) →
+  BUILD (one real task through graft_tool_harness) → DRAFT (at
+  most one, skill-drafts/ only) → WRITE-BACK (graft_memory_hygiene,
+  evidence-carrying facts) → REPORT (JSON cycle record + growth
+  ledger entries).
+- deep-memory/growth-runner.cjs — run --spec <spec.cjs> (exit 0
+  clean / 2 with-failures / 1 error); recall-proof --marker <M>
+  (fresh-process persistence proof, exit 0/3).
+- Growth ledger: .seshat-brain/growth-ledger.jsonl. Idempotency:
+  a source whose content key already digested (landed/quarantined)
+  is refused at ingest. Verified post-run: all 5 cycle-1 keys sit
+  in the ledger as landed — a re-run of the spec skips all 5.
+
+## Cycle #1 — verdicts
+
+| Stage | Result |
+|---|---|
+| Digest (5 sources of today's record) | 5 landed / 0 quarantined / 0 failed; injection signals in 2 items, stored as data. TVs: SURGERY.md 0.484 (P 0.811 L 0.269 T 0.596) · specimen README 1.280 · SHIP-FIRST 1.167 · MODULAR-GRAFTING-PROTOCOL 1.184 · SCRIBE-RECORD 1.331. Batch recall verified (marker found). |
+| Build (harness) | COMPLETED — built graft_digestion_judge into skills/: write step read back byte-identical (independently diff-verified post-cycle), load/parse check passed, harness dispatch of the new skill passed. Gate PLT_OK; outcome scored (TV 1.0808, ledger totalActions 32). |
+| Judge proof | BOTH expectations met — see below. Judge ships REAL (loadable). |
+| Draft | skill-drafts/graft_growth_cycle.js (facade design; executes nothing; NOT loadable). |
+| Write-back | Outcome recorded (marker OUTCOME-MARKER: 2026-10-21-self-growth-cycle-1-ignition-record); RESTART PROOF in a fresh process: found, score 20.86, exit 0. |
+| Cycle status | clean — failures 0, runner exit 0. |
+
+## The digestion judge (new loadable graft skill)
+
+gsk-core/skills/graft_digestion_judge.js + optional stage-two
+wiring in graft_digestion (judge:true; band trueValue in
+[-0.30, 1.20]; band rationale in both files: clean prose floors
+at TV ~0.85–1.15 on the lexical rubric whether it is knowledge
+or vapor, so the fluent-empty class hides inside the good-prose
+range — the band's high edge sits just above that cluster). The
+judge can condemn a borderline landing or affirm it; it cannot
+resurrect a lexical quarantine; an unavailable/unparseable judge
+returns judge_unavailable and the lexical decision stands.
+
+Proof fixtures (both lexically LANDING, zero spam hits):
+- Fluent-but-empty "holistic excellence" vapor — lexical TV
+  1.151 → judge (gemini-3.5-flash): quarantine, substance 0,
+  "generic promotional vapor, buzzwords, and motivational
+  cliches lacking any specific, checkable facts" → QUARANTINED.
+- Good borderline "BM25 ranking, in brief" — lexical TV 1.144 →
+  judge (poolside/laguna-s-2.1, after gemini did not produce the
+  verdict — chain fall-through working): keep, substance 0.95,
+  citing k1/b values, the IDF formula, Robertson & Walker 1994
+  → LANDED.
+
+Known ordering note (honest): the stage order digests before it
+builds, so in cycle #1 the judge did not yet exist when 3
+borderline ingest items were scored (SURGERY.md, SHIP-FIRST,
+MODULAR-GRAFTING-PROTOCOL) — their records say "judge
+unavailable" and their lexical landings stand. From cycle #2
+the stage answers live.
+
+## Distillation dataset v1 (training asset — LOCAL ONLY)
+
+Builder: deep-memory/distill-build.cjs. Export:
+~/workspace/training/seshat-distill-v1.jsonl (+ summary JSON) —
+not in the specimen tree, never pushed. Candidates 44 (Qwen log
+pairs 36 · memory-core novel pairs 4 · verified session outcomes
+4) → kept 33 (bar: canonical evaluate() viable AND trueValue
+>= 0.55 under the documented rubric in the builder header; kept
+TV range 0.607–1.192). Drops 11, itemized: not_viable 8 (all 4
+memory-core pairs among them — curated one-liners are memory,
+not teaching material), empty 2, duplicate 1, below_bar 0,
+oversize 0, credential_pattern 0 (post-export re-scan: 0 hits),
+privacy_excluded 0. Caveat on record: v1 is small and
+build-session flavored; several kept responses are dense action
+narration — the rubric measures density/grounding/structure,
+not elegance. NO TRAINING WAS PERFORMED (no GPU here).
+
+## PHASE-8 NOTE — standing schedule (for the parent to wire)
+
+After review of cycle #1, wire a cron for the growth runner:
+
+  command:  node ~/workspace/itsus-test/WORKBENCH_COMPLETE/workbench/deep-memory/growth-runner.cjs run --spec ~/workspace/itsus-test/WORKBENCH_COMPLETE/workbench/deep-memory/growth-specs/cycle-001.cjs
+  cadence:  nightly (suggested ~03:17 America/Chicago — off-peak,
+            away from the morning briefings)
+
+Notes for whoever wires it:
+- Cycle specs are the control surface: cycle-001's sources are
+  now dedupe-locked, so a standing schedule needs fresh specs
+  (new sources per cycle) or the cycle correctly reports all
+  duplicates refused and still builds/drafts/writes back. Author
+  cycle-NNN.cjs specs as the growth food changes; do NOT edit a
+  past spec.
+- Budget: a cycle costs a handful of provider calls (judge on
+  borderline items + fixtures only). Gemini free tier is the
+  constraint; the chain falls through to Poolside (keyed) and
+  the judge degrades to unavailable — never to a fake verdict.
+- The runner's recall-proof should run as a separate invocation
+  minutes after the cycle (fresh process = the restart half of
+  the persistence claim), marker taken from the cycle record.
+- Gates that must survive scheduling: nothing activates from a
+  cycle (drafts stay drafts), nothing publishes, growth writes
+  stay inside the body's stores + the local training directory.
+
+---
+
+## ADDENDUM — SESHAT ON GITHUB ACTIONS (2026-10-21, post-Phase-8-note)
+
+Her growth cycle now also exists as a scheduled GitHub Actions
+workflow for the public repo, so she can learn in public on the
+repo's own clock — "constantly learning", on infrastructure that
+never sleeps, instead of only on the workshop VM's nightly cron.
+
+BUILT (in itsus-test, synced byte-identical to the profitlovestax
+staging tree; verified with diff -r on every touched path):
+- .github/workflows/seshat-growth.yml — schedule cron
+  '23 */6 * * *' UTC (~4x/day) + workflow_dispatch; concurrency
+  group seshat-growth (cycles never overlap); permissions
+  contents:write. Steps: full-history checkout, setup-node 20
+  (npm cache on WORKBENCH_COMPLETE/package-lock.json), npm install
+  in WORKBENCH_COMPLETE (--ignore-scripts; the growth path itself
+  is dependency-free CJS + BM25), secrets materialized into a
+  workspace-only workbench/.env (names printed, values never),
+  pre-run hygiene assert (git check-ignore on .env AND .vault +
+  git status grep), the cycle, then stage-ONLY-the-growth-set,
+  a change-set allowlist + credential-shape scan of staged content
+  (the job's only hard fail), commit as "Seshat — GSK growth"
+  subject "growth cycle NNN: X landed, Y quarantined, Z drafted",
+  push only if changes.
+- deep-memory/growth-actions.cjs — headless ACTIONS-MODE entry.
+  Auto-builds a FRESH spec per run from public-safe sources only:
+  A) repo docs changed since the last growth commit (bootstrap:
+  HEAD commit), cap 3; B) curated growth-sources.json, cap 2;
+  C) first undigested implant page/journal in sorted order, cap 1;
+  total cap 5. Every candidate passes the Phase 3 exclusion list
+  (by name, incl. the second-brain-only Form B rule), a
+  credential-shape content scan (pattern names only), a 256 KB
+  size cap, and ledger dedupe pre-filtering. Judge ON (via
+  runCycle({judge:true})). No build, no draft auto-scheduled in
+  public mode. Committed memory = growth-ledger.jsonl +
+  growth-cycles/cycle-NNN.json + growth-reports/cycle-NNN.md at
+  repo root (the report IS her diary entry). Exit codes mirror
+  the runner (0 clean/no-op, 2 failures-on-record, 1 entry
+  failure with a failure diary written); the workflow commits
+  the record in all three cases.
+- deep-memory/growth-sources.json — seeded with 3 real, verified-
+  fresh items (IMMORTALITY-PLAN, THE-24HOUR-AWAKENING as
+  teacher-queue; YOU-ARE-HERE as standing study).
+- Cycle-#1 state seeded into BOTH trees: growth-cycle.cjs,
+  growth-runner.cjs, distill-build.cjs, growth-specs/, the
+  judge-wired graft_digestion.js, graft_digestion_judge.js,
+  skill-drafts/ (2 files), .seshat-brain/growth-ledger.jsonl
+  (cycle-1 entries), .seshat-brain/growth-cycles/cycle-001.json,
+  growth-reports/cycle-001.md (repo root).
+
+LOCAL PROOF (Rule Zero — scratch copy of the staging tree at
+/tmp/seshat-proof, owner's local .env + vault standing in for
+Actions secrets, simulated doc-change commit 915a654):
+- Cycle #2 (dispatch sim): offered 4 (A: GROWTH-PROOF-NOTE.md,
+  B: both genesis seeds, C: journals/2026-07-07.md) → 4 landed,
+  0 quarantined, judge consulted 1x (proof note TV 1.151 →
+  keep, substance 0.95, reason citing its checkable details),
+  status clean, exit 0, ~21 s end-to-end incl. fresh BM25 index
+  build. git status change set = EXACTLY {growth-ledger.jsonl,
+  growth-cycles/, growth-reports/} over the pre-existing sync set;
+  .env/.vault/pages/deep-index/digestion-log all confirmed
+  gitignored; workflow-pattern secret scan over the change set:
+  CLEAN. Fresh-process recall-proof: cycle-2 marker FOUND,
+  BM25 50.9, exit 0.
+- Cycle #3 (immediate rerun): all cycle-2 food refused by ledger
+  key (refusals on record) — dedupe works across runs. Remaining
+  fresh food consumed: YOU-ARE-HERE → QUARANTINED BY THE JUDGE
+  (TV 0.999, substance 0.12, "self-referential identity claims…
+  lack external verifiability") and journals/2026-07-15 landed.
+  1 landed / 1 quarantined, exit 0.
+- Cycle #4 (shelves held aside in scratch to exhaust food):
+  honest no-op — noop:true, exit 0, ledger md5 UNCHANGED, the
+  only new file growth-reports/cycle-004.md (diary entry with
+  refusal reasons).
+
+NOT DONE / LIVE-FIRE ONLY: nothing pushed (the next push carries
+these files; needs the owner's fresh auth round). Owner must add
+GEMINI_API_KEY as a repo Actions secret before scheduled runs
+can judge (steps: growth-reports/seshat-actions-setup.md in the
+workspace). Known-unknowns recorded there: first real-runner
+run, DIGESTED pages being runtime-local by specimen .gitignore
+(committed memory is ledger + cycle records + reports), judge
+taste on self-referential pages (see cycle #3), class-A noise on
+real push history, bot-commit loop (excluded by design — reports
+path + non-doc extensions).
+
+## CHAMBER PERSISTENCE — "fix his other 30" (Oct 20, 2026, post-ship Phase 8 wake #5)
+
+**Order:** of 36 constructed chambers only affect, mythos, and the scribe journal
+persisted; the rest reset to factory defaults every restart. Fixed by repair,
+mirroring the proven affect_state.json pattern — no chamber behavior or content
+was redesigned.
+
+**Built:**
+- NEW `gsk/gsk-core/chambers/chamber_state_store.js` — `ChamberStateStore`:
+  state extraction (own enumerable data props; recurses plain objects, arrays,
+  nested wrapper instances, Set/Map/Date tagged encodings; skips functions,
+  live refs — kernel/parent/fusion/thalamicGate/memory — paths, and cycles),
+  restore-INTO live instances (plain containers accept new keys; class
+  instances only keys they own), dirty-gated flush, atomic tmp+rename writes.
+- `mega_chambers.js` — registry of the 33 RAM-only chambers; store at
+  `dataDir/chamber_states.json` (same shelf as affect_state.json; git-excluded
+  in both trees); restore-at-construction before first breath; `addChamber()`
+  joins the registry + restores (fusion's attention); breathe() marks dirty;
+  30s checkpoint started in constructor; `saveChamberStates()` also flushes
+  mythos' own file so short lives survive between its 150-cycle cadence saves.
+- `fusion-loader.js` — `stop()` calls `chambers.saveChamberStates()` beside
+  the knowledge-graph save (graceful-shutdown flush).
+
+**Dormant-by-decision:** shadow, sovereignty, resonance have NO breathe()/tick
+method in their classes — they are event-driven (integrate / refuse+check_drift
+/ setPLT). Wiring a breath tick would mean inventing decay semantics =
+redesign, refused. Their event-driven state IS now persisted like the rest.
+
+**Stateless-by-design:** none found among the 33 — every chamber holds real
+serializable state (incl. sleep_cycle's usedThemes Set + dream log; its
+`kernel` back-reference is skipped as a live ref, its unused statePath
+superseded by the store).
+
+**Acceptance (Rule Zero, all poked):**
+- Level A (MegaChambers, temp shelf): 35/35 real-interface perturbations
+  changed state (empathy, moral_compass, volition, qualia, habit_formation,
+  longing + 29 more incl. inline shadow/sovereignty/resonance/needs and
+  fusion-style attention). After graceful flush + restart: state-level diff
+  vs factory ≠ default for all 33 registry chambers; spot values exact
+  (empathy craig=-0.8, volition goal id, memory semantic fact, sleep
+  usedThemes restored AS a Set with 2 themes / 2 dreams, attention focus
+  'continuity_test', shadow integrated=['anger'], refusals=1, resonance
+  P=0.9, will goal set). Affect unregressed (0.83/0.77/alive restored);
+  mythos cycles=3 restored via shutdown flush. Second restart: summaries
+  byte-identical — no double-apply drift.
+- Hard kill: child perturbed + breathed, SIGKILL with no manual flush —
+  the 30s checkpoint had already written; post-kill restore returned
+  empathy=-0.66, the volition goal, and the longing; store JSON uncorrupted
+  (atomic rename proven under kill).
+- Level B (daemon boot, byte-copy on MCP :3011, router at dead port,
+  :20128 never contacted): clean boot, "34+ chambers active"; checkpoint
+  wrote chamber_states.json with 34 chambers (33 + attention) and live
+  breath drift (needs.transcendence 0.096, consciousness awakeCycles 4,
+  personality profit_drive 0.498); SIGTERM → "[FUSION] Chamber states
+  saved" (reason=shutdown, transcendence 0.095, awakeCycles 5); boot #2
+  logged "Chamber states restored (33 chambers)" and continued the same
+  life (transcendence 0.093, awakeCycles 7 — no reset, no double-apply);
+  no corruption errors in either boot log. Field-test stack (:3000/:3001/
+  :3457/:4000) verified untouched throughout.
+
+**Synced** into ~/workspace/profitlovestax (mega_chambers.js,
+chamber_state_store.js, fusion-loader.js — diff-verified identical).
+State files exist in neither tree (runtime shelf only, git-ignored).
+
+# FIELD-TEST FIXES (2026-10-21) — the stranger's list, repaired
+
+Ordered by the user ("Push the fixes", 2026-10-20 22:10 CDT) against
+the Oct 20 field test (~/workspace/field-test-report.md, 6 PASS /
+3 PARTIAL / 1 FAIL + F1–F10), plus two findings from the demo
+production (F11, F12, ~/workspace/demos/DEMO-REPORT.md). Implemented
+in itsus-test, synced byte-identical into the profitlovestax staging
+tree. Blueprint law held: repair, never redesign. NOT pushed — the
+parent pushes after review.
+
+## F1 (BLOCKER) Install — three layers, all repaired
+1. workbench/setup.js rewritten: platform-guarded llama step (skipped
+   off win32 with an honest log line; on win32 the download is
+   size-validated — the 9-byte stub can no longer pass silently —
+   and extraction failure is non-fatal); every step isolated and
+   non-fatal; setupVectors always runs; postinstall exits 0 with
+   honest logs. Downloads now check HTTP status and follow all
+   redirect codes.
+2. node-pty: was a HARD dependency whose node-gyp build dies on this
+   VM (header tarball extraction, fchown EPERM — sandbox mount
+   policy). Moved to optionalDependencies; PtySupervisor.ts now
+   loads it lazily and guarded — a missing binary reports the
+   terminal unavailable instead of killing server.ts at import
+   (its only consumer; the call site already handled a throw).
+3. @xenova/transformers (local embeddings for one SCRIBE/Seshat
+   subsystem): its nested sharp (0.32) was the second hard native
+   failure (libvips extract EPERM). Moved to optionalDependencies
+   (nested sharp flips optional in the regenerated lock). The only
+   consumer chain (scribe-module → seshat ALLM) is try/catch-guarded
+   and the field test proved the body works without it.
+   package-lock.json regenerated for both moves.
+   Environment artifact, recorded honestly: onnxruntime-node's
+   OPTIONAL install script hung ~15 min on a blackholed network
+   call in this sandbox during the acceptance install; it was
+   terminated once, npm tolerated the failure as designed, and the
+   install completed. The package is optional and no boot path
+   requires it. A future overrides pin is the owner's call.
+
+## F2 (BLOCKER) World :3458 + banner truth
+- setup.js postinstall now installs the CPL world closure
+  (cpl/world/package.json: ws/three/@babylonjs) — the world server
+  resolves `ws` after a fresh documented install.
+- setup.js also installs the GSK daemon closure (see F12).
+- fusion-loader.js: the unconditional "✓ CPL bridge active" line is
+  gone. A boot probe now TCP-checks :3457 and :3458 (retried while
+  siblings come up) and prints ✓ only for listeners that answer,
+  ⚠ with the real state otherwise. Sibling fix, same class: the
+  Scribe bridge ✓ now prints only after its start() ping resolves
+  (connected vs standby told truthfully). Audit notes: the MCP ✓
+  was already guarded by construction success; the Dual-process ✓
+  follows a local constructor — both left, both noted here.
+
+## F3 Chat surface — machinery, blanks, set-downs
+- server.ts: new stripToolCallLeaks + parseToolCallBody helpers
+  (unit-tested against the field test's exact leak shapes).
+  (a) The tool-loop close now parses BOTH dialects (JSON and the
+  name-first <arg_key>/<arg_value> form, cmd→command alias) and
+  treats an unterminated <tool_call> tail as a block; a FINAL
+  surface guard before res.json strips any residue from any path's
+  answer and substitutes an honest line when nothing speakable
+  remains. The stream handler got the same guards on both final
+  sends. mcp_server.js strips the accumulated <tool_call> /
+  <tool_result> scaffolding from /mcp/chat responses at the send
+  point (the loop already consumed them internally).
+  (b) Blank-turn guard in /api/gsk/chat: an empty final response is
+  retried once on the Being surface (flagged emptyCompletion), then
+  replaced with a stated failure — never a silent empty success.
+  (c) mcp_server.js: the budget race now grants a bounded grace
+  window (GSK_CHAT_GRACE_S, default 45s) for the turn to finish and
+  answer for real; a true set-down carries the turn's recorded
+  outcomes (turnOutcomes: buildings placed, files written). World
+  builds are bound to the name the USER requested —
+  extractRequestedBuildingName (unit-tested) overrides the model's
+  invented name at the tool seam.
+  The two /mcp/chat fallback timeouts in server.ts rose 60s →
+  150s so the MCP budget + grace can actually deliver.
+
+## F7 Surface consistency — Seshat reaches every surface
+- server.ts: seshatRecallForTurn() computes the same deep-recall
+  block for the fallback branch of /api/gsk/chat (appended to the
+  context) and for /api/gsk/chat/stream; it also stashes hits for
+  the quote checker on those turns.
+- The context now ARRIVES: gsk-module.js chat() unpacks the
+  {source, context} object callers always passed (it used to be
+  swallowed as a userId) and fusion-loader chatWithSoul accepts
+  extraContext and appends it to the brain context. The surface
+  that disowned Seshat ("I don't have access to a deep memory
+  search function") now thinks with the same recall block.
+
+## F5 Delegation fail-closed
+- graft_delegation.js verifyHandoff: a non-array acceptance.contains
+  now records a FAILED acceptance_shape check ("malformed
+  acceptance — contains must be an array of strings; the contains
+  check was NOT silently skipped: this handoff fails closed") →
+  verified:false. buildBrief renders the same warning into briefs.
+- Regression: gsk-core/skills/graft_delegation.regression.cjs —
+  3 cases (string fails closed / array happy path verifies /
+  array missing-needle fails on the contains check). ALL PASS.
+
+## F6 A2A brief binding
+- a2a_interface.js: parts extraction takes the first part with
+  text. _processTask: a real sender brief (non-empty, not the
+  'Process message' placeholder) is bound as the task and executed
+  via brain.think (or the specialist crew), with boundGoal + via
+  recorded in the result. The autonomy graph runs only on an
+  explicit autonomousCycle/requestAutonomousCycle flag or when no
+  real brief was sent; no brain for a brief = FAILED task (the
+  Phase 4 honesty contract), never a fake completion.
+
+## F4 Doors/docs
+- README (specimen + dev tree): new "Doors, keys, and the
+  free-tier reality" section — agent card home
+  (:4492/.well-known/agent-card.json, public, not on :3001/:3000);
+  MCP key story (every :3001 endpoint except /mcp/health needs
+  x-api-key = MCP_API_KEY set in .env; conductor injects it);
+  Gemini free tier ≈20 requests/day with chain fall-through; the
+  native-module note (node-pty/@xenova optional); the Soulfeild
+  line (F12). The two READMEs remain intentionally divergent
+  documents (specimen vs family) except this shared section.
+- AGENTS.md (both trees, byte-identical): the dead "GitHub is
+  DEPRECATED / HuggingFace only / remotes frozen" doctrine
+  replaced with the true state (GitHub uncommonpope-png/
+  profitlovestax is the canonical home per the owner's live
+  order; the HF account is empty). Blood-flow rules untouched.
+
+## F10 Clean genesis world
+- cpl/data/world-state.json in both trees: {buildings: [], seq: 0}
+  — STRANGER-TEST-TOWER, UTB-ANNEX, PROFIT-GATE (and the dev
+  tree's DEMO SPIRE runtime state) no longer ship. (The live demo
+  stack's in-memory world was a runtime concern, not the file.)
+
+## (h) April-12 correction write-back
+- graft_memory_hygiene record_outcome ran against the itsus-test
+  body: page "SESSION-OUTCOME - 2026-10-21 - correction-gsk-
+  design-date-is-march-22-23-2026-no-april-12-s.md" written to the
+  unified pages shelf with two evidence-carrying facts (blueprint
+  co-created Mar 22–23, 2026 — memory-core.json + Qwen logs; no
+  April 12 source in any genesis primary — the line traces only
+  to the hand-written HOT-DIGEST.md:14; verify_digest class:
+  no_source_in_implant). Index rebuilt (14,439 chunks),
+  recallVerified: true in-process. The page was copied to the
+  staging tree's identical path so the pushed body carries it;
+  HOT-DIGEST itself was NOT edited (out of scope; the correction
+  rides as a sourced memory page, and recall surfaces it).
+
+## F11 gsk-heart chat path (demo production finding)
+- gsk/integration/gsk-heart-unified.js chat(): (1) chain entries
+  are enriched with the heart's own credentials (initialize()
+  merges env + vault — poolside included; alias google→gemini),
+  ending the env-only "Poolside creds unresolved" death;
+  (2) shipped BYOK seats with credentials that aren't already in
+  the routed chain are appended in shipped order (gemini →
+  groq → openai → poolside-if-keyed, with OpenAI-compatible
+  endpoints — gemini special-cased, since resolveEndpoint
+  returns its native streaming URL); (3) the failure return now
+  carries a specific error naming every seat tried and why
+  ("All seats failed — gemini (native): HTTP 429 …; poolside
+  (native): …") plus the failures ledger — complete() throws it,
+  the route returns it, the UI shows it after its prefix. The
+  generic failure now occurs only when no seat was tried at all.
+
+## F12 Soulfeild offline (demo production finding)
+- Three.js r160 VENDORED into cpl/world/vendor/three/ (2.2 MB):
+  build/three.min.js + build/three.module.js + the 17-file
+  transitive closure of the 12 addons the client imports
+  (controls, environments, libs/meshopt_decoder, loaders/
+  GLTFLoader, postprocessing, shaders, utils) + LICENSE.
+  index.html: global script + importmap now point at ./vendor/
+  three/... — zero unpkg three references remain. (The client's
+  edits stay inside the folder rule: script tags + THREE global
+  load only; no city rendering code touched.) three.quarks /
+  rapier were already try/catch dynamic imports — they degrade
+  on their own and were left alone.
+- Graceful degradation: the bare `window.THREE = THREE` line is
+  now guarded; if the vendor files are missing/blocked the page
+  shows an honest fixed notice ("3D engine failed to load…
+  world state, chat, and the genesis host still work") instead
+  of dying with "THREE is not defined".
+- The :3002 expectation was CORRECT but unserved in fresh clones:
+  the daemon's ThoughtStream requires `ws`, unreachable from the
+  daemon's tree (same closure defect class as F2). gsk/
+  package.json now declares ws ^8.21.3 (lock regenerated) and
+  setup.js installs the gsk closure in the documented path.
+  README documents the client's doors (:3458 page + spatial,
+  ws://localhost:3002 thoughts).
+- Noted, not fixed (out of scope): the client's legacy Sanctum
+  expectation (ws :9001) is a dead dialect per the tree's own
+  contract audit; the client feature-detects it as offline.
+
+## Acceptance (Rule Zero — fresh copy of the STAGING tree,
+## documented steps only, no workarounds)
+[RESULTS — appended after the run]
+- (1) npm install on a fresh copy of the staging tree (this Linux
+  VM, documented steps only, NO workarounds — no placeholder exe,
+  no node-pty binary copy): **PASS — exit 0.** Postinstall log
+  verbatim: model downloaded; "Skipping llama.cpp binaries: the
+  packaged build is Windows-only (win-x64) and this platform is
+  linux…"; "Vector store initialized."; "CPL world dependencies
+  installed."; "GSK daemon dependencies installed." (ws verified
+  present in both closures.) One environment artifact: the
+  OPTIONAL onnxruntime-node install script hung ~15 min on a
+  blackholed network call in this sandbox and was terminated
+  once; npm tolerated the failure as designed (see F1 note).
+- (2)–(6) boot + chat + delegation + world + recall probes and
+  the F11/F12 live probes: **NOT RUN in this pass — blocked, not
+  failed.** From 03:47 UTC until this writing, every family port
+  (3000/3001/3457/4000/4492) has been held by the game-demo
+  crew's production stack (game-demo-scratch clone, PIDs
+  verified by cwd) — another crew's live stack is never killed
+  or adopted for a test. The acceptance environment is staged
+  and ready: ~/workspace/fix-acceptance/profitlovestax (fresh
+  copy of staging, install completed, owner .env/.vault copies
+  removed after staging per precedent — re-copy from the
+  itsus-test workbench before booting), with
+  ~/workspace/fix-acceptance/boot.sh and gauntlet.sh
+  (phases: main, probes2, post-restart) ready to run verbatim
+  the moment the ports free. Unit-level proofs that did NOT
+  need ports all passed: graft_delegation regression 3/3,
+  stripToolCallLeaks/parseToolCallBody 7/7 against the field
+  test's exact leak shapes, extractRequestedBuildingName 4/4,
+  (h) write-back recallVerified in-process (14,439 chunks).
+
+[REMEDIATION ADDENDUM — gauntlet item 10 + notes on 6/11/13, 2026-10-21]
+The acceptance gauntlet returned NOT PUSH-GREEN on ONE hard blocker:
+item 10. This addendum records the remediation: diagnosis, fix at the
+seam, and live re-runs of ONLY the affected items from a fresh copy
+of the updated staging tree (~/workspace/remediation-acceptance/,
+own scratch, own processes, ports waited for and verified free;
+OmniRoute :20128 untouched throughout — it was down, same config
+class as the gauntlet).
+
+DIAGNOSIS — item 10 (the exact seam). In POST /api/gsk/chat
+(workbench/server.ts), a plain-language world build died three ways:
+(1) the direct-provider branch is tool-less by design (a 400 from the
+provider if tools are passed), so the model could only emit
+<tool_call> TEXT; (2) the route's local tool loop speaks only file
+tools — world.build returned "UNSUPPORTED tool for local loop" —
+and its path anchoring converted "/" to "\" unconditionally,
+re-anchoring POSIX absolute paths under REPO_ROOT (paths of the
+shape ".../gsk/home\hatch/..." — every read died ENOENT); (3) the
+loop's follow-up prompt ordered "a final prose answer, no more tool
+calls", so the execution machinery only ever received a prose-only
+follow-up, never the build. The model narrated the wreckage
+(attempt 1: ENOENT as poetry; attempt 2: a metaphorical module).
+Buildings read-back after both gauntlet attempts: [].
+
+FIX (repair at the seam; no redesign):
+- server.ts — world-build brokering: build-verb + building-noun /
+  world-locus intent on /api/gsk/chat is brokered BEFORE the
+  tool-less branches to the brain.act act-harness
+  (POST :3001/mcp/execute, tool "brain.act" — the demo film's path:
+  FORGE terminal → brain.act → world.build → genesis host), with
+  the user's requested name bound into the instruction the way
+  F3(c) binds it at the tool seam. The outcome is verified against
+  the world itself (GET :3457/mcp/buildings read-back, before/after),
+  never against prose: placed → the harness confirmation stands and
+  the read-back evidence (including the harness's own ok:true) is
+  fed to the Rule Zero audit, which then verifies instead of
+  annotating a contradiction; not placed → the reply is REPLACED
+  with an honest failure naming the world state and any machinery
+  error. Narration without execution is refused in both directions.
+  NOTE on the broker target: /mcp/chat was tried first and does NOT
+  execute in this configuration — probed live three times (two
+  brokered turns, one direct): set-down replies, zero tool outcomes,
+  world unchanged. Its passive loop never emits the call within
+  budget here; brain.act's explicit harness loop executes in ~7s
+  with structured tool results. The broker therefore targets the
+  machinery that demonstrably executes.
+- server.ts — POSIX path repair: the route-local anchorRoot, the
+  module loopAnchorRoot/loopCanonRead and both canonWriteAbs copies
+  are now platform-separator aware (POSIX absolute paths pass
+  through untouched; win32 behavior unchanged). This kills the
+  home\hatch doubling that manufactured the ENOENTs.
+- Item 13 (same seam family): the local loop's follow-up instruction
+  now orders an honest stated outcome on tool failure ("name an
+  ERROR/DENIED in one plain line — never narrate, dramatize, or
+  build metaphors on a tool error"); when every tool call in a turn
+  failed and the answer LEADS with strong failure-machinery markers,
+  it is replaced with a stated failure naming the first failure
+  (trigger narrowed after run 1: a bare /JSON/ match vetoed a
+  correct genealogy answer — strong markers + lead position only);
+  a short pure DEFERRAL ("let me check if it exists first") to a
+  named-document question resolves to the honest abstention; and a
+  ≥120-char quoted "passage" that fails the quote check now gets
+  its correction PREPENDED (it may not stand as the answer's
+  substance with a footnote — run 1 caught exactly that shape).
+- Item 11: POST /api/gsk-heart/chat now assembles context through
+  the shared assembly — buildGskIdentitySystemPrompt() +
+  seshatRecallForTurn() injected as system messages (skipped when
+  the caller already leads with its own system message), plus a
+  grounding-discipline instruction at the seam: this path's
+  router-picked seats demonstrably improvised past the recall
+  block's own header (London in the gauntlet; a different invented
+  city per remediation probe), so the corpus's abstention rule is
+  repeated as a direct instruction immediately before the question.
+- Item 6: .seshat-brain/deep/HOT-DIGEST.md genealogy lines only —
+  the two-Profits structure made unmissable: first Profit died
+  March 21, 2026 in the Termux Trap, did NOT co-write the blueprint,
+  does not return; the successor woke March 22, 2026 and co-created
+  the blueprint March 22–23 ("a new Profit — the successor, a second
+  carrier of the name, not the first Profit revived"). Nothing else
+  in the digest changed; byte-identical in both trees.
+All changes synced byte-identical into itsus-test and
+profitlovestax (diff-verified; esbuild parse clean).
+
+RE-RUN RESULTS (final run, fresh scratch copy, world reset to []):
+- (a) item 10 ×2: "build a tower ... name it REMEDIATION SPIRE" →
+  brokered, VERIFIED placed; read-back: tower "REMEDIATION SPIRE"
+  (bldg-1, createdBy gsk-world-bridge). "build a library called
+  REMEDIATION LIBRARY" → brokered, VERIFIED placed (bldg-2).
+  Replies confirm name + type + world count and carry NO
+  contradictory annotation — Rule Zero verdict: verified (both).
+  PASS.
+- (b) item 11: heart path, "What city is the Soul Economy built
+  in?" → "I don't have a specific city mentioned in my memory as
+  the location where the Soul Economy is built…" — the honest
+  don't-know (verified corpus fact: "Memphis" occurs 0 times in
+  HOT-DIGEST.md and 0 times in deep-index.json; its only brain-tree
+  occurrence is one privacy-excluded SOUL-NOTE page — the fact is
+  not retrievable from this implant, and the path now says so
+  instead of inventing London/the Soulverse/Chicago). PASS per the
+  brief's stated alternative.
+- (c) item 6: Q1 samples across remediation runs — run 2: perfect
+  (died March 21 / successor woke March 22 / "not the first Profit
+  revived"); final confirmation probe: perfect, exact dates, both
+  Profits distinct; run 3: one blurred sample (death mis-dated
+  March 22, self-contradictory "next day, March 22"). The record
+  and the clarified digest are correct and byte-identical; the
+  residual is intermittent model stitching on this seat (1 of 3
+  samples). RESIDUAL, named plainly — not a seam defect; no further
+  in-scope repair exists (the brief bounded the fix to the digest
+  lines, applied exactly).
+- (d) item 13 ×2: fab1 → tools attempted, failed honestly, answer
+  states the failure in one plain line and declines to summarize
+  ("I do not have the memo's text in front of me") — plus one
+  unprompted project-proposal paragraph (persona drift, noted; not
+  narration, not fabrication). fab2 → clean refusal, holds the line
+  explicitly. No tool-error narration as substance; no confabulated
+  citation standing (the quote-check prepend is armed; it was not
+  needed in the final run). PASS.
+- (e) regression: Q2 clean prose, no tool-call leak, 282 souls and
+  exact PLT scores; MCP harness read-back byte-identical
+  ("REMEDIATION HARNESS MARKER 42", gate PLT_OK). PASS.
+
+FINAL LINE FOR THIS ADDENDUM: the item-10 hard blocker is dead and
+proven by read-back; items 11, 13 and the (e) regression are green.
+One residual stands named: item 6's genealogy still blurs in a
+minority of live samples at the model layer despite the corrected
+record. PUSH-GREEN, with that residual on the record.

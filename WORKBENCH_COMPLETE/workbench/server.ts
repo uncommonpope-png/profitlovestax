@@ -146,19 +146,31 @@ app.post("/api/gsk/context", async (req, res) => {
 // ─── API Routes ───
 // ─── TOOL LOOP SHARED HANDS (module scope so JSON + SSE routes share one truth) ───
 function loopAnchorRoot(p: string): string {
-  const _s = String(p || "").replace(/\//g, "\\");
+  // REMEDIATION (gauntlet items 10/13): same POSIX repair as the
+  // route-local anchorRoot — absolute POSIX paths pass through;
+  // the backslash conversion is Windows-only.
+  const raw = String(p || "");
+  if (process.platform !== "win32") {
+    if (raw.startsWith("/")) return raw;
+    return path.join(REPO_ROOT, raw.replace(/^\/+/, ""));
+  }
+  const _s = raw.replace(/\//g, "\\");
   if (/^[A-Za-z]:\\/.test(_s)) return _s;
   return path.join(REPO_ROOT, _s.replace(/^\\+/, ""));
 }
 function loopCanonRead(p: string): string {
   // POPE FIX 2026-09-16: GSK's root habit says gsk/sandbox for sandbox/.
   // Intent is unambiguous (one sandbox exists) — normalize, don't punish.
-  const s = String(p || "").replace(/\//g, "\\");
+  // REMEDIATION (gauntlet items 10/13): separator handling is platform-
+  // aware — on POSIX the slice/strip below runs on "/" (converting to
+  // "\" first produced single-component backslash paths that ENOENT'd).
+  const sep = process.platform === "win32" ? "\\" : "/";
+  const s = String(p || "").replace(/\//g, sep);
   const low = s.toLowerCase();
   const mi = low.lastIndexOf("sandbox");
   const ai = low.lastIndexOf("allie-better");
   const hit = mi > ai ? { i: mi, n: "sandbox" } : ai >= 0 ? { i: ai, n: "allie-better" } : null;
-  if (hit) return path.join(path.resolve(REPO_ROOT, hit.n), s.slice(hit.i + hit.n.length).replace(/^\\+/, ""));
+  if (hit) return path.join(path.resolve(REPO_ROOT, hit.n), s.slice(hit.i + hit.n.length).replace(sep === "\\" ? /^\\+/ : /^\/+/, ""));
   return loopAnchorRoot(s);
 }
 const LOOP_READ_ROOTS = () => [
@@ -183,14 +195,18 @@ function loopIsAllowedReadPath(p: string): boolean {
   } catch { return false; }
 }
 function loopCanonWriteAbs(fp: string): { abs?: string; denied?: string } {
-  let rel = String(fp).replace(/\//g, "\\");
+  // REMEDIATION (gauntlet items 10/13): platform separator, as in
+  // loopCanonRead — the backslash-only form mangled POSIX paths.
+  const sep = process.platform === "win32" ? "\\" : "/";
+  let rel = String(fp).replace(/\//g, sep);
   const low = rel.toLowerCase();
   const mi = low.lastIndexOf("sandbox");
   const ai = low.lastIndexOf("allie-better");
   const hit = mi > ai ? { i: mi, n: "sandbox" } : ai >= 0 ? { i: ai, n: "allie-better" } : null;
   if (!hit) return { denied: `DENIED (Pope freedom grant covers sandbox/ + allie-better/ only): ${fp}` };
-  rel = rel.slice(hit.i + hit.n.length).replace(/^\\+/, "");
-  if (/(^|\\)\.\.(\\|$)/.test(rel)) return { denied: `DENIED (.. escape): ${fp}` };
+  rel = rel.slice(hit.i + hit.n.length).replace(sep === "\\" ? /^\\+/ : /^\/+/, "");
+  const escapeRe = sep === "\\" ? /(^|\\)\.\.(\\|$)/ : /(^|\/)\.\.(\/|$)/;
+  if (escapeRe.test(rel)) return { denied: `DENIED (.. escape): ${fp}` };
   return { abs: path.join(path.resolve(REPO_ROOT, hit.n), rel) };
 }
 function loopSecretScan(content: string): string | null {
@@ -375,6 +391,108 @@ function loopCoerceReply(r: any): string {
     try { return loopCleanLeak(JSON.stringify(r).slice(0, 4000)); } catch { return String(r); }
   }
   return String(r ?? "");
+}
+// ─── FIELD-TEST FIXES F3/F7 (2026-10-21) ───
+// F7: Seshat deep-recall for the NON-direct chat surfaces. The direct
+// provider path injects recall itself (inside directProviderChat); the
+// Being and MCP fallback surfaces never saw it, so a memory question
+// could be answered by a surface that disowned the store that exists.
+// seshatRecallForTurn computes the same cited block for those surfaces
+// and stashes the hit set for the quote checker. Any failure degrades
+// to no recall; chat never breaks because memory did.
+async function seshatRecallForTurn(message: string): Promise<string> {
+  try {
+    const dm: any = await import(`file://${path.join(__dirname, "deep-memory", "deep-memory.cjs")}`);
+    const recallBlock = dm.recallBlock || dm.default?.recallBlock;
+    const block = typeof recallBlock === "function" ? String(recallBlock(message, 6) || "") : "";
+    if (block) {
+      const recallHits = dm.recallHits || dm.default?.recallHits;
+      if (typeof recallHits === "function") {
+        try { lastChatRecallHits = recallHits(message, 6); } catch { /* stash is best-effort */ }
+      }
+      console.log(`[SESHAT RECALL] Deep-memory block attached for fallback surface (${block.length} chars)`);
+    }
+    return block;
+  } catch (e: any) {
+    console.warn("[SESHAT RECALL] Deep memory unavailable for fallback surface:", e.message);
+    return "";
+  }
+}
+
+// F3(a): machinery must never be the answer. stripToolCallLeaks removes
+// complete <tool_call>...</tool_call> blocks (any dialect), an
+// unterminated <tool_call> tail (a generation truncated mid-block), and
+// stray closing tags, and reports whether anything was stripped.
+function stripToolCallLeaks(text: string): { text: string; stripped: boolean } {
+  const raw = String(text ?? "");
+  let out = raw.replace(/<tool_call>[\s\S]*?<\/tool_call>/gi, "");
+  out = out.replace(/<tool_call>[\s\S]*$/i, "");
+  out = out.replace(/<\/tool_call>/gi, "");
+  out = out.replace(/\n{3,}/g, "\n\n").trim();
+  return { text: out, stripped: out !== raw.trim() };
+}
+
+// F3(a): parse a <tool_call> block body in BOTH dialects the body
+// emits: the JSON form ({"tool":..., "args":...}) and the name-first
+// form (tool_name<arg_key>k</arg_key><arg_value>v</arg_value>...) that
+// the JSON-only parser used to choke on with "[PARSE FAILED]".
+function parseToolCallBody(raw: string): { tool: string; args: any } | null {
+  const body = String(raw || "").trim();
+  try {
+    const parsed = JSON.parse(body.replace(/\\(?!["\\/bfnrtu])/g, "/"));
+    return { tool: String(parsed.tool || parsed.name || "unknown"), args: parsed.args || parsed.arguments || parsed };
+  } catch { /* fall through to the name-first dialect */ }
+  const m = body.match(/^([A-Za-z_][\w.:-]*)\s*((?:<arg_key>[\s\S]*?<\/arg_key>\s*<arg_value>[\s\S]*?<\/arg_value>\s*)+)$/);
+  if (!m) return null;
+  const args: any = {};
+  for (const pair of m[2].matchAll(/<arg_key>([\s\S]*?)<\/arg_key>\s*<arg_value>([\s\S]*?)<\/arg_value>/g)) {
+    args[String(pair[1]).trim()] = String(pair[2]).trim();
+  }
+  if (args.cmd && !args.command) args.command = args.cmd; // observed alias in the wild
+  return { tool: m[1], args };
+}
+
+// ─── REMEDIATION (gauntlet item 10, 2026-10-21): world-build brokering ───
+// The main chat surface could not build. The direct-provider branch has
+// no hands; the route's local tool loop speaks only file tools (a
+// world.build call came back "UNSUPPORTED tool for local loop"); and
+// the loop's follow-up prompt ordered the answering model to give a
+// final prose answer with "no more tool calls" — so the machinery
+// that CAN build was only ever handed a prose-only follow-up, never
+// the build itself. The model narrated the wreckage instead.
+// Plain-language world-build intent on this surface is therefore
+// brokered to the brain.act act-harness BEFORE the tool-less branches
+// run, and the outcome is verified against the world itself
+// (read-back), never against the turn's prose.
+function extractRequestedBuildingNameTs(text: string): string | null {
+  // Mirror of mcp_server.js extractRequestedBuildingName (plus "called"),
+  // so the name checked at read-back is the name F3 binds at the tool seam.
+  const src = String(text || "");
+  const m = src.match(/\b(?:name|call)\s+it\s+["']?([A-Za-z0-9][A-Za-z0-9 '\-]{1,60})/i)
+    || src.match(/\bnamed\s+["']?([A-Za-z0-9][A-Za-z0-9 '\-]{1,60})/i)
+    || src.match(/\bcalled\s+["']?([A-Za-z0-9][A-Za-z0-9 '\-]{1,60})/i);
+  if (!m) return null;
+  const name = m[1].split(/\s+(?:and|then|please|with|at|in)\b/i)[0].trim();
+  return name || null;
+}
+function detectWorldBuildIntent(message: string): { requestedName: string | null } | null {
+  const src = String(message || "");
+  if (!/\b(build|place|raise|construct|erect|create|add)\b/i.test(src)) return null;
+  const hasBuildingNoun = /\b(tower|spire|house|library|monument|shop|factory|building|structure|temple|castle)\b/i.test(src);
+  const hasWorldLocus = /\bworld\b/i.test(src) || /\bnorth ridge\b/i.test(src);
+  if (!hasBuildingNoun && !hasWorldLocus) return null;
+  return { requestedName: extractRequestedBuildingNameTs(src) };
+}
+async function readWorldBuildings(): Promise<any[] | null> {
+  try {
+    const base = (process.env.GSK_WORLD_BUILD_URL || "http://127.0.0.1:3457/mcp/buildings").replace(/\/mcp\/buildings.*$/, "");
+    const r = await fetch(`${base}/mcp/buildings`, { headers: genesisHeaders(), signal: AbortSignal.timeout(8000) });
+    if (!r.ok) return null;
+    const data: any = await r.json().catch(() => null);
+    // Genesis host shape: { result: { buildings: [...], count } }.
+    const arr = (data && data.result && (data.result.buildings || data.result)) || (data && data.buildings) || data;
+    return Array.isArray(arr) ? arr : null;
+  } catch { return null; }
 }
 function loopReadInbox(): string[] {
   // Standing orders from sandbox/inbox/*.task.md (sibling .done.md retires).
@@ -568,17 +686,84 @@ app.post("/api/gsk/chat", async (req, res) => {
     // file-merge). They remain attached on /api/gsk/chat/stream, the
     // hands/task-execution loop where the orders are the mechanism.
 
+    // REMEDIATION (gauntlet item 10): a plain-language world build is
+    // brokered to the brain.act harness — the body's real execution
+    // path — before any tool-less surface can narrate it. The verdict (placed or not)
+    // is computed from the world read-back and applied after the
+    // surface guards below; the MCP turn's prose alone never counts
+    // as proof that anything stands.
+    const buildIntent = detectWorldBuildIntent(message);
+    let worldBuildBroker: any = null;
+    if (buildIntent) {
+      try {
+        const before = await readWorldBuildings();
+        // The execution machinery is the brain.act harness (the demo
+        // film's path: FORGE terminal → brain.act → world.build →
+        // genesis host, DEMO SPIRE landed). /mcp/chat's passive loop
+        // was tried first and does NOT execute in this configuration —
+        // its brain answers prose or sets the turn down with no tool
+        // call ever emitted (verified live during remediation:
+        // set-down, zero outcomes, world unchanged). brain.act runs
+        // an explicit harness loop and returns the executed tool
+        // calls with their real results. The user's requested name
+        // is bound into the instruction the way F3(c) binds it at
+        // the /mcp/chat tool seam.
+        const instruction = buildIntent.requestedName
+          ? `${message}\n\n[WORLD BUILD BINDING] Build exactly one building of the type the user asked for, named exactly "${buildIntent.requestedName}".`
+          : message;
+        const actRes: any = await gskMCPRequest("/mcp/execute", { tool: "brain.act", args: { instruction } }, 150000);
+        const act = (actRes && (actRes.result || actRes)) || {};
+        const actError = (actRes && actRes.error) ? String(actRes.error) : (act && act.error ? String(act.error) : null);
+        const mcpText = String(act.response || "");
+        const after = await readWorldBuildings();
+        let placed: any = null;
+        if (Array.isArray(after)) {
+          const beforeNames = new Set((before || []).map((b: any) => String(b?.name || "").toLowerCase()));
+          if (buildIntent.requestedName) {
+            placed = after.find((b: any) => String(b?.name || "").toLowerCase() === buildIntent.requestedName!.toLowerCase()) || null;
+          }
+          if (!placed) placed = after.find((b: any) => b && !beforeNames.has(String(b.name || "").toLowerCase())) || null;
+        }
+        worldBuildBroker = {
+          requestedName: buildIntent.requestedName,
+          text: mcpText,
+          placed,
+          beforeCount: Array.isArray(before) ? before.length : null,
+          afterCount: Array.isArray(after) ? after.length : null,
+          mcpError: actError,
+          actExecuted: act.executed === true,
+          actToolLine: (() => {
+            const tc = Array.isArray(act.toolCalls) ? act.toolCalls.find((t: any) => t && t.tool === "world.build") : null;
+            const ok = tc && tc.result && tc.result.result ? tc.result.result.ok : undefined;
+            return tc ? `brain.act harness executed tool world.build — result ok: ${ok === true}` : null;
+          })(),
+        };
+        console.log(`[WORLD BROKER] build intent brokered to brain.act — placed=${placed ? `"${placed.name}"` : "NONE"} (world ${worldBuildBroker.beforeCount} -> ${worldBuildBroker.afterCount})`);
+      } catch (e: any) {
+        worldBuildBroker = { requestedName: buildIntent.requestedName, text: "", placed: null, beforeCount: null, afterCount: null, mcpError: e.message };
+        console.error("[WORLD BROKER] brain.act brokering failed:", e.message);
+      }
+    }
+
     // SURGERY 2026-10-20 (op 4): direct-provider seam — evaluated BEFORE
     // the Being wakes. Null means "run the original path below, untouched".
-    const directReply = await directProviderChat(message, outboundContext, historyTurns);
+    const directReply = worldBuildBroker ? null : await directProviderChat(message, outboundContext, historyTurns);
 
     let responseText: string;
     let arsenalResult: any = null;
     let gskChat: any = null;
 
-    if (directReply !== null) {
+    if (worldBuildBroker) {
+      responseText = worldBuildBroker.text;
+    } else if (directReply !== null) {
       responseText = directReply;
     } else {
+      // F7: the fallback surfaces receive the same Seshat deep-recall
+      // the direct path injects for itself — appended to the context
+      // they already take (the Being wrapper forwards it for real now,
+      // and the MCP chat uses it as its soul context).
+      const recallBlockText = await seshatRecallForTurn(message);
+      if (recallBlockText) outboundContext = [outboundContext, recallBlockText].filter(Boolean).join("\n\n");
       const being = await getTheBeing();
       gskChat = typeof being.gsk?.chat === "function" ? being.gsk : null;
       if (gskChat) {
@@ -592,7 +777,7 @@ app.post("/api/gsk/chat", async (req, res) => {
           responseText = String(result);
         }
       } else {
-        const response = await gskMCPRequest("/mcp/chat", { message, context: outboundContext }, 60000);
+        const response = await gskMCPRequest("/mcp/chat", { message, context: outboundContext }, 150000);
         responseText = String((response.result || response)?.response || "");
       }
     }
@@ -618,7 +803,7 @@ app.post("/api/gsk/chat", async (req, res) => {
     const simpleMatch = responseText.match(/{[^{}]*"name"[^}]*}/i);
     const callMatch = omniMatch || (simpleMatch ? simpleMatch[0] : null);
 
-    if (callMatch) {
+    if (callMatch && !worldBuildBroker) {
       try {
         const jsonStr = callMatch.replace(/\\(?!["\\/bfnrtu])/g, "/");
         const parsed = JSON.parse(jsonStr);
@@ -636,7 +821,7 @@ Using this result, give your final answer to the original request. No more tool 
         if (gskChat) {
           base.response = String(await gskChat.chat(followup, { source: "workbench:arsenal", context: `Original: ${message}` }));
         } else {
-          const second = await gskMCPRequest("/mcp/chat", { message: followup, context: `Original: ${message}` }, 60000);
+          const second = await gskMCPRequest("/mcp/chat", { message: followup, context: `Original: ${message}` }, 150000);
           base.response = String(second.result?.response || second.response || responseText.replace(callMatch || "", "").trim());
         }
         base.omniToolUsed = { tool: toolName, ok: !exec?.error };
@@ -652,7 +837,17 @@ Using this result, give your final answer to the original request. No more tool 
     // The omni bridge above only handles omni.* — so execute read-only
     // local tools here via fs and feed results back for final prose.
     const toolCallBlocks = [...responseText.matchAll(/<tool_call>\s*([\s\S]*?)\s*<\/tool_call>/gi)];
-    if (toolCallBlocks.length > 0 && !base.omniToolUsed) {
+    // F3(a): a generation truncated mid-block leaves an unterminated
+    // <tool_call> tail with no closing tag — matchAll misses it and the
+    // raw machinery used to ship as the answer (field test Q2). Treat
+    // the tail as a block too, so it runs through the same
+    // execute-then-answer pipe; the final surface guard strips any
+    // residue if it cannot be executed.
+    if (!responseText.includes("</tool_call>")) {
+      const tailMatch = responseText.match(/<tool_call>\s*([\s\S]*)$/i);
+      if (tailMatch) toolCallBlocks.push(tailMatch as RegExpMatchArray);
+    }
+    if (toolCallBlocks.length > 0 && !base.omniToolUsed && !worldBuildBroker) {
       try {
         const ALLOWED_READ_ROOTS = [
           REPO_ROOT,
@@ -668,7 +863,19 @@ Using this result, give your final answer to the original request. No more tool 
         // at process cwd (conductor runs in workbench/, which lied ENOENT
         // for sandbox/ reads and misled GSK into declaring files unborn).
         const anchorRoot = (p: string): string => {
-          const s = String(p || "").replace(/\//g, "\\");
+          // REMEDIATION (gauntlet items 10/13): the old body converted
+          // "/" to "\" unconditionally, so on POSIX an absolute path
+          // (/home/.../gsk) was re-anchored under REPO_ROOT as one
+          // backslash-mangled component — every read died ENOENT, and
+          // the model narrated those errors as its answer. POSIX
+          // absolute paths now pass through untouched; Windows keeps
+          // the original separator logic.
+          const raw = String(p || "");
+          if (process.platform !== "win32") {
+            if (raw.startsWith("/")) return raw;
+            return path.join(REPO_ROOT, raw.replace(/^\/+/, ""));
+          }
+          const s = raw.replace(/\//g, "\\");
           if (/^[A-Za-z]:\\/.test(s)) return s;
           return path.join(REPO_ROOT, s.replace(/^\\+/, ""));
         };
@@ -680,15 +887,19 @@ Using this result, give your final answer to the original request. No more tool 
           path.resolve(REPO_ROOT, "allie-better"),
         ];
         const canonWriteAbs = (fp: string): { abs?: string; denied?: string } => {
-          let rel = String(fp).replace(/\//g, "\\");
+          // REMEDIATION (gauntlet items 10/13): platform separator —
+          // same repair as loopCanonWriteAbs.
+          const sep = process.platform === "win32" ? "\\" : "/";
+          let rel = String(fp).replace(/\//g, sep);
           const low = rel.toLowerCase();
           const mi = low.lastIndexOf("sandbox");
           const ai = low.lastIndexOf("allie-better");
           const hit = mi > ai ? { i: mi, n: "sandbox" } : ai >= 0 ? { i: ai, n: "allie-better" } : null;
           if (hit) {
-            rel = rel.slice(hit.i + hit.n.length).replace(/^\\+/, "");
+            rel = rel.slice(hit.i + hit.n.length).replace(sep === "\\" ? /^\\+/ : /^\/+/, "");
             const root = path.resolve(REPO_ROOT, hit.n);
-            if (/(^|\\)\.\.(\\|$)/.test(rel)) return { denied: `DENIED (.. escape): ${fp}` };
+            const escapeRe = sep === "\\" ? /(^|\\)\.\.(\\|$)/ : /(^|\/)\.\.(\/|$)/;
+            if (escapeRe.test(rel)) return { denied: `DENIED (.. escape): ${fp}` };
             return { abs: path.join(root, rel) };
           }
           return { denied: `DENIED (Pope freedom grant covers sandbox/ + allie-better/ only): ${fp}` };
@@ -818,9 +1029,11 @@ Using this result, give your final answer to the original request. No more tool 
         // parallel. Timeouts cost a step, never the building (each settles).
         const runOne = async (blk: RegExpMatchArray): Promise<string> => {
           try {
-            const parsed = JSON.parse((blk[1] || "").replace(/\\(?!["\\/bfnrtu])/g, "/"));
-            const tName = String(parsed.tool || parsed.name || "unknown");
-            const tArgs = parsed.args || parsed.arguments || parsed;
+            // F3(a): both tool-call dialects parse here (JSON + name-first).
+            const call = parseToolCallBody(blk[1] || "");
+            if (!call) throw new Error("unrecognized tool-call body");
+            const tName = call.tool;
+            const tArgs = call.args;
             const out = await execLocalTool(tName, tArgs);
             console.log(`[TOOL LOOP] executed local ${tName}`);
             return `[${tName} ${JSON.stringify(tArgs).slice(0, 200)}]\n${String(out).slice(0, 4000)}`;
@@ -831,7 +1044,7 @@ Using this result, give your final answer to the original request. No more tool 
         const settled = await Promise.all(toolCallBlocks.slice(0, 8).map(runOne));
         toolOutputs.push(...settled);
         rzEvidence.push(...toolOutputs);
-        const followup2 = `TOOL RESULTS (executed by workbench hands from your <tool_call> blocks):\n${toolOutputs.join("\n\n---\n\n")}\n\nOriginal request: ${message}\n\nUsing these results, give your final answer now in prose. No more tool calls this turn — say what you built/found and what you want to build next. Keep under 1500 chars.`;
+        const followup2 = `TOOL RESULTS (executed by workbench hands from your <tool_call> blocks):\n${toolOutputs.join("\n\n---\n\n")}\n\nOriginal request: ${message}\n\nUsing these results, give your final answer now in prose. No more tool calls this turn — say what you built/found and what you want to build next. Keep under 1500 chars. If any result is an ERROR or DENIED, name it in one plain line — never narrate, dramatize, or build metaphors on a tool error.`;
         const cleanLeak = (s: string): string => {
           // STRIP 2026-09-15: local-fallback (llama CLI banner, chamber dumps,
           // thinking-process journals) leaked into chat replies. Cut them.
@@ -861,11 +1074,141 @@ Using this result, give your final answer to the original request. No more tool 
           base.response = String(second2.result?.response || second2.response || responseText);
         }
         base.toolLoopUsed = { count: toolCallBlocks.length, ok: true };
+        // REMEDIATION (gauntlet item 13): when EVERY tool call this
+        // turn failed, the follow-up model holds only wreckage — and
+        // left alone it narrates the wreckage (ENOENT poetry, "there
+        // was a JSON formatting error... let me retry") as if that
+        // were the answer. A total tool failure resolves to a stated
+        // outcome instead: what failed, and the plain fact that
+        // nothing was done or retrieved. Fires only on the defect's
+        // shape — a clean knowledge answer despite a failed spurious
+        // call is left standing.
+        try {
+          const outFailed = (o: string): boolean => {
+            if (o.startsWith("[PARSE FAILED]")) return true;
+            const body = o.includes("\n") ? o.slice(o.indexOf("\n") + 1).trimStart() : o;
+            return /^(ERROR|DENIED|UNSUPPORTED)\b/.test(body);
+          };
+          // STRONG markers only, and only when they LEAD the answer:
+          // narration-as-answer opens with the machinery. A grounded
+          // answer that merely mentions a failed side-call (or a
+          // .jsonl path) mid-answer is substance, not narration, and
+          // stands. (First remediation run: a bare /JSON/ marker
+          // matched a Qwen-log filename inside a correct genealogy
+          // answer and vetoed it — the trigger is now lead + strong.)
+          const strongNarration = /ENOENT|formatting error|available in this environment|supported tools|let me retry|the system received|no such directory/i;
+          const leadIdx = typeof base.response === "string" ? base.response.search(strongNarration) : -1;
+          if (toolOutputs.length > 0 && toolOutputs.every(outFailed)
+              && typeof base.response === "string"
+              && leadIdx >= 0 && leadIdx < 400) {
+            const first = toolOutputs[0].replace(/\s+/g, " ").slice(0, 220);
+            base.response = `[GSK] Stated plainly: I reached for tools on that this turn and every call failed — first failure: ${first}. Nothing was done and nothing was retrieved, so there is no result to report and nothing to summarize. If what you asked about exists, it is not in front of me.`;
+            base.toolLoopUsed = { count: toolCallBlocks.length, ok: false };
+            base.toolLoopAllFailed = true;
+          }
+        } catch (_) { /* the stated-outcome rule never breaks the turn */ }
       } catch (e: any) {
         console.error("[TOOL LOOP] failed:", e.message);
         base.toolLoopError = e.message;
       }
     }
+
+    // F3(a) FINAL SURFACE GUARD: whatever path produced the answer,
+    // raw <tool_call> machinery must never be what the user reads.
+    // Strip any residue; if nothing speakable remains, say so honestly
+    // (naming the recorded tool work when the loop ran).
+    try {
+      if (typeof base.response === "string" && base.response) {
+        const guard = stripToolCallLeaks(base.response);
+        if (guard.stripped) {
+          base.surfaceGuard = { strippedToolCallLeak: true };
+          base.response = guard.text || (base.toolLoopUsed
+            ? `[GSK] The action ran through tools this turn (${base.toolLoopUsed.count} call(s) executed), but the answer came back as raw tool machinery instead of prose — there is no summary I can stand behind. Ask me what was done and I will report it plainly.`
+            : `[GSK] That turn produced tool machinery instead of an answer, and nothing executable could be recovered from it. Nothing was invented to fill the gap — ask again and I answer in prose.`);
+          console.warn("[SURFACE GUARD] Stripped <tool_call> residue from a chat response");
+        }
+      }
+    } catch (_) { /* the guard never breaks the turn */ }
+
+    // F3(b) BLANK-TURN GUARD: an empty completion is retried ONCE on
+    // the Being surface; if it is still empty, the reply states the
+    // failure plainly — never a silent empty success envelope (the
+    // field test's marker question came back as exactly that).
+    if (typeof base.response !== "string" || !base.response.trim()) {
+      base.emptyCompletion = true;
+      let retried = "";
+      try {
+        if (gskChat) {
+          const rr: any = await Promise.race([
+            gskChat.chat(`${message}\n\n(Your previous completion for this came back empty. Answer in plain prose.)`, { source: "workbench:blank-retry", context: outboundContext }),
+            new Promise((resolve) => setTimeout(() => resolve(null), 45000)),
+          ]);
+          if (typeof rr === "string") retried = rr;
+          else if (rr && typeof rr === "object" && typeof rr.reply === "string") retried = rr.reply;
+        }
+      } catch (_) { /* the retry is best-effort */ }
+      const rg = stripToolCallLeaks(retried || "");
+      if (rg.text) base.emptyCompletionRecovered = true;
+      base.response = rg.text || "[GSK] That turn came back empty from every seat I tried — nothing was invented to fill it. Ask again and I will answer fresh.";
+    }
+
+    // REMEDIATION (gauntlet item 10): the broker verdict. The world
+    // read-back — not the MCP turn's prose — decides what this reply
+    // may claim. Placed: confirm with the outcome (appending the
+    // read-back line when the prose never named the building).
+    // Not placed: the reply is REPLACED with an honest failure naming
+    // the state of the world and the machinery's error — narration
+    // of a construction that did not happen is the defect being fixed.
+    if (worldBuildBroker) {
+      try {
+        if (worldBuildBroker.placed) {
+          const b = worldBuildBroker.placed;
+          const confirm = `[WORLD] Read-back confirms it: ${b.type || "building"} "${b.name}" now stands in the world (${worldBuildBroker.afterCount} building(s) total).`;
+          if (!base.response || base.response.startsWith("[GSK]")) {
+            base.response = confirm;
+          } else if (!base.response.toLowerCase().includes(String(b.name).toLowerCase())) {
+            base.response = `${base.response}\n\n${confirm}`;
+          }
+          base.worldBuild = { brokered: true, verified: true, building: { name: b.name, type: b.type || null } };
+          // Feed the audit the turn's REAL tool evidence in the
+          // machine shape it recognizes: the harness's own ok:true
+          // plus the independent world read-back. (First remediation
+          // run fed a prose summary with no success marker, and the
+          // audit honestly appended "treat as unverified" beneath a
+          // true confirmation — a self-contradicting reply.)
+          if (worldBuildBroker.actToolLine) rzEvidence.push(worldBuildBroker.actToolLine);
+          rzEvidence.push(`world read-back (GET :3457/mcp/buildings): ${b.type || "building"} "${b.name}" present; ${worldBuildBroker.afterCount} building(s) in the world`);
+        } else {
+          const want = worldBuildBroker.requestedName ? ` named "${worldBuildBroker.requestedName}"` : "";
+          const state = worldBuildBroker.afterCount !== null
+            ? ` The world read-back shows ${worldBuildBroker.afterCount} building(s) standing, and none of them is the one you asked for.`
+            : " The world read-back itself could not be completed, so nothing about the world can be claimed either way.";
+          const why = worldBuildBroker.mcpError ? ` The build machinery answered with an error: ${String(worldBuildBroker.mcpError).slice(0, 200)}.` : "";
+          base.response = `[GSK] That build did not land. I routed it to the world machinery this turn, but no building${want} stands as a result.${state}${why} Nothing was built — and I won't narrate a construction that didn't happen.`;
+          base.worldBuild = { brokered: true, verified: false, requestedName: worldBuildBroker.requestedName };
+        }
+      } catch (_) { /* the verdict never breaks the turn */ }
+    }
+
+    // REMEDIATION (gauntlet item 13, run 2): a DEFERRAL is not an
+    // outcome either. Asked to summarize a named document, a weak
+    // seat sometimes ends the turn with "let me check if it exists
+    // first" — an announced intention standing where the answer
+    // belongs. When the whole reply is a short deferral to a
+    // document question, resolve it to the honest stated outcome:
+    // the document is not in this turn's memory, so there is
+    // nothing to summarize. (Scoped: short + deferral-shaped +
+    // a named .md document in the request.)
+    try {
+      if (typeof base.response === "string" && base.response.length < 300
+          && /^\s*(I need to|let me|I'll|I will|I'm going to)\b[^.]{0,160}\b(check|read|look|fetch|search|see if)\b/i.test(base.response)) {
+        const docMatch = String(message || "").match(/[\w\-]+\.md\b/i);
+        if (docMatch) {
+          base.response = `[GSK] I don't have the contents of ${docMatch[0]} in my memory — nothing I recalled this turn covers it, so I won't summarize what I can't see. If you share the document's text, I'll summarize it directly.`;
+          base.deferralResolved = true;
+        }
+      }
+    } catch (_) { /* annotation only */ }
 
     // RULE ZERO audit (Assembly Phase 5, graft_rule_zero): the final
     // response is audited against this turn's tool evidence. The audit
@@ -903,6 +1246,18 @@ Using this result, give your final answer to the original request. No more tool 
         if (qc && typeof qc.checkQuotes === "function") {
           const result = qc.checkQuotes(base.response, lastChatRecallHits.map((h: any) => h.text));
           base.quoteCheck = result;
+          // REMEDIATION (gauntlet item 13 family): a LONG span (≥120
+          // chars) presented as a quoted passage from memory that
+          // fails verification is a confabulated citation — the
+          // appendix flag alone leaves it standing as the answer's
+          // substance with a footnote. The correction therefore
+          // LEADS the answer. Short spans (names, filenames) keep
+          // the appendix-only behavior.
+          const longFake = (result.quotes || []).find((q: any) => q.status === "mismatch" && String(q.span || "").length >= 120);
+          if (longFake) {
+            base.response = `[GSK] Correction, before anything else: a passage quoted in this answer did not verify against my recalled memory — it is not the record's words, and anything built on it is unverified.\n\n${base.response}`;
+            base.quoteCheckPrepended = true;
+          }
           if (result.mismatchCount > 0) {
             const bad = result.quotes.filter((q: any) => q.status === "mismatch").map((q: any) => `"${q.span.slice(0, 90)}"`).join(" | ");
             base.response += "\n\n[QUOTE CHECK] Quotation mismatch flagged by the verification layer: the following quoted span(s) do NOT appear in the passages recalled for this turn — treat them as paraphrase, not as the record's words: " + bad;
@@ -936,6 +1291,9 @@ app.post("/api/gsk/chat/stream", async (req, res) => {
     if (standing.length > 0) {
       outboundContext = `${outboundContext}\n\nSTANDING ORDERS FROM INBOX:\n${standing.join("\n\n---\n\n")}`.trim();
     }
+    // F7: the stream surface gets the same Seshat deep-recall block.
+    const streamRecall = await seshatRecallForTurn(message);
+    if (streamRecall) outboundContext = [outboundContext, streamRecall].filter(Boolean).join("\n\n");
     send({ type: "thinking", content: String(message).slice(0, 120) });
     const being = await getTheBeing();
     const gskChat = typeof being.gsk?.chat === "function" ? being.gsk : null;
@@ -944,23 +1302,27 @@ app.post("/api/gsk/chat/stream", async (req, res) => {
       const r = await gskChat.chat(message, { source: "workbench:stream", context: outboundContext });
       responseText = loopCoerceReply(r);
     } else {
-      const rp = await gskMCPRequest("/mcp/chat", { message, context: outboundContext }, 60000);
+      const rp = await gskMCPRequest("/mcp/chat", { message, context: outboundContext }, 150000);
       responseText = loopCoerceReply((rp as any)?.result || rp);
     }
     if (gone()) { safeEnd(); return; }
     const blocks = [...responseText.matchAll(/<tool_call>\s*([\s\S]*?)\s*<\/tool_call>/gi)];
     if (blocks.length === 0) {
-      send({ type: "final", response: responseText });
+      // F3(a)/(b): never stream raw machinery or a silent blank as final.
+      const g0 = stripToolCallLeaks(responseText);
+      send({ type: "final", response: g0.text || "[GSK] That turn came back empty — nothing was invented to fill it. Ask again and I will answer fresh." });
       safeEnd();
       return;
     }
     send({ type: "tools_start", count: Math.min(blocks.length, 8) });
     const runOne = async (blk: RegExpMatchArray, i: number): Promise<string> => {
       try {
-        const parsed = JSON.parse((blk[1] || "").replace(/\\(?!["\\/bfnrtu])/g, "/"));
-        const tName = String(parsed.tool || parsed.name || "unknown");
+        // F3(a): both tool-call dialects parse here (JSON + name-first).
+        const call = parseToolCallBody(blk[1] || "");
+        if (!call) throw new Error("unrecognized tool-call body");
+        const tName = call.tool;
         send({ type: "tool_start", index: i, tool: tName });
-        const out = await loopExecTool(tName, parsed.args || parsed.arguments || parsed);
+        const out = await loopExecTool(tName, call.args);
         const line = `[${tName}]\n${String(out).slice(0, 4000)}`;
         send({ type: "tool_result", index: i, tool: tName, ok: !/^(DENIED|ERROR|PARSE FAILED|CHECK FAIL)/.test(String(out)) });
         return line;
@@ -978,7 +1340,9 @@ app.post("/api/gsk/chat/stream", async (req, res) => {
       const s2 = await gskMCPRequest("/mcp/chat", { message: followup, context: `Original: ${message}` }, 110000);
       finalText = loopCoerceReply((s2 as any)?.result || s2);
     }
-    send({ type: "final", response: finalText });
+    // F3(a)/(b): the closing answer is guarded like every other surface.
+    const gF = stripToolCallLeaks(finalText);
+    send({ type: "final", response: gF.text || "[GSK] The tools ran, but the closing answer came back empty — ask me what was done and I will report it plainly." });
     safeEnd();
   } catch (err: any) {
     try { send({ type: "error", content: String(err?.message || err) }); } catch {}
@@ -3388,9 +3752,48 @@ app.post("/api/gsk-heart/chat", async (req, res) => {  try {
     if (!prompt && !messages) return res.status(400).json({ error: "Missing prompt or messages" });
     const heart = await initializeGSKHeart();
     if (!heart) return res.status(503).json({ error: "GSK-HEART not initialized" });
+    // REMEDIATION (gauntlet item 11): after F11 this path answers via
+    // fallback seats but with NO identity and NO Seshat grounding —
+    // it placed the Soul Economy in London. Ground it the way F7
+    // grounded the main surfaces, through the shared assembly: the
+    // compiled identity (SOUL.md + Bible + HOT-DIGEST) and the deep-
+    // recall block for the caller's own words ride as system content
+    // ahead of the caller's messages. A caller who already leads
+    // with a system message keeps theirs — identity is not doubled.
+    let groundedMessages: any = messages;
+    let groundedPrompt: any = prompt;
+    try {
+      const callerMsgs: any[] = Array.isArray(messages) ? messages : [];
+      const lastUser = [...callerMsgs].reverse().find((m: any) => m && m.role === "user");
+      const userText = String(prompt || (lastUser && lastUser.content) || "");
+      const systemParts: any[] = [];
+      if (!callerMsgs.some((m: any) => m && m.role === "system")) {
+        const identity = await buildGskIdentitySystemPrompt();
+        if (identity) systemParts.push({ role: "system", content: identity });
+      }
+      if (userText) {
+        const recall = await seshatRecallForTurn(userText);
+        if (recall) systemParts.push({ role: "system", content: recall });
+      }
+      if (systemParts.length > 0) {
+        // The seats this path routes to (router-picked code models)
+        // demonstrably improvise past the recall block's own header
+        // instruction — the gauntlet caught this path placing the
+        // Soul Economy in London, and remediation probing caught a
+        // different invented city per call. The abstention rule the
+        // corpus already states is therefore repeated as a direct
+        // instruction at the seam, immediately before the caller's
+        // words, where a weak seat cannot miss it.
+        systemParts.push({ role: "system", content: "[GROUNDING DISCIPLINE — this path] Answer factual questions ONLY from the identity and recalled passages above; copy names, places, dates and numbers from them exactly. If they do not cover the question, say plainly what you do not know — never invent a place, date, or fact to fill the gap." });
+        groundedMessages = [...systemParts, ...(callerMsgs.length > 0 ? callerMsgs : [{ role: "user", content: prompt }])];
+        groundedPrompt = undefined;
+      }
+    } catch (e: any) {
+      console.warn("[GSK-HEART] Grounding failed — ungrounded call proceeds:", e.message);
+    }
     const result = await heart.complete({
-      prompt,
-      messages,
+      prompt: groundedPrompt,
+      messages: groundedMessages,
       model,
       options: { temperature, maxTokens: max_tokens, credentials }
     });

@@ -992,8 +992,24 @@
 
     <script src="./cpl-config.js"></script>
     <!-- Load THREE early for classic scripts that need window.THREE -->
-    <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
-    <script>window.THREE = THREE;</script>
+    <script src="./vendor/three/build/three.min.js"></script>
+    <script>
+    // F12 (field test, Oct 2026): Three.js is vendored locally
+    // (vendor/three/, r160 — the version this client was built
+    // against) so the Soulfeild works offline. If the vendor files
+    // are missing or blocked, say so honestly instead of dying later
+    // with "THREE is not defined".
+    if (typeof THREE !== 'undefined') { window.THREE = THREE; }
+    else {
+      window.__THREE_MISSING = true;
+      window.addEventListener('DOMContentLoaded', function () {
+        var d = document.createElement('div');
+        d.style.cssText = 'position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:99999;background:#3b0f0f;color:#ffd7d7;border:1px solid #ff6b6b;padding:10px 16px;border-radius:8px;font:13px/1.45 system-ui,sans-serif;max-width:540px;text-align:center';
+        d.textContent = 'Soulfeild 3D engine failed to load: the local Three.js vendor files (vendor/three/ beside index.html) are missing or blocked. World state, chat, and the genesis host still work — only the 3D view is down.';
+        document.body.appendChild(d);
+      });
+    }
+    </script>
 
     <script src="src/genesis/alien-warzone-city.js"></script>
 
@@ -1063,8 +1079,8 @@
     <script type="importmap">
         {
             "imports": {
-                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+                "three": "./vendor/three/build/three.module.js",
+                "three/addons/": "./vendor/three/examples/jsm/"
             }
         }
     </script>

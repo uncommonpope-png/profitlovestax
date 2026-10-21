@@ -132,7 +132,20 @@ function getStatus() {
 
 async function chat(message, userId) {
   if (!fusion || !fusion.booted) return { reply: 'GSK is still booting...', source: 'gsk:pending' };
-  return fusion.chatWithSoul(message, userId);
+  // F7 (field test, Oct 2026): workbench callers pass { source, context }
+  // as the second argument — the context (which carries the Seshat
+  // deep-recall block) used to die here, swallowed as a "userId", so
+  // this surface answered memory questions without Seshat and could
+  // even disown her store. Unpack it and forward it for real.
+  let uid = 'user';
+  let extraContext = '';
+  if (userId && typeof userId === 'object') {
+    uid = userId.userId || userId.source || 'user';
+    extraContext = typeof userId.context === 'string' ? userId.context : '';
+  } else if (typeof userId === 'string' && userId) {
+    uid = userId;
+  }
+  return fusion.chatWithSoul(message, uid, extraContext);
 }
 
 async function think(prompt, context) {

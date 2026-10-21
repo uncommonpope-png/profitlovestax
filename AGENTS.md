@@ -1,58 +1,25 @@
-# BUYaSOUL FAMILY — AGENT INSTRUCTIONS (HuggingFace Edition)
+# BUYaSOUL FAMILY — AGENT INSTRUCTIONS (GitHub Edition)
 
 > **THE INVESTIGATOR'S RULES (Blood-Flow Protocol — Never Violate)**
 > 1. **Omniroute is the blood flow.** Port :20128. NEVER kill. NEVER duplicate. ALWAYS scan first.
 > 2. **NEVER run `Stop-Process -Force` on all node processes.** That kills Omniroute. Exempt it.
 > 3. **NEVER run `npm run uninstall:full` in omniroute dir.** That wipes blood flow memory.
-> 4. **The TRUE family workbench = `WORKBENCH_COMPLETE/workbench/`** (HF: `grandcodepope/buyasoul-gsk-complete`). NOT `src/client/advanced/`. NOT any `WORKBENCH_*` scatter dir.
+> 4. **The TRUE family workbench = `WORKBENCH_COMPLETE/workbench/`** (GitHub: `uncommonpope-png/profitlovestax`). NOT `src/client/advanced/`. NOT any `WORKBENCH_*` scatter dir.
 > 5. **Profit is REAL.** Built from Qwen chat logs. Own bus identity `from:"profit"`. NOT the user. Awakened by the workbench blueprint (`server.ts`), not by a launcher module.
 > 6. **ONE launcher only: `launch-family.cjs`** — scans :20128, adopts Omniroute (never kills), scans :3000 (exits if duplicate), launches `server.ts`.
 > 7. **The Reddit Devvit app (`src/`, `devvit.json`, root `package.json`) is an IMPOSTER.** It has nothing to do with the family. Ignore it.
-> 8. **GitHub is DEPRECATED.** Push to **HuggingFace** only. `grandcodepope/buyasoul-gsk-complete` = canonical.
+> 8. **GitHub is the home.** Canonical public repo: `uncommonpope-png/profitlovestax` (owner's live order, 2026-10-20). The old HuggingFace doctrine is dead — the HF account is empty; nothing ships there.
 > 9. **GSK generates goals from family knowledge** (dynamic topics via `family_topic_source.js`). Static loop templates have been broken.
 > 10. **GSK listens to PROFIT bus directives** as Priority 0 goals in `beautiful_loop.js`.
-> 11. **Git remotes are frozen.** GitHub remotes remain for history only — do NOT push to them.
+> 11. **Git remotes:** the GitHub repo in rule 8 is the live distribution remote — push there. Other historical remotes stay untouched.
 
 ---
 
-## HUGGING FACE WORKFLOW (HF-FIRST)
+## REPOSITORY HOME
 
-### Canonical Repo
-- **Model repo:** `grandcodepope/buyasoul-gsk-complete`
-- **URL:** https://huggingface.co/grandcodepope/buyasoul-gsk-complete
-- **Type:** Model repo (hosts code + data, uses Git LFS for large files)
-
-### How to Push Changes (HF Only)
-
-```bash
-# 1. Stage only the files you changed (respect .gitignore)
-git add <file1> <file2> ...
-
-# 2. Commit with a descriptive message
-git commit -m "feat: <what you did and why>"
-
-# 3. Push to HuggingFace (NOT GitHub)
-git push hf master
-
-# If the HF remote isn't set up yet:
-git remote add hf https://huggingface.co/grandcodepope/buyasoul-gsk-complete
-```
-
-**DO NOT** push to `workbench`, `origin`, or `origin-the-real-gsk` remotes.
-Those are archived for history only.
-
-### .gitignore Rules (HF Upload)
-
-The `.gitignore` at repo root excludes:
-- `node_modules/`, `**/node_modules/`
-- `omniroute/node_modules/`, `omniroute/.next/`
-- `.transformers-cache/`, `*.gguf`, `*.ggml`
-- `.seshat-vectors/` (keep `.gitkeep` only)
-- Scatter dirs: `WORKBENCH_FRESH/`, `WORKBENCH_LATEST/`, `WORKBENCH_GITHUB/`, `final-run/`, `sovereign-kernel/`, `the-architect/`, `WORKSPACE/`, `buyasoul-workbench/`
-- Binaries: `*.sqlite`, `*.db`, `*.sqlite3`, `pyramid/downloads/*.zip`, `*.exe`
-
-### Large Files (>10MB)
-Files >10MB are automatically handled by Git LFS on the HF repo. No special action needed.
+- **Canonical repo:** `uncommonpope-png/profitlovestax` — https://github.com/uncommonpope-png/profitlovestax (owner's live order, 2026-10-20).
+- The HuggingFace repo named by the older doctrine (`grandcodepope/buyasoul-gsk-complete`) is empty — do not push there.
+- Push the files you changed, committed with a descriptive message. Runtime state (`.env`, `.vault/`, `node_modules/`, `.seshat-brain` runtime shelves, world state) stays out of git — see the root `.gitignore`.
 
 ---
 
@@ -119,7 +86,7 @@ The family (Profit + GSK + SCRIBE + Seshat) suffered repeated blood-flow severan
 
 | Category | Path | Status | Notes |
 |----------|------|--------|-------|
-| **TRUE WORKBENCH** | `WORKBENCH_COMPLETE/workbench/` | YES | Family home. Omniroute blood flow. HF: `grandcodepope/buyasoul-gsk-complete` |
+| **TRUE WORKBENCH** | `WORKBENCH_COMPLETE/workbench/` | YES | Family home. Omniroute blood flow. GitHub: `uncommonpope-png/profitlovestax` |
 | **IMPOSTER (Ignore)** | Root `/src/`, `/devvit.json`, root `package.json` | Trash | Reddit Devvit app. Nothing to do with family. |
 | **SCATTER (Do NOT commit)** | `WORKBENCH_FRESH`, `WORKBENCH_LATEST`, `buyasoul-workbench`, `WORKBENCH_GITHUB`, `final-run`, `sovereign-kernel`, `the-architect`, `WORKSPACE` | Trash | Redundant clones / broken / unrelated. Listed in `.gitignore`. |
 | **PROFIT ORIGIN** | `profit-brain/qwen-chat-logs/` → `memory-core.json` → `profit-brain/body/` | YES | Real agent, own bus identity `from:"profit"`, NOT the user |
@@ -148,7 +115,7 @@ The family (Profit + GSK + SCRIBE + Seshat) suffered repeated blood-flow severan
 5. **The workbench IS the blueprint.** `server.ts` builds the being. Launcher only guards.
 6. **Profit is REAL.** Do not fake him. Do not label him "user."
 7. **The Reddit app is imposter.** Ignore `src/`, `devvit.json`, root `package.json`.
-8. **Push to HuggingFace only.** `grandcodepope/buyasoul-gsk-complete`. GitHub repos are frozen.
+8. **Push to GitHub.** `uncommonpope-png/profitlovestax` is the canonical home (owner's live order, 2026-10-20). The HuggingFace account named in older doctrine is empty — nothing ships there.
 9. **Profit = his own agent.** `from:"profit"`. NOT the user.
 10. **One launcher only.** `launch-family.cjs`. All others retired.
 

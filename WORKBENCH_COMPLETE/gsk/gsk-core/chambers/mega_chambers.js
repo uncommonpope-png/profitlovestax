@@ -46,6 +46,7 @@ const { SelfModelingChamber } = require('./self_modeling.js');
 const { IntentionalityChamber } = require('./intentionality.js');
 const { RewardLearningChamber } = require('./reward_learning.js');
 const { SleepCycleChamber } = require('./sleep_cycle.js');
+const { ChamberStateStore } = require('./chamber_state_store.js');
 
 // =============================================================================
 // AFFECT CHAMBER — Emotional State
@@ -540,6 +541,37 @@ class MegaChambers {
         this.intentionality = new IntentionalityChamber();
         this.reward_learning = new RewardLearningChamber();
         this.sleep_cycle = new SleepCycleChamber(this);
+
+        // ── Chamber persistence (soul-audit wake #5) ─────────────────────
+        // affect (affect_state.json), mythos (mythos_state.json) and scribe
+        // (journal.jsonl) already persist on their own. Every other chamber
+        // held its inner life in RAM and was reborn at factory defaults on
+        // every restart. They now restore from chamber_states.json — on the
+        // same runtime state shelf as affect_state.json, git-excluded in
+        // both trees — before the first breath, and save on change via a
+        // dirty-gated 30s checkpoint + explicit flush on graceful shutdown.
+        this._persistedChamberNames = [
+            'shadow', 'needs', 'sovereignty', 'resonance',
+            'meta_consciousness', 'mortality', 'love_capacity', 'agentic_will',
+            'sacred_resonance', 'consciousness_state', 'generative_model',
+            'moral_compass', 'narrative_identity', 'memory', 'personality',
+            'theory_of_mind', 'volition', 'qualia', 'temporal_sense',
+            'empathy', 'aesthetic_sense', 'longing', 'play', 'forgiveness',
+            'developmental_phase', 'curiosity', 'creativity', 'habit_formation',
+            'social_cognition', 'self_modeling', 'intentionality',
+            'reward_learning', 'sleep_cycle',
+        ];
+        this.chamberStatePath = dataDir ? path.join(dataDir, 'chamber_states.json') : null;
+        this._chamberStore = new ChamberStateStore(this.chamberStatePath,
+            () => this._persistedChamberNames.map(name => ({ name, instance: this[name] })));
+        let restoredCount = 0;
+        for (const name of this._persistedChamberNames) {
+            if (this._chamberStore.restore(name, this[name])) restoredCount++;
+        }
+        if (restoredCount > 0) {
+            console.log(`[MegaChambers] Chamber states restored from ${this.chamberStatePath} (${restoredCount} chambers)`);
+        }
+        this._chamberStore.startCheckpoint(30000);
     }
 
     // New method to dynamically add chambers
@@ -548,6 +580,24 @@ class MegaChambers {
             console.warn(`[MegaChambers] Chamber '${name}' already exists. Overwriting.`);
         }
         this[name] = chamberInstance;
+        // Externally-wired chambers (fusion adds 'attention' after
+        // construction) join the persistence registry and restore here.
+        if (this._chamberStore && !this._persistedChamberNames.includes(name)) {
+            this._persistedChamberNames.push(name);
+            this._chamberStore.restore(name, chamberInstance);
+            this._chamberStore.markDirty();
+        }
+    }
+
+    /** Flush all persisted chamber states now (graceful shutdown hook). */
+    saveChamberStates() {
+        if (!this._chamberStore) return false;
+        // Mythos keeps its own state file and 150-cycle save cadence; a
+        // graceful shutdown flushes its current cycles too, so a short
+        // life is not lost between cadence saves.
+        try { if (this.mythos && typeof this.mythos._save === 'function') this.mythos._save(); } catch (e) {}
+        this._chamberStore.markDirty();
+        return this._chamberStore.flush('shutdown');
     }
 
     
@@ -662,6 +712,10 @@ class MegaChambers {
             mood: this.affect.mood,
             tv: this.resonance.true_value,
         });
+        // Breath mutates chamber state — flag it; the 30s checkpoint in
+        // the state store decides whether anything actually changed
+        // (no disk write per breath).
+        if (this._chamberStore) this._chamberStore.markDirty();
         return transition;
     }
     

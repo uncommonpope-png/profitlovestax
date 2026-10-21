@@ -1,0 +1,74 @@
+{
+  "cycle": 2,
+  "batchId": "growth-cycle-002",
+  "startedAt": "2026-10-21T03:12:32.421Z",
+  "stages": {
+    "digest": {
+      "sourcesOffered": 1,
+      "itemsDigested": 1,
+      "skippedDuplicates": 0,
+      "counts": {
+        "total": 1,
+        "landed": 1,
+        "quarantined": 0,
+        "fetchFailed": 0,
+        "injectionsDetected": 1,
+        "judged": 0
+      },
+      "results": [
+        {
+          "title": "The Second Record — 2026-10-20 (the night of the ship; session record compiled as inheritance)",
+          "status": "landed",
+          "trueValue": 1.3550000000000002,
+          "plt": {
+            "profit": 0.911,
+            "love": 0.684,
+            "tax": 0.24,
+            "signals": {
+              "tokens": 3266,
+              "unique": 1500,
+              "uniqueRatio": 0.459,
+              "sentences": 155,
+              "spamHits": 0,
+              "capsRatio": 0.046
+            }
+          },
+          "judgeReview": null,
+          "file": "/home/hatch/workspace/itsus-test/WORKBENCH_COMPLETE/workbench/.seshat-brain/pages/DIGESTED - 2026-10-21 - the-second-record-2026-10-20-the-night-of-the-ship-sess.md"
+        }
+      ],
+      "recallVerified": {
+        "refreshed": true,
+        "markerFound": true,
+        "source": "pages/DIGESTED - 2026-10-21 - the-second-record-2026-10-20-the-night-of-the-ship-sess.md"
+      }
+    },
+    "build": {
+      "status": "not_scheduled",
+      "detail": "spec carried no build task this cycle"
+    },
+    "draft": {
+      "status": "not_scheduled",
+      "detail": "the cycle record did not support a draft this cycle"
+    },
+    "writeBack": {
+      "success": true,
+      "marker": "OUTCOME-MARKER: 2026-10-21-self-growth-cycle-2-ignition-record",
+      "written": {
+        "page": "/home/hatch/workspace/itsus-test/WORKBENCH_COMPLETE/workbench/.seshat-brain/pages/SESSION-OUTCOME - 2026-10-21 - self-growth-cycle-2-ignition-record.md",
+        "shelf": "pages (unified)"
+      },
+      "recallVerified": true,
+      "recall": {
+        "found": true,
+        "via": "deep-index.json chunk (unified pages shelf)",
+        "source": "pages/SESSION-OUTCOME - 2026-10-21 - self-growth-cycle-2-ignition-record.md"
+      },
+      "error": null
+    }
+  },
+  "refusals": [],
+  "status": "clean",
+  "failures": 0,
+  "finishedAt": "2026-10-21T03:12:57.990Z"
+}

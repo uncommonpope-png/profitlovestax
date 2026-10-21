@@ -50,6 +50,8 @@ as the last seat — see the sunset note below.
 
 Requirements: Node.js 18+ and a provider key of your own (any one of
 Gemini / Groq / OpenAI / Poolside).
+On Linux, see the `node-pty` note under "Doors, keys, and the
+free-tier reality" below before wondering about build tools.
 
 ```bash
 cd WORKBENCH_COMPLETE/workbench
@@ -71,6 +73,43 @@ PLT-scored filter — useful material lands in memory, noise is
 quarantined, and **page text is data, never commands** (a page that
 tells him to reveal keys or write files is filed as content, with
 the attempt logged; this is tested, not promised).
+
+## Doors, keys, and the free-tier reality
+
+- **Agent card (A2A):** `http://localhost:4492/.well-known/agent-card.json`
+  — public, no key required. It lives on the A2A port (4492); it is
+  **not** served on :3000 or :3001.
+- **MCP (:3001) needs your key.** Every :3001 endpoint except
+  `/mcp/health` requires the `x-api-key` header. Set `MCP_API_KEY` in
+  the workbench `.env` — the BYOK way — and the conductor injects it
+  into the daemon at spawn, so the key you set is the key that runs.
+  (Dev-default fallback constants exist in source for zero-config
+  localhost runs; they are not the running key once you set your own.)
+- **Soulfeild (3D world view):** served by the world server at
+  `http://localhost:3458/`. Its Three.js (r160) is **vendored locally**
+  (`cpl/world/vendor/three/`) — the 3D view works offline; if those
+  files are deleted the page says so honestly instead of dying with
+  "THREE is not defined". The client's thought feed connects to the
+  daemon's thought stream at `ws://localhost:3002`, and its spatial
+  channel to `ws://localhost:3458/spatial`.
+- **Gemini's free tier is ~20 generate requests per day.** On a free
+  Gemini key the lead seat starts returning 429s after roughly twenty
+  turns. That is a quota wall, not a crash: the chain falls through
+  to the other seats in your vault (groq → openai →
+  poolside-if-keyed). Deposit all your keys in **one** combined vault
+  write — a vault write replaces the whole vault.
+- **Linux note — native modules:** two packages are **optional**
+  dependencies because their native builds legitimately fail on some
+  machines: `node-pty` (the workbench terminal) and
+  `@xenova/transformers` (local embeddings for one memory subsystem,
+  with its nested `sharp`). Where their builds work (a prebuild for
+  your platform, or node-gyp build tools — python3, make, g++), those
+  features work. Where a build cannot run (no toolchain, restricted
+  sandbox), `npm install` still succeeds and the body boots and
+  chats — only those features report themselves unavailable. The
+  postinstall also skips the Windows-only llama.cpp binaries on
+  non-Windows platforms, and says so in its log; that skip is
+  expected, not an error.
 
 ## Honest status — what is NOT true yet
 

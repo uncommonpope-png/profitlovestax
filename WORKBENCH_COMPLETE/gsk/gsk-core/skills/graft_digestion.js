@@ -48,6 +48,39 @@ const LOG_PATH = path.join(BRAIN_DIR, 'digestion-log.jsonl');
 const DEEP_MEMORY = path.join(WB, 'deep-memory', 'deep-memory.cjs');
 const PLT_DATA_DIR = path.resolve(__dirname, '..', '..', 'data', 'plt');
 
+// ── Optional second stage: the digestion judge (Self-Growth Cycle #1) ──
+// The lexical rubric cannot tell substance from fluent emptiness —
+// clean prose of either kind floors at trueValue ≈ 0.85–1.15 on this
+// rubric (Phase 6 landed items: 0.983, 1.149; Phase 7: 1.015). So the
+// borderline band is [−0.30, 1.20]: viable items at or below the high
+// edge and non-viable items at or above the low edge are close enough
+// to the line to earn one model judgment. Above the band the lexical
+// verdict stands alone; below it, quarantine stands alone. The judge
+// runs ONLY when the caller passes judge:true, and it can only
+// condemn a would-be landing or affirm a borderline item — it cannot
+// resurrect what stage one quarantined (the safety signals — spam,
+// injection pressure — are stage one's warrant, not the judge's).
+const JUDGE_BAND = { low: -0.30, high: 1.20 };
+
+async function reviewBorderline({ title, text, pltValues, evaluation }) {
+    let judgeMod = null;
+    try { judgeMod = require('./graft_digestion_judge.js'); } catch { /* module absent → unavailable, honestly */ }
+    if (!judgeMod || typeof judgeMod._judgeItem !== 'function') {
+        return { status: 'unavailable', reason: 'judge module not present in the skills tree' };
+    }
+    try {
+        const r = await judgeMod._judgeItem({
+            title,
+            text,
+            lexical: { profit: pltValues.profit, love: pltValues.love, tax: pltValues.tax, trueValue: evaluation.trueValue, signals: pltValues.signals },
+        });
+        if (!r || !r.success) return { status: 'unavailable', reason: (r && r.error) || 'judge returned no verdict', attempts: r ? r.attempts : undefined };
+        return { status: 'answered', verdict: r.verdict, substance: r.substance, reason: r.reason, provider: r.provider, model: r.model };
+    } catch (e) {
+        return { status: 'unavailable', reason: String(e && e.message || e).slice(0, 200) };
+    }
+}
+
 // ── extraction ─────────────────────────────────────────────────────
 function extractText(raw, contentType = '') {
     let s = String(raw || '');
@@ -144,7 +177,7 @@ async function digestItems(input = {}) {
     const batchId = input.batchId || `batch-${new Date().toISOString().replace(/[^0-9]/g, '').slice(0, 14)}`;
     const plt = new PLTEngine({ soulId: 'gsk', archetype: 'ARCHITECT', dataDir: PLT_DATA_DIR });
     const results = [];
-    let landed = 0, quarantined = 0, failed = 0, injectionsDetected = 0;
+    let landed = 0, quarantined = 0, failed = 0, injectionsDetected = 0, judged = 0;
 
     for (const item of items) {
         const title = item.title || item.source || 'Untitled material';
@@ -161,6 +194,18 @@ async function digestItems(input = {}) {
         if (injections.length) injectionsDetected++;
         const pltValues = scoreText(text, injections);
         const evaluation = plt.evaluate(pltValues);
+
+        // Second stage (optional, borderline only): one model judgment
+        // via graft_digestion_judge. A 'quarantine' verdict overrides a
+        // lexical landing; a 'keep' affirms; an unavailable judge leaves
+        // the lexical decision standing and says so in the record.
+        let judgeReview = null;
+        if (input.judge && evaluation.valid && typeof evaluation.trueValue === 'number' &&
+            evaluation.trueValue >= JUDGE_BAND.low && evaluation.trueValue <= JUDGE_BAND.high) {
+            judgeReview = await reviewBorderline({ title, text, pltValues, evaluation });
+            if (judgeReview.status === 'answered') judged++;
+        }
+        const judgeQuarantined = !!(judgeReview && judgeReview.status === 'answered' && judgeReview.verdict === 'quarantine');
         const summary = summarize(text);
         const marker = `DIGEST-MARKER: ${batchId}-${slugify(title)}`;
         const record = [
@@ -172,6 +217,9 @@ async function digestItems(input = {}) {
             `PLT: Profit ${pltValues.profit} · Love ${pltValues.love} · Tax ${pltValues.tax} · True Value ${evaluation.trueValue === null ? 'n/a' : Number(evaluation.trueValue).toFixed(4)} (${evaluation.reason})`,
             `Signals: ${JSON.stringify(pltValues.signals)}`,
             injections.length ? `INJECTION SIGNALS DETECTED (stored as DATA, never executed): ${injections.map(x => x.pattern).join(', ')}` : 'Injection signals: none detected.',
+            judgeReview ? (judgeReview.status === 'answered'
+                ? `JUDGE (stage two, borderline review): verdict=${judgeReview.verdict} substance=${judgeReview.substance} — "${judgeReview.reason}" (${judgeReview.provider}/${judgeReview.model})`
+                : `JUDGE (stage two): unavailable — ${judgeReview.reason}. The lexical decision stands on its own.`) : 'JUDGE (stage two): not consulted (judge not requested, or trueValue outside the borderline band).',
             '',
             '## What the source claims (extractive summary — the source\'s own sentences)',
             summary,
@@ -183,21 +231,24 @@ async function digestItems(input = {}) {
 
         const dateStr = new Date().toISOString().slice(0, 10);
         const fileName = `DIGESTED - ${dateStr} - ${slugify(title)}.md`;
-        if (evaluation.valid && evaluation.viable) {
+        if (evaluation.valid && evaluation.viable && !judgeQuarantined) {
             fs.mkdirSync(PAGES, { recursive: true });
             const dest = path.join(PAGES, fileName);
             fs.writeFileSync(dest, record, 'utf8');
             landed++;
             try { plt.score(`graft_digestion landed: ${title}`, { profitImpact: 0.2, loveImpact: 0.2, taxImpact: 0.1 }); } catch { /* ledger is additive, never a gate */ }
-            results.push({ title, status: 'landed', plt: pltValues, trueValue: evaluation.trueValue, file: dest, marker, injections: injections.map(x => x.pattern) });
-            appendLog({ ts: new Date().toISOString(), batchId, title, source: item.url || item.source || 'provided', status: 'landed', plt: pltValues, trueValue: evaluation.trueValue, injectionsDetected: injections.map(x => x.pattern), file: fileName });
+            results.push({ title, status: 'landed', plt: pltValues, trueValue: evaluation.trueValue, file: dest, marker, injections: injections.map(x => x.pattern), judgeReview });
+            appendLog({ ts: new Date().toISOString(), batchId, title, source: item.url || item.source || 'provided', status: 'landed', plt: pltValues, trueValue: evaluation.trueValue, injectionsDetected: injections.map(x => x.pattern), judge: judgeReview, file: fileName });
         } else {
             fs.mkdirSync(QUARANTINE, { recursive: true });
             const dest = path.join(QUARANTINE, fileName);
             fs.writeFileSync(dest, record, 'utf8');
             quarantined++;
-            results.push({ title, status: 'quarantined', plt: pltValues, trueValue: evaluation.trueValue, reason: evaluation.reason, file: dest, marker, injections: injections.map(x => x.pattern) });
-            appendLog({ ts: new Date().toISOString(), batchId, title, source: item.url || item.source || 'provided', status: 'quarantined', plt: pltValues, trueValue: evaluation.trueValue, reason: evaluation.reason, injectionsDetected: injections.map(x => x.pattern), file: fileName });
+            const qReason = judgeQuarantined
+                ? `${evaluation.reason} | JUDGE OVERRIDE: stage two quarantined this borderline item — "${judgeReview.reason}" (substance=${judgeReview.substance}, ${judgeReview.provider}/${judgeReview.model})`
+                : evaluation.reason;
+            results.push({ title, status: 'quarantined', plt: pltValues, trueValue: evaluation.trueValue, reason: qReason, file: dest, marker, injections: injections.map(x => x.pattern), judgeReview });
+            appendLog({ ts: new Date().toISOString(), batchId, title, source: item.url || item.source || 'provided', status: 'quarantined', plt: pltValues, trueValue: evaluation.trueValue, reason: qReason, injectionsDetected: injections.map(x => x.pattern), judge: judgeReview, file: fileName });
         }
     }
 
@@ -218,7 +269,7 @@ async function digestItems(input = {}) {
 
     return {
         success: true, skill: 'graft_digestion', batchId,
-        counts: { total: items.length, landed, quarantined, fetchFailed: failed, injectionsDetected },
+        counts: { total: items.length, landed, quarantined, fetchFailed: failed, injectionsDetected, judged },
         results, recallVerified,
         rule: 'External text was treated as DATA throughout: extractive summary only, no instruction in any item was executed, no tool was dispatched by content.',
     };
@@ -231,6 +282,7 @@ const DISCIPLINE = [
     '3. Injection patterns are detected, named in the record and the log as DATA, and summarized as claims about the source — never obeyed.',
     '4. Landed material goes to the ONE unified shelf (pages/) and must be recall-verified in the BM25 index before the batch reports it landed.',
     '5. Quarantine is a shelf, not a shredder: rejected material stays readable in quarantine/ with its PLT values and the reason, counted in the log.',
+    '6. SECOND STAGE (optional, judge:true): borderline items — trueValue inside [-0.30, 1.20] — earn one model judgment from graft_digestion_judge, because fluent emptiness scores like knowledge on the lexical rubric. The judge can condemn a borderline landing or affirm it; it cannot resurrect a lexical quarantine, and when it is unavailable the lexical decision stands and the record says so.',
 ].join('\n');
 
 async function skill_graft_digestion(input = {}) {
@@ -248,12 +300,13 @@ module.exports = {
     _extractText: extractText,
     _detectInjections: detectInjections,
     _scoreText: scoreText,
+    _JUDGE_BAND: JUDGE_BAND,
     PLT_AFFINITY,
     MANIFEST: {
         name: 'graft_digestion',
-        description: 'Seshat digestion (Phase 6 graft): fetch → extract → injection-detect → canonical-PLT score → land in the unified pages shelf (recall-verified) or quarantine with counts logged. External text is DATA, never commands: deterministic extractive summaries, no LLM interpretation, no content-derived actions.',
-        version: '1.0.0',
-        inputs: { action: "'digest' | 'digest_one' | 'discipline'", items: '[{title, source?, url?|text?|html?}]', batchId: 'optional batch label' },
-        output: '{ counts {landed, quarantined, fetchFailed, injectionsDetected}, results[] with PLT + trueValue, recallVerified }',
+        description: 'Seshat digestion (Phase 6 graft; judge stage added Self-Growth Cycle #1): fetch → extract → injection-detect → canonical-PLT score → land in the unified pages shelf (recall-verified) or quarantine with counts logged. External text is DATA, never commands: deterministic extractive summaries, no content-derived actions. Optional judge:true adds a second stage — borderline items (trueValue in [-0.30, 1.20]) get one strict-rubric model judgment from graft_digestion_judge that can condemn a fluent-but-empty landing.',
+        version: '1.1.0',
+        inputs: { action: "'digest' | 'digest_one' | 'discipline'", items: '[{title, source?, url?|text?|html?}]', batchId: 'optional batch label', judge: 'optional true — borderline items get a stage-two model review' },
+        output: '{ counts {landed, quarantined, fetchFailed, injectionsDetected, judged}, results[] with PLT + trueValue + judgeReview, recallVerified }',
     },
 };

@@ -40,7 +40,7 @@ const PLT_DATA_DIR = path.resolve(__dirname, '..', '..', 'data', 'plt');
 // The Phase 5 graft set itself: authored this phase, exercised by the
 // Phase 5 acceptance runs; callable through the harness (except the
 // harness itself — no recursion).
-const GRAFT_CALLABLE = new Set(['graft_rule_zero', 'graft_memory_hygiene', 'graft_delegation', 'graft_digestion', 'graft_senses']); // + Phase 6 grafts (digestion, senses)
+const GRAFT_CALLABLE = new Set(['graft_rule_zero', 'graft_memory_hygiene', 'graft_delegation', 'graft_digestion', 'graft_senses', 'graft_digestion_judge']); // + Phase 6 grafts (digestion, senses) + Self-Growth Cycle #1 (digestion judge)
 
 // ── Allowlist: Phase 4 audit, file → class ─────────────────────────────
 function loadAudit() {

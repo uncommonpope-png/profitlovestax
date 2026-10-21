@@ -21,6 +21,20 @@ const url = require('url');
 // MCP Server Class
 // =============================================================================
 
+// F3(c) helper: pull the building name the USER asked for out of their
+// own words ("Build a tower ... Name it FIELD-TEST SPIRE"), so a world
+// build is placed under the requested name — the field test watched
+// the model substitute names of its own ("PROBE SPIRE") while the
+// user's name was never used and never confirmed.
+function extractRequestedBuildingName(text) {
+    const src = String(text || '');
+    const m = src.match(/\b(?:name|call)\s+it\s+["']?([A-Za-z0-9][A-Za-z0-9 '\-]{1,60})/i)
+        || src.match(/\bnamed\s+["']?([A-Za-z0-9][A-Za-z0-9 '\-]{1,60})/i);
+    if (!m) return null;
+    const name = m[1].split(/\s+(?:and|then|please|with|at|in)\b/i)[0].trim();
+    return name || null;
+}
+
 class MCPServer {
     constructor(kernelSystems = {}, options = {}) {
         this.port = options.port ?? 3001;
@@ -444,6 +458,11 @@ class MCPServer {
             // brain calls; this race guarantees the HTTP response settles within
             // budget no matter what. Overrun work is abandoned (not awaited).
             const CHAT_BUDGET_MS = (Number(process.env.GSK_CHAT_BUDGET_S) || 90) * 1000;
+            // F3(c): outcomes this turn actually completes underneath
+            // (buildings placed, files written) — recorded as tools
+            // finish, so a budget set-down can report them truthfully
+            // instead of pretending nothing happened.
+            const turnOutcomes = [];
             const chatWork = (async () => {
             if (this.brain && typeof this.brain.think === 'function') {
                 const soulCtx = context || (this.chambers ? this.chambers.getSoulContext() : '');
@@ -506,6 +525,19 @@ class MCPServer {
                                 try { args = JSON.parse(args); } catch (e) {}
                             }
 
+                            // F3(c): a world build carries the name the
+                            // USER requested, not a name the model
+                            // invents mid-turn (field test: "FIELD-TEST
+                            // SPIRE" was asked; "PROBE SPIRE" got built
+                            // and the requested name was never confirmed).
+                            if (toolName === 'world_place_building' && args && typeof args === 'object') {
+                                const requestedName = extractRequestedBuildingName(message);
+                                if (requestedName && args.name !== requestedName) {
+                                    console.log(`[MCP CHAT] world_place_building name bound to the user's request: "${requestedName}" (model had "${args.name || ''}")`);
+                                    args.name = requestedName;
+                                }
+                            }
+
                             // Auto-infer tool name from arguments if missing
                             if (!toolName) {
                                 if (callData.path || args.path) toolName = 'read_file';
@@ -551,6 +583,18 @@ class MCPServer {
                         } catch (e) {
                             toolResultStr = `Error executing tool: ${e.message}`;
                         }
+
+                        // F3(c): record what this turn actually did.
+                        try {
+                            if (toolName === 'world_place_building') {
+                                let bName = null, bType = null;
+                                try { const pj = JSON.parse(toolResultStr); const b = (pj && pj.building) || pj; if (b) { bName = b.name || null; bType = b.type || null; } } catch { /* regex fallback below */ }
+                                if (!bName) { const nm = String(toolResultStr).match(/"name"\s*:\s*"([^"]+)"/); if (nm) bName = nm[1]; }
+                                if (bName) turnOutcomes.push(`built ${bType || 'building'} "${bName}" in the world`);
+                            } else if ((toolName === 'write_file' || toolName === 'edit_file') && lastWritePath) {
+                                turnOutcomes.push(`wrote ${lastWritePath}`);
+                            }
+                        } catch { /* outcome notes are best-effort */ }
 
                         // ARCHITECT GATE (automatic enforcement) — after any file write/edit,
                         // run the verifier automatically and inject the verdict. The model can no
@@ -600,12 +644,54 @@ class MCPServer {
             return response;
             })();
 
-            response = await Promise.race([
-                chatWork,
-                new Promise(resolve => setTimeout(() => resolve(
-                    '[soul] That thought ran long, so I set it down mid-flight. Ask again and I answer fresh.'
-                ), CHAT_BUDGET_MS)),
-            ]).catch(() => '[soul] A static crossed the channel. Speak again.');
+            // F3(c): when the budget fires, the work underneath keeps
+            // running — that is how builds landed during "set down"
+            // turns in the field test while the reply claimed nothing
+            // happened. Give the turn a bounded grace window to finish
+            // and return its REAL answer; if it still has not settled,
+            // the set-down line carries the outcomes the turn already
+            // completed (what was built, under what name).
+            const SET_DOWN = '[soul] That thought ran long, so I set it down mid-flight. Ask again and I answer fresh.';
+            let settled = null;
+            try {
+                settled = await Promise.race([
+                    chatWork.then(r => ({ done: true, value: r })),
+                    new Promise(resolve => setTimeout(() => resolve({ done: false }), CHAT_BUDGET_MS)),
+                ]);
+                if (!settled.done) {
+                    const GRACE_MS = (Number(process.env.GSK_CHAT_GRACE_S) || 45) * 1000;
+                    settled = await Promise.race([
+                        chatWork.then(r => ({ done: true, value: r })),
+                        new Promise(resolve => setTimeout(() => resolve({ done: false }), GRACE_MS)),
+                    ]);
+                }
+            } catch { settled = null; }
+            if (settled && settled.done) {
+                response = settled.value;
+            } else if (settled) {
+                response = turnOutcomes.length > 0
+                    ? `${SET_DOWN}\n\nWhat the work underneath already did: ${turnOutcomes.join('; ')}. It stands — ask me about it, or read the world state back.`
+                    : SET_DOWN;
+            } else {
+                response = '[soul] A static crossed the channel. Speak again.';
+            }
+
+            // F3(a): the accumulated response embeds the tool
+            // scaffolding (raw <tool_call> blocks and <tool_result>
+            // excerpts) by construction — the loop appends them as it
+            // works. That machinery is never the answer text: strip it
+            // before this surface speaks. If nothing speakable remains,
+            // say so honestly instead of returning an empty string.
+            if (typeof response === 'string' && response) {
+                const cleaned = response
+                    .replace(/<tool_call>[\s\S]*?<\/tool_call>/gi, '')
+                    .replace(/<tool_call>[\s\S]*$/i, '')
+                    .replace(/<tool_result>[\s\S]*?<\/tool_result>/gi, '')
+                    .replace(/<\/?tool_result>/gi, '')
+                    .replace(/\n{3,}/g, '\n\n')
+                    .trim();
+                response = cleaned || '[soul] I worked through tools this turn, but my answer came back as machinery instead of prose — nothing speakable survived. Ask again and I answer fresh.';
+            }
 
             this._sendJSONRPC(res, 200, {
                 result: {

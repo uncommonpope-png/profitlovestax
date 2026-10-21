@@ -35,7 +35,7 @@
     "react-dom": "19.2.6",
     "react-markdown": "10.1.0",
     "superjson": "2.2.6",
-    "three": "0.184.0",
+    "three": "0.186.1",
     "tailwind-merge": "3.6.0",
     "@solana/web3.js": "1.98.4",
     "zod": "4.4.3"

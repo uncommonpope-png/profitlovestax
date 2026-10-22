@@ -1,0 +1,74 @@
+{
+  "cycle": 5,
+  "batchId": "growth-cycle-005",
+  "startedAt": "2026-10-22T04:56:17.484Z",
+  "stages": {
+    "digest": {
+      "sourcesOffered": 1,
+      "itemsDigested": 1,
+      "skippedDuplicates": 0,
+      "counts": {
+        "total": 1,
+        "landed": 1,
+        "quarantined": 0,
+        "fetchFailed": 0,
+        "injectionsDetected": 0,
+        "judged": 0
+      },
+      "results": [
+        {
+          "title": "2026-07-07.md",
+          "status": "landed",
+          "trueValue": 1.215,
+          "plt": {
+            "profit": 0.671,
+            "love": 0.694,
+            "tax": 0.15,
+            "signals": {
+              "tokens": 407,
+              "unique": 197,
+              "uniqueRatio": 0.484,
+              "sentences": 32,
+              "spamHits": 0,
+              "capsRatio": 0.068
+            }
+          },
+          "judgeReview": null,
+          "file": "/home/runner/work/profitlovestax/profitlovestax/WORKBENCH_COMPLETE/workbench/.seshat-brain/pages/DIGESTED - 2026-10-22 - 2026-07-07-md.md"
+        }
+      ],
+      "recallVerified": {
+        "refreshed": true,
+        "markerFound": true,
+        "source": "pages/DIGESTED - 2026-10-22 - 2026-07-07-md.md"
+      }
+    },
+    "build": {
+      "status": "not_scheduled",
+      "detail": "spec carried no build task this cycle"
+    },
+    "draft": {
+      "status": "not_scheduled",
+      "detail": "the cycle record did not support a draft this cycle"
+    },
+    "writeBack": {
+      "success": true,
+      "marker": "OUTCOME-MARKER: 2026-10-22-self-growth-cycle-5-ignition-record",
+      "written": {
+        "page": "/home/runner/work/profitlovestax/profitlovestax/WORKBENCH_COMPLETE/workbench/.seshat-brain/pages/SESSION-OUTCOME - 2026-10-22 - self-growth-cycle-5-ignition-record.md",
+        "shelf": "pages (unified)"
+      },
+      "recallVerified": true,
+      "recall": {
+        "found": true,
+        "via": "deep-index.json chunk (unified pages shelf)",
+        "source": "pages/SESSION-OUTCOME - 2026-10-22 - self-growth-cycle-5-ignition-record.md"
+      },
+      "error": null
+    }
+  },
+  "refusals": [],
+  "status": "clean",
+  "failures": 0,
+  "finishedAt": "2026-10-22T04:56:21.175Z"
+}

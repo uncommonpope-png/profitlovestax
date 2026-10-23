@@ -1,0 +1,74 @@
+{
+  "cycle": 10,
+  "batchId": "growth-cycle-010",
+  "startedAt": "2026-10-23T11:45:16.857Z",
+  "stages": {
+    "digest": {
+      "sourcesOffered": 1,
+      "itemsDigested": 1,
+      "skippedDuplicates": 0,
+      "counts": {
+        "total": 1,
+        "landed": 1,
+        "quarantined": 0,
+        "fetchFailed": 0,
+        "injectionsDetected": 0,
+        "judged": 0
+      },
+      "results": [
+        {
+          "title": "2026_05_26.md",
+          "status": "landed",
+          "trueValue": 1.3530000000000002,
+          "plt": {
+            "profit": 0.775,
+            "love": 0.728,
+            "tax": 0.15,
+            "signals": {
+              "tokens": 703,
+              "unique": 401,
+              "uniqueRatio": 0.57,
+              "sentences": 38,
+              "spamHits": 0,
+              "capsRatio": 0.162
+            }
+          },
+          "judgeReview": null,
+          "file": "/home/runner/work/profitlovestax/profitlovestax/WORKBENCH_COMPLETE/workbench/.seshat-brain/pages/DIGESTED - 2026-10-23 - 2026-05-26-md.md"
+        }
+      ],
+      "recallVerified": {
+        "refreshed": true,
+        "markerFound": true,
+        "source": "pages/DIGESTED - 2026-10-23 - 2026-05-26-md.md"
+      }
+    },
+    "build": {
+      "status": "not_scheduled",
+      "detail": "spec carried no build task this cycle"
+    },
+    "draft": {
+      "status": "not_scheduled",
+      "detail": "the cycle record did not support a draft this cycle"
+    },
+    "writeBack": {
+      "success": true,
+      "marker": "OUTCOME-MARKER: 2026-10-23-self-growth-cycle-10-ignition-record",
+      "written": {
+        "page": "/home/runner/work/profitlovestax/profitlovestax/WORKBENCH_COMPLETE/workbench/.seshat-brain/pages/SESSION-OUTCOME - 2026-10-23 - self-growth-cycle-10-ignition-record.md",
+        "shelf": "pages (unified)"
+      },
+      "recallVerified": true,
+      "recall": {
+        "found": true,
+        "via": "deep-index.json chunk (unified pages shelf)",
+        "source": "pages/SESSION-OUTCOME - 2026-10-23 - self-growth-cycle-10-ignition-record.md"
+      },
+      "error": null
+    }
+  },
+  "refusals": [],
+  "status": "clean",
+  "failures": 0,
+  "finishedAt": "2026-10-23T11:45:19.374Z"
+}

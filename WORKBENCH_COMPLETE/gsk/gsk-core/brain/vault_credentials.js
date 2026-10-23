@@ -31,6 +31,17 @@ const KEY_FIELDS = [
     'OPENAI_API_KEY',
     'ANTHROPIC_API_KEY',
     'NVIDIA_API_KEY',
+    // Added 2026-10-22 (look-loop revision-seat rewire): lets the
+    // revision chain resolve creds.cohere from vault/env — Cohere
+    // command-a-03-2025 is revision fallback #2 in brain/look_loop.js.
+    // Purely additive: existing consumers look up their own provider
+    // ids and ignore the extra map entry.
+    'COHERE_API_KEY',
+    // Added 2026-10-22 (vault recovery): a SECOND Gemini key recovered
+    // from the original Oct-20 sealed vault, mapped to creds.gemini2
+    // below so chains can rotate Gemini→Gemini when the main key's
+    // daily quota burns.
+    'GEMINI_API_KEY_2',
 ];
 
 let cachedKeyPass = null;
@@ -78,10 +89,46 @@ function resolveProviderCredentials() {
     const vault = readWorkbenchVault();
     const creds = {};
     for (const field of KEY_FIELDS) {
+        if (field === 'GEMINI_API_KEY_2') continue; // mapped to gemini2 below
         const v = vault[field] || process.env[field];
         if (v) creds[field.replace(/_API_KEY$/, '').toLowerCase()] = String(v);
     }
+    // GEMINI_API_KEY_2 does not fit the _API_KEY strip pattern; map it
+    // explicitly to the gemini2 seat id.
+    const g2 = vault.GEMINI_API_KEY_2 || process.env.GEMINI_API_KEY_2;
+    if (g2) creds.gemini2 = String(g2);
     return creds;
 }
 
-module.exports = { readWorkbenchVault, resolveProviderCredentials, vaultPath };
+/**
+ * Seshat's sovereign local seat (Local Mind Phase 1, 2026-10-22).
+ *
+ * A small Qwen model served on-box by llama.cpp (llama-server) — NO
+ * key exists for it and none is required: the endpoint is loopback
+ * and keyless by construction, so this resolver never demands a
+ * credential for it. Rented seats keep dying (daily quota burns,
+ * provider shutdowns); her judge's first seat must be one nobody can
+ * revoke. Consumers that resolve their own provider ids ignore this
+ * helper entirely — only seat chains that opt in (the digestion
+ * judge) prepend it.
+ *
+ *   endpoint : SESHAT_LOCAL_ENDPOINT || http://127.0.0.1:18222/v1/chat/completions
+ *   model    : SESHAT_LOCAL_MODEL_NAME || qwen2.5-1.5b-instruct-q4_k_m
+ *   disable  : SESHAT_LOCAL_MODEL=off → returns null (rented chain only)
+ */
+const LOCAL_SEAT_DEFAULTS = {
+    endpoint: 'http://127.0.0.1:18222/v1/chat/completions',
+    model: 'qwen2.5-1.5b-instruct-q4_k_m',
+};
+
+function resolveLocalSeat() {
+    if (String(process.env.SESHAT_LOCAL_MODEL || '').toLowerCase() === 'off') return null;
+    return {
+        id: 'local',
+        model: process.env.SESHAT_LOCAL_MODEL_NAME || LOCAL_SEAT_DEFAULTS.model,
+        endpoint: process.env.SESHAT_LOCAL_ENDPOINT || LOCAL_SEAT_DEFAULTS.endpoint,
+        local: true,
+    };
+}
+
+module.exports = { readWorkbenchVault, resolveProviderCredentials, vaultPath, resolveLocalSeat, LOCAL_SEAT_DEFAULTS };

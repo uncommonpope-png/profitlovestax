@@ -420,9 +420,19 @@ class Brain {
         }
         const chain = [];
         if (creds.gemini) chain.push({ id: 'gemini', defaultModel: 'gemini-3.5-flash', endpoint: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', apiKey: creds.gemini, timeout: 60000 });
+        // VAULT ROTATION (2026-10-22): second Gemini key rides directly
+        // behind the first — same model, separate quota pool.
+        if (creds.gemini2) chain.push({ id: 'gemini2', defaultModel: 'gemini-3.5-flash', endpoint: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', apiKey: creds.gemini2, timeout: 60000 });
         if (creds.groq) chain.push({ id: 'groq', defaultModel: 'llama-3.3-70b-versatile', endpoint: 'https://api.groq.com/openai/v1/chat/completions', apiKey: creds.groq, timeout: 60000 });
         if (creds.openai) chain.push({ id: 'openai', defaultModel: 'gpt-4o-mini', endpoint: 'https://api.openai.com/v1/chat/completions', apiKey: creds.openai, timeout: 60000 });
         if (creds.poolside) chain.push({ id: 'poolside', defaultModel: 'poolside/laguna-s-2.1', endpoint: 'https://inference.poolside.ai/v1/chat/completions', apiKey: creds.poolside, timeout: 90000 });
+        // VAULT ROTATION (2026-10-22, owner's order): Cohere joins the
+        // chain as the last rented seat — same proven seat pattern as
+        // brain/look_loop.js TEXT_SEATS (command-a-03-2025 via Cohere's
+        // OpenAI-compatibility endpoint). The vault was filled with the
+        // hunted keys (gemini/cohere/nvidia) so this chain can actually
+        // rotate when a seat's quota burns, instead of dying on gemini.
+        if (creds.cohere) chain.push({ id: 'cohere', defaultModel: 'command-a-03-2025', endpoint: 'https://api.cohere.ai/compatibility/v1/chat/completions', apiKey: creds.cohere, timeout: 60000 });
         if (chain.length === 0) return null;
 
         let handler;

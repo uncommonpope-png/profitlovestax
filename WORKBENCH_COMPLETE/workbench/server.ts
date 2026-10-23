@@ -62,7 +62,11 @@ const hands = createHands({
 });
 
 const GSK_MCP_URL = process.env.GSK_MCP_URL || "http://127.0.0.1:3001";
-const GSK_MCP_KEY = process.env.MCP_API_KEY || "92140facf0a3b8484f85b9d343687a95703e91b4724928e2ec78b8fd9d4aefc6";
+const GSK_MCP_KEY = process.env.MCP_API_KEY || '';
+function requireMcpKey(): string {
+  if (!GSK_MCP_KEY) throw new Error("MCP_API_KEY not set - refusing to spawn a process that requires the GSK MCP key");
+  return GSK_MCP_KEY;
+}
 const OMNIROUTE_URL = process.env.OMNIROUTE_URL || "http://127.0.0.1:20128";
 const CPL_URL = process.env.CPL_URL || "http://127.0.0.1:3457";
 const SCRIBE_URL = process.env.SCRIBE_URL || "http://127.0.0.1:4000";
@@ -2633,11 +2637,12 @@ app.post("/api/profit/cascade/step", (req, res) => res.json({ success: true, ste
 // as plaintext JSON and never read back for LLM calls. Legacy plaintext
 // vault.json files are still read transparently and upgraded on next POST.
 const VAULT_PATH = path.join(__dirname, ".vault", "vault.json");
-const VAULT_KEY_FIELDS = ["GEMINI_API_KEY", "OPENAI_API_KEY", "ANTHROPIC_API_KEY", "GROQ_API_KEY", "NVIDIA_API_KEY", "POOLSIDE_API_KEY"];
+const VAULT_KEY_FIELDS = ["GEMINI_API_KEY", "OPENAI_API_KEY", "ANTHROPIC_API_KEY", "GROQ_API_KEY", "NVIDIA_API_KEY", "POOLSIDE_API_KEY", "COHERE_API_KEY"];
 let cachedVaultKeyPass: string | null = null;
 let cachedVaultKeyMaterial: Buffer | null = null;
 function vaultKeyMaterial(): Buffer {
-  const pass = process.env.VAULT_PASSPHRASE || "buyasoul-vault-default-passphrase";
+  const pass = process.env.VAULT_PASSPHRASE;
+  if (!pass) throw new Error("VAULT_PASSPHRASE not set - refusing to derive vault key material");
   // OP5: scryptSync is deliberately expensive (~50-100ms) and blocks the
   // event loop. The passphrase is fixed for the life of the process, so
   // derive once and reuse instead of paying it on every vault read.
@@ -4126,8 +4131,8 @@ async function startGSK(): Promise<void> {
     GSK_AUTONOMY_ENABLED: "true", // POPE DECREE 2026-09-16: NO GATES. Daemon motor ON. Being-loop + daemon both build. Blood-flow hard denies (kill/secrets/force-git) stay — those are survival law, not gates.
     GSK_HITL_AUTO_APPROVE: "1", // POPE DECREE 2026-09-16: HITL human checkpoint removed entirely. Council PLT still scores every plan; no human waits.
     NINE_ROUTER_URL: OMNIROUTE_URL,
-    NINE_ROUTER_API_KEY: "oma_live_xPEPbuQ6FznrEp7sL8_-7zPUI1vTa10utjpG49l4xps",
-      MCP_API_KEY: GSK_MCP_KEY,
+    ...(process.env.NINE_ROUTER_API_KEY ? { NINE_ROUTER_API_KEY: process.env.NINE_ROUTER_API_KEY } : {}),
+      MCP_API_KEY: requireMcpKey(),
       CONDUCTOR_URL: `http://127.0.0.1:${PORT}`,
       SCRIBE_KEY: scribeKey(),
       GENESIS_TOKEN: process.env.GENESIS_TOKEN || "genesis-sovereign-2026",
@@ -4329,7 +4334,7 @@ function startScribe(): Promise<void> {
           ...process.env,
           SCRIBE_PORT: "4000",
           GSK_MCP_URL: GSK_MCP_URL,
-          MCP_API_KEY: GSK_MCP_KEY,
+          MCP_API_KEY: requireMcpKey(),
           SCRIBE_KEY: scribeKey(),
         },
         stdio: ["ignore", "pipe", "pipe"],

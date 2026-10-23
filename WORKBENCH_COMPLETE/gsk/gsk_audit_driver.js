@@ -8,7 +8,7 @@ const GSK_ROOT = __dirname;
 const RUN_SECONDS = 180;
 const STIMULUS_SECONDS = 60;
 const MCP_PORT = 3001;
-const MCP_KEY = process.env.MCP_API_KEY || '92140facf0a3b8484f85b9d343687a95703e91b4724928e2ec78b8fd9d4aefc6';
+const MCP_KEY = process.env.MCP_API_KEY || '';
 
 const child = spawn('node', ['-r', './gsk_living_audit.js', '-r', './gsk_require_trace.js', './gsk_daemon.js'], {
     cwd: GSK_ROOT,

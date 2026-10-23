@@ -74,7 +74,7 @@ Surgeon session: 2026-10-20. Rule: minimal diffs; every change listed here.
 
 ### Op 3 — Wire + encrypt the vault (all in server.ts)
 - AES-256-GCM at rest: key = scrypt(VAULT_PASSPHRASE ||
-  "buyasoul-vault-default-passphrase", salt "buyasoul-workbench-vault", 32).
+  "[redacted-fallback-passphrase]", salt "buyasoul-workbench-vault", 32).
   Stored: {"__vault":"aes-256-gcm","iv","tag","data"} (base64). Legacy
   plaintext vault.json still reads transparently (pass-through, no marker).
 - `loadVaultKeys()`/`readVault()` decrypt on read;
@@ -275,7 +275,7 @@ struck on the chat path:
   generativelanguage.googleapis.com/v1beta/models?key=<B> → HTTP 200 with
   the model list. Key A (…DqYw) never needed.
 - Boot (dummy workbench .env: GEMINI_API_KEY empty,
-  MASTER_API_KEY=test-master, VAULT_PASSPHRASE=test-pass;
+  MASTER_API_KEY=test-master, VAULT_PASSPHRASE=[rotated-2026-10-23];
   `npx tsx server.ts`): Being woke — `[BEING] Whole. Heartbeats live:
   GSK(20s) PROFIT(25s) SCRIBE(30s ALWAYS-LEARNING) SESATH/ALLM(60s
   self-growing)`. Zero "Wake failed".
@@ -609,7 +609,7 @@ Goal: connect the assembled organs — Poolside wired, identity at the
 chat seam (Op 7), a credential path for the daemon brain, and honest
 sub-agents. Clone only; nothing pushed. Keys stayed in the encrypted
 vault (Gemini …n8BQ, Poolside …Suyg); boot on the dummy .env
-(env GEMINI empty, MASTER_API_KEY=test-master, VAULT_PASSPHRASE=test-pass).
+(env GEMINI empty, MASTER_API_KEY=test-master, VAULT_PASSPHRASE=[rotated-2026-10-23]).
 Gemini's free bucket was already exhausted (429 in Test 2, ~11 h retry),
 so ALL live verification below ran on Poolside — zero Gemini turns burned.
 
@@ -853,7 +853,7 @@ in world state. Clone only; nothing pushed. Keys stayed in the encrypted
 vault (Poolside …Suyg primary; Gemini …n8BQ quota-exhausted — ZERO Gemini
 turns burned; every live model call below was answered by Poolside).
 Boot on the dummy .env (env GEMINI empty, MASTER_API_KEY=test-master,
-VAULT_PASSPHRASE=test-pass). All provider calls egressed DIRECT (the VM
+VAULT_PASSPHRASE=[rotated-2026-10-23]). All provider calls egressed DIRECT (the VM
 env proxy stalls Authorization-bearing requests — Phase 1 finding; no
 proxy transport was added anywhere).
 
@@ -1994,7 +1994,7 @@ READ BACK → PLT-SCORE → REPORT. Built only on Phase 4 substrate:
 ### 1.2 `graft_rule_zero.js` — RULE ZERO
 Deterministic completion auditor (no model calls):
 `auditCompletion({text, evidence, probes})` extracts completion claims
-(completion verbs, test-pass assertions, file artifacts) and classifies
+(completion verbs, [rotated-2026-10-23] assertions, file artifacts) and classifies
 each `supported` / `unverified` / `contradicted` against the SAME
 turn's evidence and probes; rollup verdict `verified` /
 `partially_verified` / `unverified` / `contradicted` / `no_claims`.

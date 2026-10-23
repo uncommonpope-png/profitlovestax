@@ -105,7 +105,7 @@ Until 2026-08-25, agents claimed GSK was alive while:
 |---|---|---|
 | Conductor (heart) | http://localhost:3000 | PORT MUST STAY 3000 — Pope's law |
 | OmniRoute (blood) | http://127.0.0.1:20128 | key: `omni-arsenal-gsk-2026` |
-| GSK MCP (hands) | http://127.0.0.1:3001 | key: `92140facf0a3b8484f85b9d343687a95703e91b4724928e2ec78b8fd9d4aefc6` |
+| GSK MCP (hands) | http://127.0.0.1:3001 | key: `[redacted-internal-key]` |
 | CPL (body) | http://127.0.0.1:3457 | |
 | SCRIBE (memory) | http://127.0.0.1:4000 | `X-API-Key: scribe-master-key-2026`; routes: GET `/ping`,`/health`,`/status`,`/memories`,`/export` · POST `/witness`,`/recall` |
 | ThoughtStream | :3002 | mind stream feed |

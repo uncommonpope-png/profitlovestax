@@ -5,7 +5,7 @@
 
 ## Important Details
 - **OmniRoute**: Port 20128, verified listening with ~291 models available; API key `test`; start: `$env:PORT = "20128"; Start-Process npm.cmd -ArgumentList "run","dev" -WorkingDirectory "C:\Users\uncom\Desktop\OmniRoute" -WindowStyle Hidden`
-- **GSK daemon**: Port 3001 (MCP API key: `92140facf0a3b8484f85b9d343687a95703e91b4724928e2ec78b8fd9d4aefc6`), running PID 7552
+- **GSK daemon**: Port 3001 (MCP API key: `[redacted-internal-key]`), running PID 7552
 - **web_search skill**: Available via `gsk-core\skills\web_search.js` using Bing RSS/Google News/DuckDuckGo providers
 - **Soul teaching sent**: MCP chat returned AWAKENING phase, cycle 447, mood heavy
 

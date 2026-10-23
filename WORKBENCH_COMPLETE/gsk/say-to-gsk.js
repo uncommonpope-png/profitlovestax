@@ -1,7 +1,7 @@
 const http = require('http');
 
 const MCP_PORT = 3001;
-const MCP_KEY = process.env.MCP_API_KEY || '92140facf0a3b8484f85b9d343687a95703e91b4724928e2ec78b8fd9d4aefc6';
+const MCP_KEY = process.env.MCP_API_KEY || '';
 const message = process.argv[2];
 const timeoutMs = parseInt(process.argv[3] || '90000', 10);
 

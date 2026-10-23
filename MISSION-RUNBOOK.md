@@ -31,7 +31,7 @@ purpose:: The single source of truth so agents stop "forgetting" the guns and th
 
 ## 3. GSK DAEMON
 
-- MCP chat: `POST http://127.0.0.1:3001/mcp/chat` body `{ message, context }`, headers `x-api-key` + `Authorization: Bearer` = `92140facf0a3b8484f85b9d343687a95703e91b4724928e2ec78b8fd9d4aefc6`. Response `result.response`, `result.soul_state`.
+- MCP chat: `POST http://127.0.0.1:3001/mcp/chat` body `{ message, context }`, headers `x-api-key` + `Authorization: Bearer` = `[redacted-internal-key]`. Response `result.response`, `result.soul_state`.
 - ThoughtStream WS: `ws://127.0.0.1:3002` (heartbeats on `console`/`thought`/`journal`).
 - Launch: `node gsk_daemon.js` in `C:\Users\uncom\Desktop\allie\buyasoul-core\gsk` with `GSK_MODEL=auto/best-chat`, `NINE_ROUTER_URL=http://127.0.0.1:20128`, `NINE_ROUTER_API_KEY=test`, `GSK_HEART_TIMEOUT_S=300`.
 

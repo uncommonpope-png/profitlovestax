@@ -16,7 +16,7 @@ The running GSK (port 3001) rejects both `gsk-dev-key` and `gsk-mcp-key-dev`.
 Steps:
 - `wmic process where processid=<pid_on_3001> get commandline` — inspect launch flags/env hints
 - Search repo for `.env*` files and any hardcoded keys near `MCP_API_KEY`
-- Probe: `curl -m 3 -X POST http://127.0.0.1:3001/mcp/status -H "x-api-key: <candidate>"` for each candidate (`gsk-dev-key`, `gsk-mcp-key-dev`, `92140facf0a3b8484f85b9d343687a95703e91b4724928e2ec78b8fd9d4aefc6`, anything found in env files)
+- Probe: `curl -m 3 -X POST http://127.0.0.1:3001/mcp/status -H "x-api-key: <candidate>"` for each candidate (`gsk-dev-key`, `gsk-mcp-key-dev`, `[redacted-internal-key]`, anything found in env files)
 - ACCEPTANCE: you can state the exact working key, proven by a non-unauthorized response.
 
 ### H2. Make server.ts + GSK spawn agree on that key

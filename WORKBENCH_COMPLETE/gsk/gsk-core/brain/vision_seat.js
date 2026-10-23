@@ -73,7 +73,8 @@ async function describeImage(input = {}) {
     const imageDataUrl = input.imageDataUrl || input.dataUrl || null;
     const image = imageDataUrl || imageUrl;
     if (!image) return { success: false, error: 'image required (imageUrl or imageDataUrl)', attempts: [] };
-    const question = String(input.question || 'Describe this image in detail. Name any text, colors, and objects you can see.').slice(0, 500);
+    const questionCap = (typeof input.maxQuestionChars === 'number' && input.maxQuestionChars > 500) ? input.maxQuestionChars : 500;
+    const question = String(input.question || 'Describe this image in detail. Name any text, colors, and objects you can see.').slice(0, questionCap);
     let creds = {};
     try { creds = require('./vault_credentials.js').resolveProviderCredentials(); } catch { /* handled below */ }
     const attempts = [];
@@ -85,8 +86,9 @@ async function describeImage(input = {}) {
         const body = {
             model: seat.model,
             messages: [{ role: 'user', content: [{ type: 'text', text: question }, { type: 'image_url', image_url: { url: image } }] }],
-            max_tokens: 400, temperature: 0.2, stream: false,
+            max_tokens: (typeof input.maxTokens === 'number' && input.maxTokens > 0) ? input.maxTokens : 400, temperature: 0.2, stream: false,
         };
+        if (input.responseFormat) body.response_format = input.responseFormat;
         const r = await postJson(seat.endpoint, key, body, input.timeoutMs || 60000);
         if (r.ok) {
             attempts.push({ provider: seat.id, model: seat.model, status: 'answered' });

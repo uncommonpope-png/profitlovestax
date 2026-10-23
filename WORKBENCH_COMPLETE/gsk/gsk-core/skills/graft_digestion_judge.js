@@ -16,10 +16,12 @@
  * observed good-prose cluster). Confident lexical verdicts (very
  * high or very low TV) never reach this module.
  *
- * Method: ONE call to the body's provider chain (post-Poolside
- * order: gemini → groq → openai → poolside-if-keyed), credentials
+ * Method: ONE call to the body's provider chain — since Local Mind
+ * Phase 1 (2026-10-22) her own local keyless Qwen seat sits first,
+ * then the rented chain (post-Poolside order: gemini → groq →
+ * openai → poolside-if-keyed) as fall-through. Rented credentials
  * vault-first via ../brain/vault_credentials.js, values never
- * logged. The rubric prompt is strict and the reply must be a JSON
+ * logged; the local seat needs and has no credential. The rubric prompt is strict and the reply must be a JSON
  * object — anything unparseable is a judge FAILURE (success:false),
  * never a silent keep. The judge can only keep or quarantine a
  * borderline item; it cannot land anything the lexical stage
@@ -28,14 +30,34 @@
  */
 
 const https = require('https');
+const http = require('http');
 
 const PLT_AFFINITY = { profit: 0.5, love: 0.4, tax: 0.4 };
 
+// Seat order (Local Mind Phase 1, 2026-10-22): Seshat's own local,
+// keyless Qwen (llama-server on loopback, resolved via
+// brain/vault_credentials.js resolveLocalSeat) sits FIRST — rented
+// seats keep dying (daily quota burns, provider shutdowns), and her
+// judge must answer from a mind nobody can revoke. The rented chain
+// below is unchanged and remains the fall-through on any local
+// failure. SESHAT_JUDGE_SEATS=local restricts a run to the local
+// seat alone (proof mode); SESHAT_JUDGE_SEATS=gemini,groq,… pins
+// any subset, in listed order.
 const SEATS = [
     { id: 'gemini', model: 'gemini-3.5-flash', endpoint: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions' },
+    // VAULT ROTATION (2026-10-22): second Gemini key (recovered from the
+    // original sealed vault) — when the main key's daily quota burns,
+    // the judge rotates to the same model on the spare key.
+    { id: 'gemini2', model: 'gemini-3.5-flash', endpoint: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions' },
     { id: 'groq', model: 'meta-llama/llama-4-scout-17b-16e-instruct', endpoint: 'https://api.groq.com/openai/v1/chat/completions' },
     { id: 'openai', model: 'gpt-4o-mini', endpoint: 'https://api.openai.com/v1/chat/completions' },
     { id: 'poolside', model: 'poolside/laguna-s-2.1', endpoint: 'https://inference.poolside.ai/v1/chat/completions' },
+    // VAULT ROTATION (2026-10-22, owner's order): Cohere appended as the
+    // last rented seat — same proven pattern as brain/look_loop.js
+    // TEXT_SEATS (command-a-03-2025, OpenAI-compatibility endpoint).
+    // The workbench vault is now filled with the hunted keys, so this
+    // seat resolves a credential instead of skipping forever.
+    { id: 'cohere', model: 'command-a-03-2025', endpoint: 'https://api.cohere.ai/compatibility/v1/chat/completions' },
 ];
 
 const RUBRIC = [
@@ -55,9 +77,13 @@ function postJson(endpoint, apiKey, body, timeoutMs = 60000) {
         let u;
         try { u = new URL(endpoint); } catch { return resolve({ ok: false, error: 'bad endpoint' }); }
         const payload = JSON.stringify(body);
-        const req = https.request({
-            hostname: u.hostname, port: u.port || 443, path: u.pathname + u.search, method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey, 'Content-Length': Buffer.byteLength(payload) },
+        const isHttp = u.protocol === 'http:';
+        const headers = { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) };
+        // Keyless seats (the local sovereign seat) send no Authorization.
+        if (apiKey) headers['Authorization'] = 'Bearer ' + apiKey;
+        const req = (isHttp ? http : https).request({
+            hostname: u.hostname, port: u.port || (isHttp ? 80 : 443), path: u.pathname + u.search, method: 'POST',
+            headers,
             timeout: timeoutMs,
         }, (res) => {
             let data = '';
@@ -110,11 +136,21 @@ async function judgeItem(input = {}) {
     ].join('\n');
 
     let creds = {};
-    try { creds = require('../brain/vault_credentials.js').resolveProviderCredentials(); } catch { /* handled below */ }
+    let localSeat = null;
+    try {
+        const vc = require('../brain/vault_credentials.js');
+        creds = vc.resolveProviderCredentials();
+        if (typeof vc.resolveLocalSeat === 'function') localSeat = vc.resolveLocalSeat();
+    } catch { /* handled below */ }
+    const allSeats = localSeat ? [localSeat, ...SEATS] : SEATS;
+    const only = String(process.env.SESHAT_JUDGE_SEATS || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+    const seats = only.length ? allSeats.filter(s => only.includes(s.id)) : allSeats;
     const attempts = [];
-    for (const seat of SEATS) {
-        const key = creds[seat.id];
-        if (!key) { attempts.push({ provider: seat.id, model: seat.model, status: 'skipped', error: 'no credential in vault/env' }); continue; }
+    for (const seat of seats) {
+        // The local seat is keyless by construction (loopback llama-server);
+        // it is never skipped for want of a credential.
+        const key = seat.local ? null : creds[seat.id];
+        if (!seat.local && !key) { attempts.push({ provider: seat.id, model: seat.model, status: 'skipped', error: 'no credential in vault/env' }); continue; }
         const body = {
             model: seat.model,
             messages: [{ role: 'system', content: RUBRIC }, { role: 'user', content: userMsg }],
@@ -158,7 +194,7 @@ module.exports = {
     PLT_AFFINITY,
     MANIFEST: {
         name: 'graft_digestion_judge',
-        description: 'Digestion judge (Self-Growth Cycle #1 build): second-stage reviewer for borderline digestion items — one strict-rubric call to the body provider chain (gemini → groq → openai → poolside) returning keep/quarantine + substance + reason as strict JSON. Catches the fluent-but-empty class the lexical rubric cannot. Unparseable/unavailable judge = explicit failure, never a silent keep.',
+        description: 'Digestion judge (Self-Growth Cycle #1 build): second-stage reviewer for borderline digestion items — one strict-rubric call to the body provider chain (gemini → groq → openai → poolside → cohere) returning keep/quarantine + substance + reason as strict JSON. Catches the fluent-but-empty class the lexical rubric cannot. Unparseable/unavailable judge = explicit failure, never a silent keep.',
         version: '1.0.0',
         inputs: { action: "'judge' | 'discipline'", title: 'item title', text: 'material text (excerpt judged)', lexical: '{profit, love, tax, trueValue, signals} from graft_digestion stage one' },
         output: '{ success, verdict: keep|quarantine, substance, reason, provider, model, attempts } or { success:false, error: judge_unavailable }',

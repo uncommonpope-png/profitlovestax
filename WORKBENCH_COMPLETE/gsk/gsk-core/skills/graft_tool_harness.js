@@ -40,7 +40,7 @@ const PLT_DATA_DIR = path.resolve(__dirname, '..', '..', 'data', 'plt');
 // The Phase 5 graft set itself: authored this phase, exercised by the
 // Phase 5 acceptance runs; callable through the harness (except the
 // harness itself — no recursion).
-const GRAFT_CALLABLE = new Set(['graft_rule_zero', 'graft_memory_hygiene', 'graft_delegation', 'graft_digestion', 'graft_senses', 'graft_digestion_judge']); // + Phase 6 grafts (digestion, senses) + Self-Growth Cycle #1 (digestion judge)
+const GRAFT_CALLABLE = new Set(['graft_rule_zero', 'graft_memory_hygiene', 'graft_delegation', 'graft_digestion', 'graft_senses', 'graft_digestion_judge', 'graft_look_loop', 'graft_look_squeeze']); // + Phase 6 grafts (digestion, senses) + Self-Growth Cycle #1 (digestion judge) + Make-Him-Better Front 1 (look loop) + look squeeze (quality-per-judge-call)
 
 // ── Allowlist: Phase 4 audit, file → class ─────────────────────────────
 function loadAudit() {
@@ -213,6 +213,7 @@ async function runHarness(input, brain, memory) {
 
     const stepReports = [];
     const allProbes = [];
+    const htmlArtifacts = [];
     let failedAt = null;
     for (let i = 0; i < steps.length; i++) {
         const step = steps[i];
@@ -223,6 +224,12 @@ async function runHarness(input, brain, memory) {
         const stepOk = outcome.ok && probesOk;
         stepReports.push({ step: i + 1, skill: step.skill, ok: stepOk, outcome: outcome.ok ? summarize(outcome.result) : (outcome.detail || outcome.error || 'failed'), probes });
         lines.push(`STEP ${i + 1}/${steps.length} ${step.skill}: ${stepOk ? 'OK' : 'FAILED'} — ${stepOk ? summarize(outcome.result) : (outcome.detail || outcome.error || summarize(outcome.result))}`);
+        // HTML artifacts are collected for the LOOK stage below: a
+        // written .html file is not done when its bytes read back —
+        // it is done when it has been SEEN (Front 1, look loop).
+        if (stepOk && step.skill === 'file_system' && step.input && step.input.action === 'write_file' && typeof step.input.path === 'string' && /\.html?$/i.test(step.input.path)) {
+            htmlArtifacts.push(step.input.path);
+        }
         if (!stepOk) { failedAt = i + 1; if (!step.continueOnError) break; }
     }
 
@@ -236,6 +243,36 @@ async function runHarness(input, brain, memory) {
     lines.push('VERIFICATION:');
     if (allProbes.length === 0) lines.push('  (no probes ran — nothing was read back; treat any success below with suspicion)');
     for (const p of allProbes) lines.push(`  ${p.ok ? '✓' : '✗'} ${p.name} — ${p.detail}`);
+
+    // LOOK STAGE (Make-Him-Better Front 1) — byte read-back verifies
+    // the FILE, not the BUILD. Every HTML artifact this run wrote is
+    // rendered (phone touch + desktop), judged by the vision seat
+    // against the brief, and revised under the judge's critiques
+    // (cap 3) before "completed" may be claimed. The loop's verdict
+    // rides in the return as `lookLoop` WITH final screenshots +
+    // scores. UNSEEN (no renderer / no vision seat) or below-bar
+    // both demote the run to verification_failed — never a silent pass.
+    const lookResults = [];
+    if (status === 'completed' && htmlArtifacts.length > 0 && input.lookLoop !== false) {
+        lines.push('LOOK LOOP:');
+        for (const htmlPath of htmlArtifacts) {
+            const lr = await callSkill('graft_look_loop', {
+                action: 'run',
+                htmlPath,
+                brief: input.brief || task,
+                outDir: input.lookOutDir || undefined,
+                maxRevisions: input.maxRevisions,
+            }, brain, memory, 900000);
+            const v = lr.ok || lr.result ? (lr.result || {}) : { status: 'unseen', seen: false, error: lr.error || 'look loop call failed', detail: lr.detail };
+            lookResults.push(v);
+            if (v.report) for (const l of String(v.report).split('\n')) lines.push(`  ${l}`);
+            else lines.push(`  ${htmlPath}: ${v.status || 'unknown'} — ${v.error || ''} ${v.detail || ''}`.trim());
+            if (v.status !== 'passed') {
+                status = 'verification_failed';
+                lines.push(`  → ${htmlPath} did NOT pass the look loop (status: ${v.status}); this run is NOT completed. ${v.status === 'unseen' ? 'The artifact was never seen — no visual claim may be made for it.' : 'Final scores are attached in lookLoop; the critiques say what to fix.'}`);
+            }
+        }
+    }
 
     // PLT SCORE — the outcome is written into the body's own ledger.
     // (Canonical engine: score() returns {profit, love, tax, score};
@@ -266,6 +303,7 @@ async function runHarness(input, brain, memory) {
         gate: { allowed: gate.allowed, reason: gate.reason, trueValue: gate.trueValue },
         steps: stepReports,
         verification: allProbes,
+        lookLoop: lookResults,
         pltScore: pltScore ? { trueValue: pltScore.trueValue, totalActions: pltScore.totalActions } : null,        report: lines.join('\n'),
     };
 }
@@ -277,7 +315,8 @@ const DISCIPLINE = [
     'ACT: one audited-real skill per step. Stubs, fakes and readiness strings are not execution.',
     'READ BACK: every effect is verified by reading the world again (file contents, state, exit codes) — never by trusting the write call.',
     'SCORE: the outcome is written into the PLT ledger, success or failure.',
-    'REPORT: "completed" only when every step ran AND every probe passed. Anything else is reported as what it is.',
+    'LOOK: an HTML artifact is rendered and SEEN before it is done — phone (touch) and desktop frames judged by the vision seat against the brief (graft_look_loop). Below the bar → revised under the judge\'s critiques (cap 3). UNSEEN is a verdict, never a pass.',
+    'REPORT: "completed" only when every step ran AND every probe passed AND every HTML artifact passed the look loop with screenshots + scores attached. Anything else is reported as what it is.',
 ].join('\n');
 
 async function skill_graft_tool_harness(input = {}, brain, memory) {

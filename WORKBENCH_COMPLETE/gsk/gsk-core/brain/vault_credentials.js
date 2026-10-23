@@ -14,7 +14,7 @@
  *                (override: GSK_VAULT_PATH)
  *   format     : {"__vault":"aes-256-gcm","iv","tag","data"} (base64),
  *                legacy plaintext JSON still reads transparently
- *   key        : scrypt(VAULT_PASSPHRASE || default, "buyasoul-workbench-vault", 32)
+ *   key        : scrypt(VAULT_PASSPHRASE (env-only; throws when unset), "buyasoul-workbench-vault", 32)
  *                — byte-identical to workbench/server.ts vaultKeyMaterial()
  *
  * Values are never logged here or by callers.
@@ -48,7 +48,8 @@ let cachedKeyPass = null;
 let cachedKeyMaterial = null;
 
 function vaultKeyMaterial() {
-    const pass = process.env.VAULT_PASSPHRASE || 'buyasoul-vault-default-passphrase';
+    const pass = process.env.VAULT_PASSPHRASE;
+    if (!pass) throw new Error('VAULT_PASSPHRASE not set - refusing to derive vault key material');
     // scrypt is deliberately expensive; the passphrase is process-fixed,
     // so derive once (same memoization as workbench op 5).
     if (cachedKeyMaterial && cachedKeyPass === pass) return cachedKeyMaterial;

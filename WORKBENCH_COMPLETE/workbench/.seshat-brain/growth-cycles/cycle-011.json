@@ -1,0 +1,228 @@
+{
+  "cycle": 11,
+  "batchId": "growth-cycle-011",
+  "startedAt": "2026-10-23T17:13:32.267Z",
+  "stages": {
+    "digest": {
+      "sourcesOffered": 4,
+      "itemsDigested": 4,
+      "skippedDuplicates": 0,
+      "counts": {
+        "total": 4,
+        "landed": 4,
+        "quarantined": 0,
+        "fetchFailed": 0,
+        "injectionsDetected": 0,
+        "judged": 0
+      },
+      "results": [
+        {
+          "title": "ANCHORED_SUMMARY.md",
+          "status": "landed",
+          "trueValue": 1.193,
+          "plt": {
+            "profit": 0.684,
+            "love": 0.659,
+            "tax": 0.15,
+            "signals": {
+              "tokens": 448,
+              "unique": 220,
+              "uniqueRatio": 0.491,
+              "sentences": 13,
+              "spamHits": 0,
+              "capsRatio": 0.101
+            }
+          },
+          "judgeReview": {
+            "status": "unavailable",
+            "reason": "judge_unavailable",
+            "attempts": [
+              {
+                "provider": "local",
+                "model": "qwen2.5-1.5b-instruct-q4_k_m",
+                "status": "failed",
+                "error": "connect ECONNREFUSED 127.0.0.1:18222"
+              },
+              {
+                "provider": "gemini",
+                "model": "gemini-3.5-flash",
+                "status": "skipped",
+                "error": "no credential in vault/env"
+              },
+              {
+                "provider": "gemini2",
+                "model": "gemini-3.5-flash",
+                "status": "skipped",
+                "error": "no credential in vault/env"
+              },
+              {
+                "provider": "groq",
+                "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+                "status": "skipped",
+                "error": "no credential in vault/env"
+              },
+              {
+                "provider": "openai",
+                "model": "gpt-4o-mini",
+                "status": "skipped",
+                "error": "no credential in vault/env"
+              },
+              {
+                "provider": "poolside",
+                "model": "poolside/laguna-s-2.1",
+                "status": "skipped",
+                "error": "no credential in vault/env"
+              },
+              {
+                "provider": "cohere",
+                "model": "command-a-03-2025",
+                "status": "skipped",
+                "error": "no credential in vault/env"
+              }
+            ]
+          },
+          "file": "/home/runner/work/profitlovestax/profitlovestax/WORKBENCH_COMPLETE/workbench/.seshat-brain/pages/DIGESTED - 2026-10-23 - anchored-summary-md.md"
+        },
+        {
+          "title": "JULES_COMPLETE_STATUS.md",
+          "status": "landed",
+          "trueValue": 1.26,
+          "plt": {
+            "profit": 0.696,
+            "love": 0.714,
+            "tax": 0.15,
+            "signals": {
+              "tokens": 434,
+              "unique": 232,
+              "uniqueRatio": 0.535,
+              "sentences": 17,
+              "spamHits": 0,
+              "capsRatio": 0.144
+            }
+          },
+          "judgeReview": null,
+          "file": "/home/runner/work/profitlovestax/profitlovestax/WORKBENCH_COMPLETE/workbench/.seshat-brain/pages/DIGESTED - 2026-10-23 - jules-complete-status-md.md"
+        },
+        {
+          "title": "MISSION-RUNBOOK.md",
+          "status": "landed",
+          "trueValue": 1.271,
+          "plt": {
+            "profit": 0.703,
+            "love": 0.718,
+            "tax": 0.15,
+            "signals": {
+              "tokens": 447,
+              "unique": 244,
+              "uniqueRatio": 0.546,
+              "sentences": 39,
+              "spamHits": 0,
+              "capsRatio": 0.218
+            }
+          },
+          "judgeReview": null,
+          "file": "/home/runner/work/profitlovestax/profitlovestax/WORKBENCH_COMPLETE/workbench/.seshat-brain/pages/DIGESTED - 2026-10-23 - mission-runbook-md.md"
+        },
+        {
+          "title": "2026_05_27.md",
+          "status": "landed",
+          "trueValue": 1.051,
+          "plt": {
+            "profit": 0.645,
+            "love": 0.609,
+            "tax": 0.203,
+            "signals": {
+              "tokens": 426,
+              "unique": 169,
+              "uniqueRatio": 0.397,
+              "sentences": 12,
+              "spamHits": 0,
+              "capsRatio": 0.162
+            }
+          },
+          "judgeReview": {
+            "status": "unavailable",
+            "reason": "judge_unavailable",
+            "attempts": [
+              {
+                "provider": "local",
+                "model": "qwen2.5-1.5b-instruct-q4_k_m",
+                "status": "failed",
+                "error": "connect ECONNREFUSED 127.0.0.1:18222"
+              },
+              {
+                "provider": "gemini",
+                "model": "gemini-3.5-flash",
+                "status": "skipped",
+                "error": "no credential in vault/env"
+              },
+              {
+                "provider": "gemini2",
+                "model": "gemini-3.5-flash",
+                "status": "skipped",
+                "error": "no credential in vault/env"
+              },
+              {
+                "provider": "groq",
+                "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+                "status": "skipped",
+                "error": "no credential in vault/env"
+              },
+              {
+                "provider": "openai",
+                "model": "gpt-4o-mini",
+                "status": "skipped",
+                "error": "no credential in vault/env"
+              },
+              {
+                "provider": "poolside",
+                "model": "poolside/laguna-s-2.1",
+                "status": "skipped",
+                "error": "no credential in vault/env"
+              },
+              {
+                "provider": "cohere",
+                "model": "command-a-03-2025",
+                "status": "skipped",
+                "error": "no credential in vault/env"
+              }
+            ]
+          },
+          "file": "/home/runner/work/profitlovestax/profitlovestax/WORKBENCH_COMPLETE/workbench/.seshat-brain/pages/DIGESTED - 2026-10-23 - 2026-05-27-md.md"
+        }
+      ],
+      "recallVerified": {
+        "refreshed": true,
+        "markerFound": true,
+        "source": "pages/DIGESTED - 2026-10-23 - anchored-summary-md.md"
+      }
+    },
+    "build": {
+      "status": "not_scheduled",
+      "detail": "spec carried no build task this cycle"
+    },
+    "draft": {
+      "status": "not_scheduled",
+      "detail": "the cycle record did not support a draft this cycle"
+    },
+    "writeBack": {
+      "success": true,
+      "marker": "OUTCOME-MARKER: 2026-10-23-self-growth-cycle-11-ignition-record",
+      "written": {
+        "page": "/home/runner/work/profitlovestax/profitlovestax/WORKBENCH_COMPLETE/workbench/.seshat-brain/pages/SESSION-OUTCOME - 2026-10-23 - self-growth-cycle-11-ignition-record.md",
+        "shelf": "pages (unified)"
+      },
+      "recallVerified": true,
+      "recall": {
+        "found": true,
+        "via": "deep-index.json chunk (unified pages shelf)",
+        "source": "pages/SESSION-OUTCOME - 2026-10-23 - self-growth-cycle-11-ignition-record.md"
+      },
+      "error": null
+    }
+  },
+  "refusals": [],
+  "status": "clean",
+  "failures": 0,
+  "finishedAt": "2026-10-23T17:13:36.178Z"
+}

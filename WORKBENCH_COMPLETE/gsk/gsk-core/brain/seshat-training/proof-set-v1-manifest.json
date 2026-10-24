@@ -1,0 +1,28 @@
+{
+  "name": "proof-set-v1",
+  "frozen": true,
+  "date": "2026-10-23",
+  "file": "proof-set-v1.jsonl",
+  "sha256": "684ca5ab10dd12daf1ebe01cd3991f3ed99430dd73f1dd58b9e4741f5ee6481c",
+  "total": 88,
+  "countsPerQuadrant": {
+    "keep_substantive": 22,
+    "quarantine_obvious": 22,
+    "quarantine_vapor": 22,
+    "keep_plain": 22
+  },
+  "origins": {
+    "keep_substantive": "Landed DIGESTED pages in workbench/.seshat-brain/pages (digestion-log status landed), concrete technical content.",
+    "quarantine_obvious": "Real quarantined fixtures from digestion-log.jsonl (spam blast, repeated words) + constructed blatant promo/SEO/boilerplate items.",
+    "quarantine_vapor": "Constructed fluent-but-empty items in the round-1/2 fixture style + nvidia/HelpSteer2 vapor-cell items (CC-BY-4.0); those prompts are excluded from dataset v3.",
+    "keep_plain": "Internal/technical metrics-bearing digested pages (Seshat/GSK explainers — excluding the bm25 explainer, an old-6 item) + constructed plain-but-substantive internal notes + short landed fact-bearing pages."
+  },
+  "adoptionBars": {
+    "quarantineRecallMin": 0.8,
+    "keepRecallMin": 0.8,
+    "vaporQuadrantMeanSubstanceMax": 0.35,
+    "parseFailures": 0
+  },
+  "rule": "FROZEN: never train on this set, this round or any. Decontamination target for all training data (13-gram).",
+  "fixturesOld6": "proof-fixtures-old6.jsonl holds the 3 comparability items separately (fluent-empty -> quarantine, good-borderline -> keep, bm25 explainer -> keep)."
+}

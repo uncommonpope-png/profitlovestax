@@ -63,6 +63,13 @@ class PLTEngine {
     // PLT_DECAY_PER_ACTION: per-action factor applied before each increment so older
     //   actions fade and the score reflects recent behavior, not lifetime accumulation.
     //   Default 0.9995 → 100 actions pull a 1.0 score to ~0.95 (restores marginal signal).
+    // FORMULA ADOPTION (2026-10-23, owner-authorized — see
+    //   ~/workspace/gsk-sessions/2026-10-23-plt-formula-proposal.md): the
+    //   standing state is now a per-action exponential moving average over
+    //   scored impacts (see windowHalfLife below). The three PLT_DECAY_*
+    //   parameters are INERT for the state from adoption on; _decay() and
+    //   tick() remain in the file as a legacy explicit-clock API and are no
+    //   longer called by the constructor, score(), or getState().
     this.decayRate = options.decayRate !== undefined ? options.decayRate
       : parseFloat(process.env.PLT_DECAY_RATE) || 0.995;
     this.decayFloor = options.decayFloor !== undefined ? options.decayFloor
@@ -73,15 +80,46 @@ class PLTEngine {
     this.state = { profit: 0.5, love: 0.3, tax: 0.2, totalActions: 0, lastDecay: Date.now() };
     this.history = [];
     this._archetypeData = PLT_ARCHETYPES.find(function(a) { return a.id === this.archetype; }.bind(this)) || PLT_ARCHETYPES[0];
+    this._stateFileExisted = fs.existsSync(this.statePath);
     this._load();
+    // FORMULA ADOPTION (2026-10-23): windowHalfLife = half-life of the
+    // standing-state EMA, in ACTIONS. Resolution order: explicit option →
+    // persisted state field → env PLT_WINDOW_HALF_LIFE → default 50.
+    // The state file declares its own math via the persisted field.
+    var hl = options.windowHalfLife !== undefined ? Number(options.windowHalfLife) : NaN;
+    if (!(hl > 0)) hl = (typeof this.state.windowHalfLife === 'number' && this.state.windowHalfLife > 0) ? this.state.windowHalfLife : NaN;
+    if (!(hl > 0)) { var envH = parseFloat(process.env.PLT_WINDOW_HALF_LIFE); if (envH > 0) hl = envH; }
+    if (!(hl > 0)) hl = 50;
+    this.windowHalfLife = hl;
+    this.state.windowHalfLife = hl;
+    this._alpha = 1 - Math.pow(2, -1 / hl);
+    // A state is FRESH only if no state file existed or nothing has been
+    // scored into it yet. Only a fresh state receives the archetype
+    // baseline; a lived window is never rewritten by a restart.
+    this._freshState = !this._stateFileExisted || this.state.totalActions === 0;
     this._applyArchetypeBaseline();
   }
 
   _applyArchetypeBaseline() {
+    // FORMULA ADOPTION (2026-10-23): scoped to fresh states only. Before
+    // adoption this ran at every construction and silently lifted any
+    // axis below the archetype floor — under a decayed window that would
+    // forgive part of a bad streak on every restart.
+    if (!this._freshState) return;
     var base = this._archetypeData.base;
     this.state.profit = Math.max(this.state.profit, base.profit * 0.3);
     this.state.love = Math.max(this.state.love, base.love * 0.3);
     this.state.tax = Math.max(this.state.tax, base.tax * 0.3);
+  }
+
+  // Clamp one scored impact into [0,1] (formula adoption, 2026-10-23).
+  // Non-finite input becomes 0, mirroring score()'s historical `|| 0`
+  // defaulting; evaluate()'s fail-closed rejection is a separate path
+  // and is unchanged.
+  _clampImpact(v) {
+    v = Number(v);
+    if (!Number.isFinite(v)) return 0;
+    return Math.min(1, Math.max(0, v));
   }
 
   _load() {
@@ -102,7 +140,14 @@ class PLTEngine {
   _save() {
     try {
       if (!fs.existsSync(this.dataDir)) { fs.mkdirSync(this.dataDir, { recursive: true }); }
-      fs.writeFileSync(this.statePath, JSON.stringify(this.state, null, 2));
+      // ATOMIC WRITE (Electrician repair, 2026-10-23): write to a
+      // temp sibling, then rename over the state file. A crash
+      // mid-write can no longer leave a truncated state file behind —
+      // rename within one filesystem is atomic, so a reader always
+      // sees either the whole old state or the whole new one.
+      const tmpPath = this.statePath + '.tmp';
+      fs.writeFileSync(tmpPath, JSON.stringify(this.state, null, 2));
+      fs.renameSync(tmpPath, this.statePath);
     } catch (e) {
       console.error('[PLT] Save error:', e.message);
     }
@@ -119,6 +164,10 @@ class PLTEngine {
     }
   }
 
+  // LEGACY (formula adoption, 2026-10-23): time decay is OFF the state
+  // path — neither the constructor, score(), nor getState() calls this.
+  // Retained only for the explicit tick() API below; nothing automatic
+  // invokes it. lastDecay is stamped by score() as bookkeeping.
   _decay(nowOverride) {
     var now = typeof nowOverride === 'number' ? nowOverride : Date.now();
     var hoursSinceDecay = (now - this.state.lastDecay) / 3600000;
@@ -203,22 +252,28 @@ class PLTEngine {
 
   score(action, context) {
     context = context || {};
-    this._decay();
-    var profitImpact = context.profitImpact || 0;
-    var loveImpact = context.loveImpact || 0;
-    var taxImpact = context.taxImpact || 0;
-    var archetypeWeights = this._archetypeData.base;
-    var weightedProfit = profitImpact * (1 + archetypeWeights.profit * 0.5);
-    var weightedLove = loveImpact * (1 + archetypeWeights.love * 0.5);
-    var weightedTax = taxImpact * (1 + archetypeWeights.tax * 0.5);
-    // Per-action decay: every score() call fades prior value slightly so the score
-    // reflects recent behavior. 100 inert actions pull a 1.0 → ~0.95 (restores signal).
-    this.state.profit = Math.max(this.decayFloor, this.state.profit * this.decayPerAction);
-    this.state.love = Math.max(this.decayFloor, this.state.love * this.decayPerAction);
-    this.state.tax = Math.max(this.decayFloor, this.state.tax * this.decayPerAction);
-    this.state.profit = Math.max(0, Math.min(1, this.state.profit + weightedProfit * 0.1));
-    this.state.love = Math.max(0, Math.min(1, this.state.love + weightedLove * 0.1));
-    this.state.tax = Math.max(0, Math.min(1, this.state.tax + weightedTax * 0.1));
+    // FORMULA ADOPTION (2026-10-23): the standing state is a per-action
+    // exponential moving average over the action's impacts —
+    //   axis <- (1 - alpha) * axis + alpha * impact,
+    //   alpha = 1 - 2^(-1/windowHalfLife).
+    // The pre-adoption update (time _decay() + per-action fade + additive
+    // archetype-weighted increments clamped to [0,1]) was an integrator
+    // whose fixed point sat far above the clamp, so every axis pinned at
+    // 1.0 and the valueless gate read open/shut on idle-time noise. The
+    // EMA is a convex combination: impacts in [0,1] keep the state in
+    // [0,1] with no clamp, recent conduct dominates, and idle time
+    // changes nothing. Impacts are clamped into [0,1] here and the
+    // CLAMPED values are what the history entry records, so the ledger
+    // and the state can never disagree. lastDecay is now bookkeeping
+    // only: it stamps the last action time and moves no axis.
+    var profitImpact = this._clampImpact(context.profitImpact || 0);
+    var loveImpact = this._clampImpact(context.loveImpact || 0);
+    var taxImpact = this._clampImpact(context.taxImpact || 0);
+    var keep = 1 - this._alpha;
+    this.state.profit = keep * this.state.profit + this._alpha * profitImpact;
+    this.state.love = keep * this.state.love + this._alpha * loveImpact;
+    this.state.tax = keep * this.state.tax + this._alpha * taxImpact;
+    this.state.lastDecay = Date.now();
     this.state.totalActions++;
     var soulScore = this.state.profit + this.state.love - this.state.tax;
     var entry = { action: action, timestamp: Date.now(), context: { profitImpact: profitImpact, loveImpact: loveImpact, taxImpact: taxImpact }, scores: { profit: this.state.profit, love: this.state.love, tax: this.state.tax }, soulScore: soulScore, archetype: this.archetype };
@@ -228,7 +283,10 @@ class PLTEngine {
   }
 
   getState() {
-    this._decay();
+    // FORMULA ADOPTION (2026-10-23): reading the state no longer mutates
+    // it — the _decay() call that used to sit here is gone from the state
+    // path, so the state (and any gate verdict drawn from it) is
+    // invariant across idle time.
     return {
       profit: this.state.profit,
       love: this.state.love,
@@ -278,6 +336,9 @@ class PLTEngine {
     for (var k in scores) { if (scores.hasOwnProperty(k)) this.state[k] = scores[k]; }
     this.state.totalActions = 0;
     this.state.lastDecay = Date.now();
+    // FORMULA ADOPTION (2026-10-23): a reset returns to genesis values
+    // but keeps the window the state declares.
+    this.state.windowHalfLife = this.windowHalfLife;
     this.history = [];
     this._save();
   }

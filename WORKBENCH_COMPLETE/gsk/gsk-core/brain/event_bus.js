@@ -14,6 +14,30 @@
 
 const EventEmitter = require('events');
 
+// UNIFIED EVENT TRACE mirror (Steal List #5, 2026-10-23): every
+// publish on the shared bus is also appended to the body's one
+// trace stream (brain/event_trace.js), so bus users join the trace
+// without code changes. The mirror NEVER throws and never blocks
+// the bus: telemetry is a witness, not a gate. Payloads are
+// summarized here (scalars only, strings truncated) — no secrets,
+// no full payloads in telemetry.
+let _traceFn = null;
+try { _traceFn = require('./event_trace.js').trace; } catch { _traceFn = null; }
+function _summarizeForTrace(data) {
+    try {
+        if (data === null || data === undefined) return {};
+        if (typeof data !== 'object') return { value: String(data).slice(0, 120) };
+        const out = {};
+        for (const [k, v] of Object.entries(data).slice(0, 8)) {
+            if (v === null || v === undefined) out[k] = v;
+            else if (typeof v === 'string') out[k] = v.slice(0, 120);
+            else if (typeof v === 'number' || typeof v === 'boolean') out[k] = v;
+            else out[k] = `[${Array.isArray(v) ? `array:${v.length}` : typeof v}]`;
+        }
+        return out;
+    } catch { return {}; }
+}
+
 class EventBus extends EventEmitter {
     constructor() {
         super();
@@ -26,6 +50,12 @@ class EventBus extends EventEmitter {
      * Publish an event asynchronously with error isolation
      */
     publish(event, data) {
+        // Unified-trace mirror first (synchronous append, guarded):
+        // the trace keeps true stream order even though subscriber
+        // delivery below is deferred via setImmediate.
+        if (_traceFn) {
+            try { _traceFn('event_bus', String(event), _summarizeForTrace(data), { runId: (data && typeof data === 'object' && (data.runId || data.correlationId)) || null }); } catch { /* witness, never a gate */ }
+        }
         setImmediate(() => {
             // Get listeners for this specific event
             const listeners = this.listeners(event);

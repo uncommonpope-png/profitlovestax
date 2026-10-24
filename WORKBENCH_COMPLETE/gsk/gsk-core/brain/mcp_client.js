@@ -36,22 +36,50 @@ class MCPClient {
     }
 
     async _connectStdio(server) {
+        // Steal List #2 repair (2026-10-23): the original stdio path
+        // never completed the MCP handshake and never routed
+        // responses — JSON.parse on raw chunks, and _handleMessage
+        // only matched request-shaped messages, so tools/list and
+        // tools/call responses (which carry `id` + `result`, no
+        // `method`) were silently dropped. Every stdio server
+        // "connected" with 0 usable tools. Now: line-buffered
+        // reads, initialize handshake, id-routed pending promises.
         return new Promise((resolve, reject) => {
             const child = spawn(server.config.command, server.config.args || [], {
                 stdio: ['pipe', 'pipe', 'pipe'],
-                env: { ...process.env },
+                env: { ...process.env, ...(server.config.env || {}) },
                 shell: process.platform === 'win32'
             });
 
             server.process = child;
+            server._pending = new Map();
+            server._nextId = 1;
+            server._stdoutBuf = '';
             server.writer = (msg) => {
                 if (child.stdin.writable) {
                     child.stdin.write(JSON.stringify(msg) + '\n');
                 }
             };
+            server._request = (method, params, timeoutMs = 20000) => new Promise((res, rej) => {
+                const id = server._nextId++;
+                const timer = setTimeout(() => {
+                    if (server._pending.has(id)) { server._pending.delete(id); rej(new Error(`MCP ${method} timed out after ${timeoutMs}ms`)); }
+                }, timeoutMs);
+                server._pending.set(id, { resolve: (v) => { clearTimeout(timer); res(v); }, reject: (e) => { clearTimeout(timer); rej(e); } });
+                server.writer({ jsonrpc: '2.0', id, method, params: params || {} });
+            });
 
             child.stdout.on('data', (data) => {
-                this._handleMessage(server, JSON.parse(data.toString()));
+                server._stdoutBuf += data.toString();
+                let nl;
+                while ((nl = server._stdoutBuf.indexOf('\n')) >= 0) {
+                    const line = server._stdoutBuf.slice(0, nl).trim();
+                    server._stdoutBuf = server._stdoutBuf.slice(nl + 1);
+                    if (!line) continue;
+                    let msg;
+                    try { msg = JSON.parse(line); } catch { continue; }
+                    this._handleMessage(server, msg);
+                }
             });
 
             child.stderr.on('data', (data) => {
@@ -61,8 +89,26 @@ class MCPClient {
             child.on('error', reject);
             child.on('exit', () => {
                 server.connected = false;
+                for (const [, p] of server._pending) p.reject(new Error(`MCP server ${server.name} exited`));
+                server._pending.clear();
                 console.log(`[MCP] ${server.name} disconnected`);
             });
+
+            // Handshake proceeds in the background; discovery and
+            // tool calls await server._ready. Resolution here keeps
+            // the original boot semantics (spawn = connected-enough
+            // to proceed); _ready settles the truth.
+            server._ready = (async () => {
+                const init = await server._request('initialize', {
+                    protocolVersion: '2025-03-26',
+                    capabilities: {},
+                    clientInfo: { name: 'gsk', version: '1.0.0' }
+                }, 20000);
+                server.writer({ jsonrpc: '2.0', method: 'notifications/initialized', params: {} });
+                server.connected = true;
+                return init;
+            })();
+            server._ready.catch(() => { /* surfaced via discovery/call errors */ });
 
             setTimeout(resolve, 500);
         });
@@ -95,7 +141,19 @@ class MCPClient {
 
     async _discoverTools(server) {
         if (server.config.type === 'stdio') {
-            server.writer({ jsonrpc: '2.0', id: 1, method: 'tools/list', params: {} });
+            // Steal List #2 repair: await the handshake, then await
+            // the tools/list RESPONSE (id-routed) instead of firing
+            // a request into the void.
+            try {
+                await server._ready;
+                const resp = await server._request('tools/list', {}, 20000);
+                server.tools = (resp && resp.tools) || [];
+                for (const tool of server.tools) {
+                    this.tools.set(`${server.name}/${tool.name}`, { server, tool });
+                }
+            } catch (e) {
+                console.log(`[MCP] Tool discovery failed for ${server.name}: ${e.message}`);
+            }
         } else if (server.config.transport === 'streamable-http') {
             try {
                 const resp = await this._httpRequest(server.baseUrl, 'POST', {
@@ -128,12 +186,23 @@ class MCPClient {
     }
 
     _handleMessage(server, message) {
+        // Response routing (Steal List #2 repair): a JSON-RPC
+        // response carries `id` + `result`/`error` and no `method`.
+        if (message && message.id !== undefined && server._pending && server._pending.has(message.id)) {
+            const p = server._pending.get(message.id);
+            server._pending.delete(message.id);
+            if (message.error) p.reject(new Error(message.error.message || `MCP error ${message.error.code || ''}`.trim()));
+            else p.resolve(message.result);
+            return;
+        }
         if (message.method === 'tools/list') {
             server.tools = message.params?.tools || [];
             for (const tool of server.tools) {
                 this.tools.set(`${server.name}/${tool.name}`, { server, tool });
             }
         }
+        // Server-initiated requests/notifications are not handled
+        // by this client today (unchanged behavior).
     }
 
     async callTool(toolName, args = {}) {
@@ -145,26 +214,12 @@ class MCPClient {
         if (!server) throw new Error(`MCP server ${serverName} not found`);
 
         if (server.config.type === 'stdio') {
-            return new Promise((resolve, reject) => {
-                const id = Date.now();
-                const pending = { id, resolve, reject };
-                server._pending = server._pending || {};
-                server._pending[id] = pending;
-
-                server.writer({
-                    jsonrpc: '2.0',
-                    id,
-                    method: 'tools/call',
-                    params: { name: localName, arguments: args }
-                });
-
-                setTimeout(() => {
-                    if (server._pending[id]) {
-                        delete server._pending[id];
-                        reject(new Error('Tool call timeout'));
-                    }
-                }, 30000);
-            });
+            // Steal List #2 repair: route through the id-keyed
+            // pending map (the old code stored promises in a plain
+            // object that _handleMessage never resolved, so every
+            // stdio tool call ran out its 30s timeout).
+            await server._ready;
+            return server._request('tools/call', { name: localName, arguments: args }, 120000);
         } else if (server.config.transport === 'streamable-http') {
             const resp = await this._httpRequest(server.baseUrl, 'POST', {
                 jsonrpc: '2.0',
@@ -256,7 +311,11 @@ class MCPClient {
     listTools() {
         const list = [];
         for (const [name, { tool }] of this.tools) {
-            list.push({ name, ...tool });
+            // Steal List #2 repair: the qualified 'server/tool' key
+            // must win — spreading `tool` after `name` let the tool's
+            // own bare name overwrite it, so callers could not build
+            // the 'server/tool' string callTool() expects.
+            list.push({ ...tool, name });
         }
         return list;
     }

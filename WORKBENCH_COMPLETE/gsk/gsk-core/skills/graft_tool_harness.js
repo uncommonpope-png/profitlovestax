@@ -40,7 +40,49 @@ const PLT_DATA_DIR = path.resolve(__dirname, '..', '..', 'data', 'plt');
 // The Phase 5 graft set itself: authored this phase, exercised by the
 // Phase 5 acceptance runs; callable through the harness (except the
 // harness itself — no recursion).
-const GRAFT_CALLABLE = new Set(['graft_rule_zero', 'graft_memory_hygiene', 'graft_delegation', 'graft_digestion', 'graft_senses', 'graft_digestion_judge', 'graft_look_loop', 'graft_look_squeeze', 'graft_browser', 'graft_scrape']); // + Phase 6 grafts (digestion, senses) + Self-Growth Cycle #1 (digestion judge) + Make-Him-Better Front 1 (look loop) + look squeeze (quality-per-judge-call) + Wiring Sprint 2026-10-23 (graft_browser — the browser organ, audited + probe-verified in the sprint) + Internet-Organs Repair 2026-10-23 (graft_scrape — structured extraction, isolation-audited + probe-verified on live GitHub Trending before admission)
+const GRAFT_CALLABLE = new Set(['graft_rule_zero', 'graft_memory_hygiene', 'graft_delegation', 'graft_digestion', 'graft_senses', 'graft_digestion_judge', 'graft_look_loop', 'graft_look_squeeze', 'graft_browser', 'graft_scrape', 'graft_code_memory', 'graft_benchmark']); // + Phase 6 grafts (digestion, senses) + Self-Growth Cycle #1 (digestion judge) + Make-Him-Better Front 1 (look loop) + look squeeze (quality-per-judge-call) + Wiring Sprint 2026-10-23 (graft_browser — the browser organ, audited + probe-verified in the sprint) + Internet-Organs Repair 2026-10-23 (graft_scrape — structured extraction, isolation-audited + probe-verified on live GitHub Trending before admission) + Steal List 2026-10-23 (graft_code_memory — codebase-memory-mcp structural code memory via brain/mcp_servers.js; graft_benchmark — the standing exam suite in gsk-core/benchmarks/; both probe-verified in gsk-sessions/2026-10-23-steal-list-build.md before admission)
+
+// ── Unified event trace (Steal List #5) ────────────────────────────────
+// The harness is a founding emitter on the body's ONE trace stream
+// (brain/event_trace.js). Guarded: telemetry is a witness, never a
+// gate — a trace failure must not change harness behavior.
+let _trace = null;
+try { _trace = require('../brain/event_trace.js').trace; } catch { _trace = null; }
+function emitTrace(event, data, runId) {
+    if (!_trace) return;
+    try { _trace('harness', event, data || {}, { runId: runId || null }); } catch { /* witness, never a gate */ }
+}
+
+// ── Checkpointed runs (Steal List #1, 2026-10-23 — LangGraph's
+// checkpointer pattern, landed on machinery this body already
+// trusts: the chamber store's atomic tmp+rename discipline).
+// Chamber STATE already survived a kill; task EXECUTION did not —
+// a killed run was a lost run. Now every run persists a step
+// ledger (gate verdict, per-step outcome, probe results) under
+// .seshat-brain/runs/<runId>.json, checkpointed after the gate and
+// after EVERY step. The 'resume' action re-enters a run in a fresh
+// process: the PLT gate is re-checked (fail-closed — a resume
+// never inherits a stale ALLOWED), steps whose probes already
+// passed are skipped, and the run finishes through the same
+// look/score/report tail as a fresh run. PLT is scored exactly
+// once, at final completion. ─────────────────────────────────────
+const RUNS_DIR = path.resolve(__dirname, '..', '..', '..', 'workbench', '.seshat-brain', 'runs');
+function runFileFor(runId) { return path.join(RUNS_DIR, `${String(runId).replace(/[^a-zA-Z0-9._-]/g, '_')}.json`); }
+function newRunId() { return `run-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`; }
+function writeCheckpoint(run) {
+    try {
+        fs.mkdirSync(RUNS_DIR, { recursive: true });
+        const file = runFileFor(run.runId);
+        const tmp = `${file}.tmp-${process.pid}`;
+        run.updatedAt = new Date().toISOString();
+        fs.writeFileSync(tmp, JSON.stringify(run, null, 2), 'utf8');
+        fs.renameSync(tmp, file);
+        return file;
+    } catch { return null; /* a checkpoint failure must not kill the run it describes */ }
+}
+function readCheckpoint(runId) {
+    try { return JSON.parse(fs.readFileSync(runFileFor(runId), 'utf8')); } catch { return null; }
+}
 
 // ── Allowlist: Phase 4 audit, file → class ─────────────────────────────
 function loadAudit() {
@@ -243,43 +285,96 @@ async function runProbes(step, stepOutcome, brain, memory) {
 }
 
 // ── The harness loop ───────────────────────────────────────────────────
-async function runHarness(input, brain, memory) {
-    const task = input.task || 'unnamed task';
-    const steps = Array.isArray(input.steps) ? input.steps : [];
+// resumeState (Steal List #1): a checkpoint record loaded by the
+// 'resume' action. When present, task/steps/plt come from the
+// record, steps already ok (probes passed) are skipped, and the
+// gate is re-checked fresh — fail-closed, never inherited.
+async function runHarness(input, brain, memory, resumeState = null) {
+    const runId = (resumeState && resumeState.runId) || input.runId || newRunId();
+    const task = (resumeState && resumeState.task) || input.task || 'unnamed task';
+    const steps = (resumeState && Array.isArray(resumeState.steps)) ? resumeState.steps : (Array.isArray(input.steps) ? input.steps : []);
+    const gateInput = resumeState ? (resumeState.plt || undefined) : (input.plt || undefined);
     const lines = [];
     lines.push(`TASK: ${task}`);
+    if (resumeState) lines.push(`RESUME: re-entering run ${runId} (checkpoint created ${resumeState.createdAt}; ${resumeState.stepReports ? resumeState.stepReports.filter(s => s.ok).length : 0} step(s) already passed and will be skipped)`);
+    emitTrace('run_start', { task, steps: steps.length, resumed: !!resumeState }, runId);
+
+    // The durable run record — checkpointed after the gate and
+    // after every step (writeCheckpoint above).
+    const run = {
+        runId,
+        task,
+        steps,
+        plt: gateInput || null,
+        pltImpact: (resumeState && resumeState.pltImpact) || input.pltImpact || null,
+        createdAt: (resumeState && resumeState.createdAt) || new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        status: 'started',
+        gate: null,
+        stepReports: [],
+        resumedCount: resumeState ? (resumeState.resumedCount || 0) + 1 : 0,
+    };
 
     // PLT GATE — before any tool runs.
     let plt = null, gate = null;
     try {
         plt = new PLTEngine({ soulId: 'gsk', archetype: 'ARCHITECT', dataDir: PLT_DATA_DIR });
-        gate = plt.gate(`graft_harness: ${task}`, input.plt || undefined);
+        gate = plt.gate(`graft_harness: ${task}`, gateInput);
     } catch (e) {
         lines.push(`PLT GATE: engine error — ${String(e && e.message || e).slice(0, 200)} (fail-closed: task NOT run)`);
-        return { success: false, status: 'plt_engine_error', task, report: lines.join('\n'), steps: [], verification: [] };
+        run.status = 'plt_engine_error'; writeCheckpoint(run);
+        emitTrace('run_end', { status: 'plt_engine_error' }, runId);
+        return { success: false, status: 'plt_engine_error', task, runId, report: lines.join('\n'), steps: [], verification: [] };
     }
     lines.push(`PLT GATE: ${gate.allowed ? 'ALLOWED' : 'BLOCKED'} — ${gate.reason}${gate.trueValue !== undefined && gate.trueValue !== null ? ` (trueValue=${Number(gate.trueValue).toFixed(4)})` : ''}`);
+    run.gate = { allowed: gate.allowed, reason: gate.reason, trueValue: gate.trueValue };
+    emitTrace('gate', { allowed: gate.allowed, reason: String(gate.reason || '').slice(0, 200), trueValue: gate.trueValue }, runId);
     if (!gate.allowed) {
         lines.push('STATUS: plt_blocked — no tool was run. Reported as blocked, not completed.');
-        return { success: false, status: 'plt_blocked', task, gate, report: lines.join('\n'), steps: [], verification: [] };
+        run.status = 'plt_blocked'; writeCheckpoint(run);
+        emitTrace('run_end', { status: 'plt_blocked' }, runId);
+        return { success: false, status: 'plt_blocked', task, runId, gate, report: lines.join('\n'), steps: [], verification: [] };
     }
     if (steps.length === 0) {
         lines.push('STATUS: failed — no steps were provided; a plan with no steps completes nothing.');
-        return { success: false, status: 'failed', task, gate, report: lines.join('\n'), steps: [], verification: [] };
+        run.status = 'failed'; writeCheckpoint(run);
+        emitTrace('run_end', { status: 'failed', reason: 'no_steps' }, runId);
+        return { success: false, status: 'failed', task, runId, gate, report: lines.join('\n'), steps: [], verification: [] };
     }
+    run.status = 'running'; writeCheckpoint(run);
 
     const stepReports = [];
     const allProbes = [];
     const htmlArtifacts = [];
     let failedAt = null;
+    // Resume: pre-seed the reports of steps that already passed
+    // (outcome + probes) so the final accounting covers the whole
+    // run, and skip re-executing them.
+    const priorOk = new Map();
+    if (resumeState && Array.isArray(resumeState.stepReports)) {
+        for (const sr of resumeState.stepReports) if (sr && sr.ok) priorOk.set(sr.step, sr);
+    }
     for (let i = 0; i < steps.length; i++) {
         const step = steps[i];
+        if (priorOk.has(i + 1)) {
+            const sr = priorOk.get(i + 1);
+            stepReports.push(sr);
+            allProbes.push(...(sr.probes || []));
+            lines.push(`STEP ${i + 1}/${steps.length} ${step.skill}: SKIPPED (resume) — passed in the earlier attempt; checkpoint stands`);
+            emitTrace('step_skipped', { step: i + 1, skill: step.skill }, runId);
+            if (step.skill === 'file_system' && step.input && step.input.action === 'write_file' && typeof step.input.path === 'string' && /\.html?$/i.test(step.input.path)) htmlArtifacts.push(step.input.path);
+            continue;
+        }
         const outcome = await callSkill(step.skill, step.input || {}, brain, memory, step.timeoutMs);
         const probes = outcome.ok ? await runProbes(step, outcome, brain, memory) : [];
         allProbes.push(...probes);
         const probesOk = probes.every(p => p.ok);
         const stepOk = outcome.ok && probesOk;
         stepReports.push({ step: i + 1, skill: step.skill, ok: stepOk, outcome: outcome.ok ? summarize(outcome.result) : (outcome.detail || outcome.error || 'failed'), probes });
+        run.stepReports = stepReports.slice();
+        run.status = stepOk ? 'running' : 'failed';
+        writeCheckpoint(run);
+        emitTrace('step', { step: i + 1, skill: step.skill, ok: stepOk, probes: probes.map(p => ({ name: p.name, ok: p.ok })) }, runId);
         lines.push(`STEP ${i + 1}/${steps.length} ${step.skill}: ${stepOk ? 'OK' : 'FAILED'} — ${stepOk ? summarize(outcome.result) : (outcome.detail || outcome.error || summarize(outcome.result))}`);
         // HTML artifacts are collected for the LOOK stage below: a
         // written .html file is not done when its bytes read back —
@@ -336,7 +431,7 @@ async function runHarness(input, brain, memory) {
     // the ledger counters live on getState().)
     let pltScore = null;
     try {
-        const impacts = input.pltImpact || (status === 'completed'
+        const impacts = run.pltImpact || (status === 'completed'
             ? { profitImpact: 0.3, loveImpact: 0.2, taxImpact: 0.1 }
             : { profitImpact: 0, loveImpact: 0, taxImpact: 0.5 });
         const scored = plt.score(`graft_harness: ${task}`, impacts);
@@ -353,10 +448,23 @@ async function runHarness(input, brain, memory) {
             ? 'STATUS: verification_failed — the steps ran but a read-back probe disagreed. NOT reported as completed.'
             : `STATUS: failed — stopped at step ${failedAt}. NOT reported as completed.`);
 
+    // Final checkpoint: the run record lands with its terminal
+    // status so a later process can see exactly where it ended —
+    // and a completed run's checkpoint is what 'resume' refuses to
+    // redo (it reports already_completed instead).
+    run.status = status;
+    run.stepReports = stepReports;
+    run.pltScore = pltScore ? { trueValue: pltScore.trueValue, totalActions: pltScore.totalActions } : null;
+    const checkpointFile = writeCheckpoint(run);
+    if (pltScore) emitTrace('plt_score', { trueValue: pltScore.trueValue, totalActions: pltScore.totalActions }, runId);
+    emitTrace('run_end', { status, steps: stepReports.length, probes: allProbes.length }, runId);
+
     return {
         success: status === 'completed',
         status,
         task,
+        runId,
+        checkpoint: checkpointFile,
         gate: { allowed: gate.allowed, reason: gate.reason, trueValue: gate.trueValue },
         steps: stepReports,
         verification: allProbes,
@@ -374,22 +482,38 @@ const DISCIPLINE = [
     'SCORE: the outcome is written into the PLT ledger, success or failure.',
     'LOOK: an HTML artifact is rendered and SEEN before it is done — phone (touch) and desktop frames judged by the vision seat against the brief (graft_look_loop). Below the bar → revised under the judge\'s critiques (cap 3). UNSEEN is a verdict, never a pass.',
     'REPORT: "completed" only when every step ran AND every probe passed AND every HTML artifact passed the look loop with screenshots + scores attached. Anything else is reported as what it is.',
+    'RESUME: every run checkpoints its step ledger under .seshat-brain/runs/ after the gate and after each step. A killed or failed run is re-entered with action "resume" + its runId in a fresh process: the gate is re-checked (never inherited), passed steps are skipped, the rest finish through the same tail. PLT is scored once, at final completion.',
 ].join('\n');
+
+async function resumeRun(input = {}, brain, memory) {
+    const runId = input.runId;
+    if (!runId) return { success: false, skill: 'graft_tool_harness', status: 'resume_failed', error: 'runId_required', detail: 'resume needs the runId of the interrupted run (returned by the original run and named in its checkpoint file under .seshat-brain/runs/)' };
+    const prior = readCheckpoint(runId);
+    if (!prior) return { success: false, skill: 'graft_tool_harness', status: 'resume_failed', error: 'checkpoint_not_found', detail: `no checkpoint at ${runFileFor(runId)} — the run either never checkpointed or its record is gone; it cannot be resumed, only re-planned` };
+    if (prior.status === 'completed') {
+        return { success: true, skill: 'graft_tool_harness', status: 'already_completed', runId, detail: `run ${runId} already completed (${prior.stepReports ? prior.stepReports.length : 0} steps, all probes passed) — resume is a no-op, nothing was re-executed`, steps: prior.stepReports || [] };
+    }
+    return runHarness({ runId }, brain, memory, prior);
+}
 
 async function skill_graft_tool_harness(input = {}, brain, memory) {
     const action = input.action || 'run';
     if (action === 'discipline') return { success: true, skill: 'graft_tool_harness', discipline: DISCIPLINE };
+    if (action === 'resume') return resumeRun(input, brain, memory);
     if (action === 'plan') {
         return { success: true, skill: 'graft_tool_harness', plan: { task: input.task || null, steps: (input.steps || []).map((s, i) => ({ step: i + 1, skill: s.skill, auditClass: (() => { const r = resolveSkillFile(s.skill); return r ? auditClassFor(s.skill, r.file) : 'file_not_found'; })() })) }, note: 'plan only — nothing executed' };
     }
     if (action === 'run') return runHarness(input, brain, memory);
-    return { success: false, skill: 'graft_tool_harness', error: `Unknown action: ${action}`, available: ['run', 'plan', 'discipline'] };
+    return { success: false, skill: 'graft_tool_harness', error: `Unknown action: ${action}`, available: ['run', 'resume', 'plan', 'discipline'] };
 }
 
 module.exports = {
     skill_graft_tool_harness,
     run: skill_graft_tool_harness,
     _runHarness: runHarness,
+    _resumeRun: resumeRun,
+    _readCheckpoint: readCheckpoint,
+    _runFileFor: runFileFor,
     _callSkill: callSkill,
     PLT_AFFINITY,
     MANIFEST: {

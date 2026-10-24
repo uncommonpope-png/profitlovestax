@@ -39,7 +39,7 @@
         "type":  "soul",
         "name":  "Oracle v2",
         "desc":  "Prophetic oracle. 363 files, 286 JS. Sees patterns across time. MCP adapter. JSON memory.",
-        "plt":  "0.6/0.8/0.3",
+        "plt":  "0.5/0.3/0.2",
         "file":  "oracle.zip",
         "featured":  true
     },
@@ -764,7 +764,7 @@
         "type":  "infrastructure",
         "name":  "Soul Oracle v1.0.0",
         "desc":  "Original oracle. Prophecy and wisdom.",
-        "plt":  "0.6/0.8/0.3",
+        "plt":  "0.5/0.3/0.2",
         "file":  "soul-oracle-v1.0.0.md"
     },
     {
@@ -772,7 +772,7 @@
         "type":  "infrastructure",
         "name":  "Soul Oracle v1.2.0",
         "desc":  "Updated oracle with enhanced MCP support.",
-        "plt":  "0.6/0.8/0.3",
+        "plt":  "0.5/0.3/0.2",
         "file":  "soul-oracle-v1.2.0.md"
     },
     {

@@ -1,0 +1,181 @@
+{
+  "cycle": 13,
+  "batchId": "growth-cycle-013",
+  "startedAt": "2026-10-24T04:43:21.608Z",
+  "stages": {
+    "digest": {
+      "sourcesOffered": 4,
+      "itemsDigested": 4,
+      "skippedDuplicates": 0,
+      "counts": {
+        "total": 4,
+        "landed": 4,
+        "quarantined": 0,
+        "fetchFailed": 0,
+        "injectionsDetected": 0,
+        "judged": 0
+      },
+      "results": [
+        {
+          "title": "DATA-CATALOG-2026-10-23.md",
+          "status": "landed",
+          "trueValue": 0.5890000000000001,
+          "plt": {
+            "profit": 0.858,
+            "love": 0.323,
+            "tax": 0.592,
+            "signals": {
+              "tokens": 4674,
+              "unique": 1439,
+              "uniqueRatio": 0.308,
+              "sentences": 227,
+              "spamHits": 4,
+              "capsRatio": 0.078
+            }
+          },
+          "judgeReview": {
+            "status": "unavailable",
+            "reason": "judge_unavailable",
+            "attempts": [
+              {
+                "provider": "local",
+                "model": "qwen2.5-1.5b-instruct-q4_k_m",
+                "status": "failed",
+                "error": "connect ECONNREFUSED 127.0.0.1:18222"
+              },
+              {
+                "provider": "gemini",
+                "model": "gemini-3.5-flash",
+                "status": "skipped",
+                "error": "no credential in vault/env"
+              },
+              {
+                "provider": "gemini2",
+                "model": "gemini-3.5-flash",
+                "status": "skipped",
+                "error": "no credential in vault/env"
+              },
+              {
+                "provider": "groq",
+                "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+                "status": "skipped",
+                "error": "no credential in vault/env"
+              },
+              {
+                "provider": "openai",
+                "model": "gpt-4o-mini",
+                "status": "skipped",
+                "error": "no credential in vault/env"
+              },
+              {
+                "provider": "poolside",
+                "model": "poolside/laguna-s-2.1",
+                "status": "skipped",
+                "error": "no credential in vault/env"
+              },
+              {
+                "provider": "cohere",
+                "model": "command-a-03-2025",
+                "status": "skipped",
+                "error": "no credential in vault/env"
+              }
+            ]
+          },
+          "file": "/home/runner/work/profitlovestax/profitlovestax/WORKBENCH_COMPLETE/workbench/.seshat-brain/pages/DIGESTED - 2026-10-24 - data-catalog-2026-10-23-md.md"
+        },
+        {
+          "title": "KAGGLE-RUNBOOK.md",
+          "status": "landed",
+          "trueValue": 1.285,
+          "plt": {
+            "profit": 0.801,
+            "love": 0.667,
+            "tax": 0.183,
+            "signals": {
+              "tokens": 1020,
+              "unique": 425,
+              "uniqueRatio": 0.417,
+              "sentences": 50,
+              "spamHits": 0,
+              "capsRatio": 0.06
+            }
+          },
+          "judgeReview": null,
+          "file": "/home/runner/work/profitlovestax/profitlovestax/WORKBENCH_COMPLETE/workbench/.seshat-brain/pages/DIGESTED - 2026-10-24 - kaggle-runbook-md.md"
+        },
+        {
+          "title": "PLAN-local-mind-001.md",
+          "status": "landed",
+          "trueValue": 1.4700000000000002,
+          "plt": {
+            "profit": 0.92,
+            "love": 0.7,
+            "tax": 0.15,
+            "signals": {
+              "tokens": 1378,
+              "unique": 689,
+              "uniqueRatio": 0.5,
+              "sentences": 68,
+              "spamHits": 0,
+              "capsRatio": 0.066
+            }
+          },
+          "judgeReview": null,
+          "file": "/home/runner/work/profitlovestax/profitlovestax/WORKBENCH_COMPLETE/workbench/.seshat-brain/pages/DIGESTED - 2026-10-24 - plan-local-mind-001-md.md"
+        },
+        {
+          "title": "2026_05_31.md",
+          "status": "landed",
+          "trueValue": 1.283,
+          "plt": {
+            "profit": 0.688,
+            "love": 0.745,
+            "tax": 0.15,
+            "signals": {
+              "tokens": 295,
+              "unique": 181,
+              "uniqueRatio": 0.614,
+              "sentences": 26,
+              "spamHits": 0,
+              "capsRatio": 0.073
+            }
+          },
+          "judgeReview": null,
+          "file": "/home/runner/work/profitlovestax/profitlovestax/WORKBENCH_COMPLETE/workbench/.seshat-brain/pages/DIGESTED - 2026-10-24 - 2026-05-31-md.md"
+        }
+      ],
+      "recallVerified": {
+        "refreshed": true,
+        "markerFound": true,
+        "source": "pages/DIGESTED - 2026-10-24 - data-catalog-2026-10-23-md.md"
+      }
+    },
+    "build": {
+      "status": "not_scheduled",
+      "detail": "spec carried no build task this cycle"
+    },
+    "draft": {
+      "status": "not_scheduled",
+      "detail": "the cycle record did not support a draft this cycle"
+    },
+    "writeBack": {
+      "success": true,
+      "marker": "OUTCOME-MARKER: 2026-10-24-self-growth-cycle-13-ignition-record",
+      "written": {
+        "page": "/home/runner/work/profitlovestax/profitlovestax/WORKBENCH_COMPLETE/workbench/.seshat-brain/pages/SESSION-OUTCOME - 2026-10-24 - self-growth-cycle-13-ignition-record.md",
+        "shelf": "pages (unified)"
+      },
+      "recallVerified": true,
+      "recall": {
+        "found": true,
+        "via": "deep-index.json chunk (unified pages shelf)",
+        "source": "pages/SESSION-OUTCOME - 2026-10-24 - self-growth-cycle-13-ignition-record.md"
+      },
+      "error": null
+    }
+  },
+  "refusals": [],
+  "status": "clean",
+  "failures": 0,
+  "finishedAt": "2026-10-24T04:43:24.121Z"
+}

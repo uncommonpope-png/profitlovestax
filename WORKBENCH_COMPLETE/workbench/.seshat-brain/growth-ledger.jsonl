@@ -73,3 +73,7 @@
 {"ts":"2026-10-24T04:43:22.842Z","kind":"digest","cycle":13,"key":"9982324bd5f7aaf33f0f9739","title":"2026_05_31.md","status":"landed","trueValue":1.283,"judge":null}
 {"ts":"2026-10-24T04:43:24.121Z","kind":"outcome","cycle":13,"marker":"OUTCOME-MARKER: 2026-10-24-self-growth-cycle-13-ignition-record","recallVerified":true}
 {"ts":"2026-10-24T04:43:24.122Z","kind":"cycle_end","cycle":13,"status":"clean","failures":0,"recordPath":"/home/runner/work/profitlovestax/profitlovestax/WORKBENCH_COMPLETE/workbench/.seshat-brain/growth-cycles/cycle-013.json"}
+{"ts":"2026-10-24T11:09:10.078Z","kind":"cycle_start","cycle":14,"batchId":"growth-cycle-014"}
+{"ts":"2026-10-24T11:09:11.693Z","kind":"digest","cycle":14,"key":"006a65f9adcfd3586e777355","title":"2026_06_02.md","status":"landed","trueValue":1.02,"judge":"unavailable"}
+{"ts":"2026-10-24T11:09:13.588Z","kind":"outcome","cycle":14,"marker":"OUTCOME-MARKER: 2026-10-24-self-growth-cycle-14-ignition-record","recallVerified":true}
+{"ts":"2026-10-24T11:09:13.588Z","kind":"cycle_end","cycle":14,"status":"clean","failures":0,"recordPath":"/home/runner/work/profitlovestax/profitlovestax/WORKBENCH_COMPLETE/workbench/.seshat-brain/growth-cycles/cycle-014.json"}

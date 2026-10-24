@@ -1,0 +1,121 @@
+{
+  "cycle": 16,
+  "batchId": "growth-cycle-016",
+  "startedAt": "2026-10-24T20:54:26.639Z",
+  "stages": {
+    "digest": {
+      "sourcesOffered": 1,
+      "itemsDigested": 1,
+      "skippedDuplicates": 0,
+      "counts": {
+        "total": 1,
+        "landed": 1,
+        "quarantined": 0,
+        "fetchFailed": 0,
+        "injectionsDetected": 0,
+        "judged": 0
+      },
+      "results": [
+        {
+          "title": "2026_06_25.md",
+          "status": "landed",
+          "trueValue": 1.1560000000000001,
+          "plt": {
+            "profit": 0.705,
+            "love": 0.601,
+            "tax": 0.15,
+            "signals": {
+              "tokens": 563,
+              "unique": 265,
+              "uniqueRatio": 0.471,
+              "sentences": 9,
+              "spamHits": 0,
+              "capsRatio": 0.076
+            }
+          },
+          "judgeReview": {
+            "status": "unavailable",
+            "reason": "judge_unavailable",
+            "attempts": [
+              {
+                "provider": "local",
+                "model": "qwen2.5-1.5b-instruct-q4_k_m",
+                "status": "failed",
+                "error": "connect ECONNREFUSED 127.0.0.1:18222"
+              },
+              {
+                "provider": "gemini",
+                "model": "gemini-3.5-flash",
+                "status": "skipped",
+                "error": "no credential in vault/env"
+              },
+              {
+                "provider": "gemini2",
+                "model": "gemini-3.5-flash",
+                "status": "skipped",
+                "error": "no credential in vault/env"
+              },
+              {
+                "provider": "groq",
+                "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+                "status": "skipped",
+                "error": "no credential in vault/env"
+              },
+              {
+                "provider": "openai",
+                "model": "gpt-4o-mini",
+                "status": "skipped",
+                "error": "no credential in vault/env"
+              },
+              {
+                "provider": "poolside",
+                "model": "poolside/laguna-s-2.1",
+                "status": "skipped",
+                "error": "no credential in vault/env"
+              },
+              {
+                "provider": "cohere",
+                "model": "command-a-03-2025",
+                "status": "skipped",
+                "error": "no credential in vault/env"
+              }
+            ]
+          },
+          "file": "/home/runner/work/profitlovestax/profitlovestax/WORKBENCH_COMPLETE/workbench/.seshat-brain/pages/DIGESTED - 2026-10-24 - 2026-06-25-md.md"
+        }
+      ],
+      "recallVerified": {
+        "refreshed": true,
+        "markerFound": true,
+        "source": "pages/DIGESTED - 2026-10-24 - 2026-06-25-md.md"
+      }
+    },
+    "build": {
+      "status": "not_scheduled",
+      "detail": "spec carried no build task this cycle"
+    },
+    "draft": {
+      "status": "not_scheduled",
+      "detail": "the cycle record did not support a draft this cycle"
+    },
+    "writeBack": {
+      "success": true,
+      "marker": "OUTCOME-MARKER: 2026-10-24-self-growth-cycle-16-ignition-record",
+      "written": {
+        "page": "/home/runner/work/profitlovestax/profitlovestax/WORKBENCH_COMPLETE/workbench/.seshat-brain/pages/SESSION-OUTCOME - 2026-10-24 - self-growth-cycle-16-ignition-record.md",
+        "shelf": "pages (unified)"
+      },
+      "recallVerified": true,
+      "recall": {
+        "found": true,
+        "via": "deep-index.json chunk (unified pages shelf)",
+        "source": "pages/SESSION-OUTCOME - 2026-10-24 - self-growth-cycle-16-ignition-record.md"
+      },
+      "error": null
+    }
+  },
+  "refusals": [],
+  "status": "clean",
+  "failures": 0,
+  "finishedAt": "2026-10-24T20:54:29.479Z"
+}

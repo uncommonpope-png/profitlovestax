@@ -1251,6 +1251,12 @@ class GSKFusion {
                 console.log('  [FUSION] ✓ Brain engine active (local fallback)');
             });
 
+            // DEAD INIT (Electrician audit, 2026-10-23): this block can
+            // never succeed — its require() is commented out, so `mod`
+            // is undefined and the assignment throws (the throw is
+            // swallowed by _safeInit). Nothing downstream reads
+            // systems.soulCore to decide anything; the live feeling
+            // state is AffectChamber. Marked for honesty, not removed.
             this._safeInit('soulCore', () => {
                 // const mod = require('./gsk-core/chambers/soul_core.js');
                 this.soulCore = mod;

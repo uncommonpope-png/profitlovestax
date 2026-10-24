@@ -1,5 +1,11 @@
 /**
  * PHASE 2: Family Event Bus — Central Real-Time Messaging Channel
+ *
+ * STATUS (Electrician audit, 2026-10-23): DEAD-IN-PRACTICE. Several
+ * modules import getFamilyEventBus, but in the assembled body no live
+ * publisher/subscriber traffic runs over this bus — Seshat and Scribe
+ * events do not actually flow here, and the body's working event
+ * paths live elsewhere. Marked for honesty; not removed.
  * 
  * Replaces polling with event-driven architecture.
  * All agents (GSK, Seshat, SCRIBE) publish and subscribe here.

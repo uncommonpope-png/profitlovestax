@@ -628,6 +628,10 @@ async function executeWithFallback(options) {
         usage: result.usage,
         attempts: i + 1,
         viaOmniRoute: true,
+        // Electrician repair (2026-10-23): surface the failures this
+        // success stepped over, so callers can learn dead seats (429
+        // cooldown in mega_brain) instead of re-billing them per call.
+        failures: results,
       };
     }
 
@@ -663,6 +667,9 @@ async function executeWithFallback(options) {
         usage: result.usage,
         attempts: i + 1,
         viaOmniRoute: false,
+        // Electrician repair (2026-10-23): see the OmniRoute-tier
+        // return above — failures ride along on success too.
+        failures: results,
       };
     }
 

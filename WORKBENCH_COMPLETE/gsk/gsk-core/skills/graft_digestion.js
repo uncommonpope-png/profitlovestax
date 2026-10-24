@@ -175,7 +175,15 @@ async function digestItems(input = {}) {
     const items = Array.isArray(input.items) ? input.items : [];
     if (items.length === 0) return { success: false, skill: 'graft_digestion', error: 'no_items', detail: 'digest requires items: [{title, source, text?|html?|url?}]' };
     const batchId = input.batchId || `batch-${new Date().toISOString().replace(/[^0-9]/g, '').slice(0, 14)}`;
-    const plt = new PLTEngine({ soulId: 'gsk', archetype: 'ARCHITECT', dataDir: PLT_DATA_DIR });
+    // PLT LEDGER ROUTING (Electrician repair, 2026-10-23): landed items
+    // score into the soulId's ledger — production 'gsk' by default.
+    // Fixture/QA batches (judge proofs, acceptance items) MUST pass
+    // soulId:'gsk-fixtures' so their scores land in the fixture ledger
+    // (gsk-fixtures-plt.json) and can never contaminate the production
+    // state. Fixture landings scored into 'gsk' re-saturated the
+    // production PLT state to 1/1/1 within hours of the 2026-10-23
+    // surgical repair — this routing is the source fix.
+    const plt = new PLTEngine({ soulId: input.soulId || 'gsk', archetype: 'ARCHITECT', dataDir: PLT_DATA_DIR });
     const results = [];
     let landed = 0, quarantined = 0, failed = 0, injectionsDetected = 0, judged = 0;
 
@@ -289,7 +297,7 @@ async function skill_graft_digestion(input = {}) {
     const action = input.action || 'discipline';
     if (action === 'discipline') return { success: true, skill: 'graft_digestion', discipline: DISCIPLINE };
     if (action === 'digest') return digestItems(input);
-    if (action === 'digest_one') return digestItems({ batchId: input.batchId, items: [input.item || input] });
+    if (action === 'digest_one') return digestItems({ batchId: input.batchId, soulId: input.soulId, items: [input.item || input] });
     return { success: false, skill: 'graft_digestion', error: `Unknown action: ${action}`, available: ['digest', 'digest_one', 'discipline'] };
 }
 

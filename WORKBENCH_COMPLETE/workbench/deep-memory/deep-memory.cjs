@@ -156,15 +156,50 @@ function search(query, k = 6, options = {}) {
   }
   scored.sort((a, b) => b.score - a.score);
   if (scored.length === 0) return [];
-  const top = scored[0].score;
+  // CONTEXT COMPOSITION TUNING (Wiring Sprint Phase 2, 2026-10-23):
+  // within the relevance floor, doctrine/law chunks are ordered
+  // BEFORE technique chunks (stable partition — BM25 order survives
+  // inside each class), and near-identical chunks are deduped during
+  // selection so the top-k carries distinct knowledge, not echoes.
+  const DOCTRINE_TITLE = /\b(law|doctrine|canon|covenant|directives?|plt|rule zero|bible|genesis)\b/i;
+  const isDoctrine = (c) => c.shelf === 'genesis' || DOCTRINE_TITLE.test(c.title || '');
+  // RELEVANCE BAND (same-day correction, measured): doctrine-first
+  // applied globally let 12–20-score genesis chunks crowd out a 34.9
+  // technique hit on the exam's T5 question, and the answer lost the
+  // shelf's signature entirely. Doctrine now leads ONLY inside the
+  // band (score >= 50% of the top score); below the band, pure BM25
+  // order — law frames technique, it does not evict it.
+  const bandFloor = scored[0].score * 0.5;
+  const doct = [], rest = [];
+  for (const s of scored) (isDoctrine(idx.chunks[s.id]) && s.score >= bandFloor ? doct : rest).push(s);
+  const ordered = [...doct, ...rest];
+  const top = ordered[0].score;
   const out = [];
   const perSource = new Map();
-  for (const s of scored) {
+  const selectedTermSets = [];
+  const selectedPrints = new Set();
+  for (const s of ordered) {
     if (out.length >= k) break;
     if (s.score < Math.max(2.0, top * 0.15)) break;
     const c = idx.chunks[s.id];
     const n = perSource.get(c.source) || 0;
     if (n >= perSourceCap) continue;
+    // Dedupe: exact opening fingerprint (across sources), then
+    // term-set Jaccard > 0.8 against anything already selected —
+    // a near-identical chunk adds tokens, not knowledge.
+    const print = String(c.text || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().slice(0, 160);
+    if (print && selectedPrints.has(print)) continue;
+    const termSet = new Set((c.tf || []).map(([ti]) => ti));
+    let nearDup = false;
+    for (const prev of selectedTermSets) {
+      let inter = 0;
+      for (const t of termSet) if (prev.has(t)) inter++;
+      const union = termSet.size + prev.size - inter;
+      if (union > 0 && inter / union > 0.8) { nearDup = true; break; }
+    }
+    if (nearDup) continue;
+    selectedTermSets.push(termSet);
+    if (print) selectedPrints.add(print);
     perSource.set(c.source, n + 1);
     out.push({ shelf: c.shelf, source: c.source, title: c.title, score: Math.round(s.score * 100) / 100, text: c.text });
   }

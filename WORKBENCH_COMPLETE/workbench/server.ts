@@ -608,6 +608,10 @@ async function directProviderChat(message: string, context: string, history: any
   // users" on this endpoint -> gemini-3.5-flash, verified live through
   // this exact endpoint + the vault key on 2026-10-20.
   if (creds.gemini) chain.push({ id: "gemini", defaultModel: "gemini-3.5-flash", endpoint: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", [keyProp]: creds.gemini, timeout: 60000 });
+  // ELECTRICIAN REPAIR (2026-10-23): second Gemini key rides directly
+  // behind the first — same model, separate quota pool (mirrors the
+  // brain chain in mega_brain.js _directProviderThink).
+  if (creds.gemini2) chain.push({ id: "gemini2", defaultModel: "gemini-3.5-flash", endpoint: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", [keyProp]: creds.gemini2, timeout: 60000 });
   // ASSEMBLY PHASE 1 (2026-10-20): Poolside seat added (base URL + model
   // id per docs.poolside.ai/api/overview — hosted inference:
   // https://inference.poolside.ai/v1, model poolside/laguna-s-2.1).
@@ -618,7 +622,13 @@ async function directProviderChat(message: string, context: string, history: any
   // present in the vault (BYOK — the user's own key, their choice).
   if (creds.groq) chain.push({ id: "groq", defaultModel: "llama-3.3-70b-versatile", endpoint: "https://api.groq.com/openai/v1/chat/completions", [keyProp]: creds.groq, timeout: 60000 });
   if (creds.openai) chain.push({ id: "openai", defaultModel: "gpt-4o-mini", endpoint: "https://api.openai.com/v1/chat/completions", [keyProp]: creds.openai, timeout: 60000 });
-  if (creds.poolside) chain.push({ id: "poolside", defaultModel: "poolside/laguna-s-2.1", endpoint: "https://inference.poolside.ai/v1/chat/completions", [keyProp]: creds.poolside, timeout: 90000 });
+  // POOLSIDE SUNSET GATE (Electrician repair, 2026-10-23): after
+  // 2026-11-01 00:00 UTC the seat is not even attempted, key or no key.
+  if (creds.poolside && Date.now() < Date.UTC(2026, 10, 1)) chain.push({ id: "poolside", defaultModel: "poolside/laguna-s-2.1", endpoint: "https://inference.poolside.ai/v1/chat/completions", [keyProp]: creds.poolside, timeout: 90000 });
+  // ELECTRICIAN REPAIR (2026-10-23): Cohere closes the chain — the
+  // last rented seat, mirroring mega_brain.js (command-a-03-2025 via
+  // Cohere's OpenAI-compatibility endpoint).
+  if (creds.cohere) chain.push({ id: "cohere", defaultModel: "command-a-03-2025", endpoint: "https://api.cohere.ai/compatibility/v1/chat/completions", [keyProp]: creds.cohere, timeout: 60000 });
   if (chain.length === 0) return null;
   const handler: any = await import(`file://${path.join(REPO_ROOT, "gsk/integration/handlers/gsk-heart-chat-handler.js")}`);
   const messages: any[] = [];
@@ -2637,7 +2647,7 @@ app.post("/api/profit/cascade/step", (req, res) => res.json({ success: true, ste
 // as plaintext JSON and never read back for LLM calls. Legacy plaintext
 // vault.json files are still read transparently and upgraded on next POST.
 const VAULT_PATH = path.join(__dirname, ".vault", "vault.json");
-const VAULT_KEY_FIELDS = ["GEMINI_API_KEY", "OPENAI_API_KEY", "ANTHROPIC_API_KEY", "GROQ_API_KEY", "NVIDIA_API_KEY", "POOLSIDE_API_KEY", "COHERE_API_KEY"];
+const VAULT_KEY_FIELDS = ["GEMINI_API_KEY", "GEMINI_API_KEY_2", "OPENAI_API_KEY", "ANTHROPIC_API_KEY", "GROQ_API_KEY", "NVIDIA_API_KEY", "POOLSIDE_API_KEY", "COHERE_API_KEY"];
 let cachedVaultKeyPass: string | null = null;
 let cachedVaultKeyMaterial: Buffer | null = null;
 function vaultKeyMaterial(): Buffer {
@@ -2695,12 +2705,20 @@ function resolveProviderCredentials(): Record<string, string> {
   const creds: Record<string, string> = {};
   if (keys.OPENAI_API_KEY) creds.openai = keys.OPENAI_API_KEY;
   if (keys.GEMINI_API_KEY) creds.gemini = keys.GEMINI_API_KEY;
+  // ELECTRICIAN REPAIR (2026-10-23): the second Gemini key and the
+  // Cohere key were deposited in the vault during the Oct 22 rotation
+  // and the brain's resolver (vault_credentials.js) has mapped them
+  // all along — this resolver never did, so the workbench seam could
+  // not see two of the five live seats. GEMINI_API_KEY_2 joins
+  // VAULT_KEY_FIELDS above for the same reason.
+  if (keys.GEMINI_API_KEY_2) creds.gemini2 = keys.GEMINI_API_KEY_2;
   if (keys.GROQ_API_KEY) creds.groq = keys.GROQ_API_KEY;
   if (keys.NVIDIA_API_KEY) creds.nvidia = keys.NVIDIA_API_KEY;
   if (keys.ANTHROPIC_API_KEY) creds.anthropic = keys.ANTHROPIC_API_KEY;
   // ASSEMBLY PHASE 1 (2026-10-20): Poolside joins the resolver — the key
   // was deposited in the vault during op 6 but no code path could see it.
   if (keys.POOLSIDE_API_KEY) creds.poolside = keys.POOLSIDE_API_KEY;
+  if (keys.COHERE_API_KEY) creds.cohere = keys.COHERE_API_KEY;
   return creds;
 }
 // Push vault keys into process.env (vault wins) so spawned family services
@@ -3894,6 +3912,12 @@ function findOmniPortOwner(): number | null {
 
 let inProcessOmniServer: any = null;
 
+// DEAD CODE (Electrician audit, 2026-10-23): startInProcessOmniRoute
+// has ZERO call sites in this file or anywhere in the tree — it is
+// never invoked. Do NOT wire it up: it would stand up a second,
+// in-process OmniRoute, and house rules forbid duplicating OmniRoute
+// (the real one on :20128 is the body's only blood flow). This
+// function is kept for reference only.
 function startInProcessOmniRoute(): void {
   if (inProcessOmniServer) return;
   try {

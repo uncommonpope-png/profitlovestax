@@ -20,7 +20,14 @@
  *     - news.google.com/rss/search  -> 200, clean XML, 80+ <item>s  OK
  *     - google.com/search    -> 200 but JS/consent markup (unparseable)
  *
- * STRATEGY (no API keys, no external services)
+ * STRATEGY
+ *   0. Tavily API          — PRIMARY when TAVILY_API_KEY is present in
+ *                            the environment (Wiring Sprint, 2026-10-23).
+ *                            Ranked, snippet-bearing results; topic=news
+ *                            + a 7-day window when the query asks for
+ *                            current material. Any Tavily error, timeout
+ *                            or empty result falls through to the keyless
+ *                            chain below — the organ degrades, never dies.
  *   1. Bing RSS endpoint   — general web search, direct article URLs
  *   2. Google News RSS     — fresh/current results (URLs use the
  *                            news.google.com redirector; fetch follows it)
@@ -133,14 +140,89 @@ function _parseDdgHtml(html, maxResults) {
     return items;
 }
 
+/** Minimal HTTPS POST returning { ok, statusCode, body }; never throws. */
+function _postJson(url, payload, timeout = 15000) {
+    return new Promise(resolve => {
+        let parsed;
+        try { parsed = new URL(url); } catch { return resolve({ ok: false, error: 'invalid_url' }); }
+        const body = JSON.stringify(payload);
+        const req = https.request(parsed, {
+            method: 'POST',
+            timeout,
+            headers: {
+                'Content-Type': 'application/json',
+                'Content-Length': Buffer.byteLength(body),
+                'User-Agent': USER_AGENT,
+            },
+        }, res => {
+            let data = '';
+            res.on('data', c => { data += c; });
+            res.on('end', () => resolve({ ok: res.statusCode >= 200 && res.statusCode < 300, statusCode: res.statusCode, body: data }));
+        });
+        req.on('error', e => resolve({ ok: false, error: e.message }));
+        req.on('timeout', () => { req.destroy(); resolve({ ok: false, error: 'timeout' }); });
+        req.write(body);
+        req.end();
+    });
+}
+
+/** Queries that ask for current material get Tavily's news topic + window. */
+function _wantsCurrent(query) {
+    return /\b(latest|today|tonight|this week|this month|recent|recently|current|breaking|news|now|new)\b/i.test(String(query || ''));
+}
+
+/**
+ * Tavily — the primary search organ when TAVILY_API_KEY is set
+ * (Wiring Sprint, 2026-10-23). Returns the house result shape, or null
+ * on ANY failure (error, timeout, unparseable, empty) so searchWeb
+ * falls through to the keyless chain instead of dying.
+ */
+async function _searchTavily(query, limit) {
+    const apiKey = process.env.TAVILY_API_KEY;
+    if (!apiKey) return null;
+    const current = _wantsCurrent(query);
+    const payload = {
+        api_key: apiKey,
+        query: String(query || '').trim(),
+        search_depth: 'basic',
+        max_results: limit,
+        include_answer: false,
+    };
+    if (current) { payload.topic = 'news'; payload.days = 7; }
+    const res = await _postJson('https://api.tavily.com/search', payload, 15000);
+    if (!res.ok) return null;
+    let parsed;
+    try { parsed = JSON.parse(res.body); } catch { return null; }
+    const items = [];
+    for (const r of (Array.isArray(parsed.results) ? parsed.results : [])) {
+        if (!r || !r.title || !r.url) continue;
+        items.push({
+            title: _cleanTitle(_stripTags(r.title)),
+            url: r.url,
+            snippet: _stripTags(r.content || '').slice(0, 500),
+            source: 'Tavily',
+            date: r.published_date || '',
+        });
+        if (items.length >= limit) break;
+    }
+    return items.length ? items : null;
+}
+
 /**
  * Search the web for `query`. Returns up to `maxResults` results.
  * Never throws — returns [] on any failure so callers stay alive.
  */
 async function searchWeb(query, maxResults = 5) {
-    const q = encodeURIComponent(String(query || '').trim());
+    const rawQuery = String(query || '').trim();
+    const q = encodeURIComponent(rawQuery);
     if (!q) return [];
     const limit = Math.max(1, Math.min(maxResults, 20));
+
+    // 0) Tavily — primary when keyed. Error/empty → keyless chain below.
+    try {
+        const tavily = await _searchTavily(rawQuery, limit);
+        if (tavily && tavily.length) return tavily;
+    } catch { /* fall through — never die on the primary */ }
 
     // 1) Bing RSS — general web search, works from Node's direct path (verified).
     const bing = await _get(

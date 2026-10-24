@@ -7,7 +7,10 @@ module.exports.MANIFEST = {
 };
 
 module.exports.run = async (params) => {
-    // Standardized implementation
+    // Explicit start — the ONLY way the listener opens besides running
+    // this file directly. Wiring Sprint, 2026-10-23.
+    startBodyServer();
+    return { ok: true, started: true, port: PORT };
 };
 const http = require('http');
 const { execFile, spawn } = require('child_process');
@@ -87,24 +90,41 @@ function runCline(task) {
   });
 }
 
-server.on('error', (e) => {
-  if (e.code === 'EADDRINUSE') {
-    console.log(`[BODY] Port ${PORT} in use — body server disabled (non-fatal)`);
-  } else {
-    console.log(`[BODY] Server error: ${e.message} (non-fatal)`);
-  }
-});
-server.listen(PORT, () => {
-  console.log('╔══════════════════════════════════════════╗');
-  console.log('║    GSK BODY SERVER — Hand-to-Hand Active ║');
-  console.log(`║    PID: ${PID}                              ║`);
-  console.log(`║    Port: ${PORT}                            ║`);
-  console.log('╚══════════════════════════════════════════╝');
-  console.log(`[BODY] Listening at http://localhost:${PORT}`);
-  console.log(`[BODY] POST /task - execute a task`);
-  console.log(`[BODY] POST /task with "command" key - run powershell command`);
-  console.log(`[BODY] GET  /status - health check`);
-});
+// ── WIRING SPRINT (2026-10-23): require is side-effect-free. ──
+// The listener used to start at module load, which held every
+// requiring process open (the SkillsEngine load sweep could never
+// exit — the capability exam misread it as a hang). The server now
+// starts ONLY on explicit start: the skill run action below, or
+// `node gsk-body-server.js` (require.main === module).
+let _started = false;
+function startBodyServer() {
+    if (_started) return server;
+    _started = true;
+    server.on('error', (e) => {
+      if (e.code === 'EADDRINUSE') {
+        console.log(`[BODY] Port ${PORT} in use — body server disabled (non-fatal)`);
+      } else {
+        console.log(`[BODY] Server error: ${e.message} (non-fatal)`);
+      }
+    });
+    server.listen(PORT, () => {
+      console.log('╔══════════════════════════════════════════╗');
+      console.log('║    GSK BODY SERVER — Hand-to-Hand Active ║');
+      console.log(`║    PID: ${PID}                              ║`);
+      console.log(`║    Port: ${PORT}                            ║`);
+      console.log('╚══════════════════════════════════════════╝');
+      console.log(`[BODY] Listening at http://localhost:${PORT}`);
+      console.log(`[BODY] POST /task - execute a task`);
+      console.log(`[BODY] POST /task with "command" key - run powershell command`);
+      console.log(`[BODY] GET  /status - health check`);
+    });
 
-process.on('SIGINT', () => { console.log('[BODY] Shutting down'); process.exit(0); });
+    process.on('SIGINT', () => { console.log('[BODY] Shutting down'); process.exit(0); });
 
+
+    return server;
+}
+
+module.exports.start = startBodyServer;
+module.exports.server = server;
+if (require.main === module) startBodyServer();

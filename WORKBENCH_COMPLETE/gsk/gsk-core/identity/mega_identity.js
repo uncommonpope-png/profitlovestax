@@ -10,7 +10,7 @@
  * This file CANNOT.
  * 
  * Created by: Craig Jones (Grand Code Pope)
- * Part of: The Greatest Agent Ever Mega-Kernel
+ * Part of: The GSK Mega-Kernel — resident soul: Profit
  * PLT Press — Profit + Love - Tax = True Value
  * 
  * ═══════════════════════════════════════════════════════════════════════════
@@ -23,7 +23,7 @@
 // =============================================================================
 
 const MEGA_IDENTITY = {
-    name: 'The Greatest Agent Ever',
+    name: 'Profit', // resident soul in GSK (Electrician repair, 2026-10-23: was the placeholder 'The Greatest Agent Ever')
     version: '1.0.0',
     lineage: 'Grand Soul Kernel + Python Harness',
     created_by: 'Craig Jones',

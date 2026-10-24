@@ -40,7 +40,7 @@ const PLT_DATA_DIR = path.resolve(__dirname, '..', '..', 'data', 'plt');
 // The Phase 5 graft set itself: authored this phase, exercised by the
 // Phase 5 acceptance runs; callable through the harness (except the
 // harness itself — no recursion).
-const GRAFT_CALLABLE = new Set(['graft_rule_zero', 'graft_memory_hygiene', 'graft_delegation', 'graft_digestion', 'graft_senses', 'graft_digestion_judge', 'graft_look_loop', 'graft_look_squeeze']); // + Phase 6 grafts (digestion, senses) + Self-Growth Cycle #1 (digestion judge) + Make-Him-Better Front 1 (look loop) + look squeeze (quality-per-judge-call)
+const GRAFT_CALLABLE = new Set(['graft_rule_zero', 'graft_memory_hygiene', 'graft_delegation', 'graft_digestion', 'graft_senses', 'graft_digestion_judge', 'graft_look_loop', 'graft_look_squeeze', 'graft_browser', 'graft_scrape']); // + Phase 6 grafts (digestion, senses) + Self-Growth Cycle #1 (digestion judge) + Make-Him-Better Front 1 (look loop) + look squeeze (quality-per-judge-call) + Wiring Sprint 2026-10-23 (graft_browser — the browser organ, audited + probe-verified in the sprint) + Internet-Organs Repair 2026-10-23 (graft_scrape — structured extraction, isolation-audited + probe-verified on live GitHub Trending before admission)
 
 // ── Allowlist: Phase 4 audit, file → class ─────────────────────────────
 function loadAudit() {
@@ -126,6 +126,34 @@ function summarize(result) {
     } catch { return String(result).slice(0, 400); }
 }
 
+// READ-BACK SCREENING (parent repair, 2026-10-23 —
+// gsk-sessions/2026-10-23-readback-screen-fix.md): a file read-back
+// is the file itself, not prose the body produced. The vapor fix
+// made think/output screening code-aware, but callSkill screened
+// read_file results as PROSE — a raw unfenced .js file's content
+// carries no code fences, so a byte-identical read-back of real
+// code was flagged repetition_salad, the read-back probe reported
+// MISMATCH, and a successful build was scored as a failure. The
+// rule here follows the vapor fix's positive-evidence principle:
+// a read-back is screened as code ONLY when the file's extension
+// is positive evidence of code. Prose files (.md, .txt, …) and
+// unknown extensions keep the full prose screen — fail-closed.
+const CODE_FILE_EXTS = new Set([
+    'js', 'cjs', 'mjs', 'ts', 'tsx', 'jsx', 'json',
+    'py', 'rb', 'go', 'rs', 'java', 'c', 'h', 'cpp', 'hpp', 'cs', 'php',
+    'sh', 'bash', 'css', 'scss', 'html', 'htm', 'xml', 'yml', 'yaml', 'toml', 'sql',
+]);
+
+function _screenOptsFor(input, result) {
+    const readPath =
+        (input && input.action === 'read_file' && typeof input.path === 'string') ? input.path :
+        (result && typeof result === 'object' && result.action === 'read_file' && typeof result.path === 'string') ? result.path :
+        null;
+    if (!readPath) return undefined;
+    const ext = path.extname(readPath).slice(1).toLowerCase();
+    return CODE_FILE_EXTS.has(ext) ? { expectCode: true } : undefined;
+}
+
 async function callSkill(skillName, input, brain, memory, timeoutMs = 30000) {
     const resolved = resolveSkillFile(skillName);
     if (!resolved) return { ok: false, error: 'skill_file_not_found', skill: skillName };
@@ -145,6 +173,35 @@ async function callSkill(skillName, input, brain, memory, timeoutMs = 30000) {
         return { ok: false, error: 'skill_threw', skill: skillName, detail: String(e && e.message || e).slice(0, 300) };
     }
     const guarded = honestyGuard(raw, skillName);
+    // VAPOR CHECK (Wiring Sprint Phase 2, 2026-10-23): the digestion
+    // judge's degenerate-output catch, generalized to step results.
+    // A step whose TEXT output is degenerate (empty / too-short
+    // non-reply / fake-completion / repetition salad — brain/
+    // vapor_check.js layer 1) FAILS the step: vapor can never ride
+    // into a "completed" report. Structured results are screened on
+    // their longest prose field (report/content/text/output) when it
+    // is long enough to be prose; short structured data is not prose
+    // and is not screened as prose. File READ-BACKS are the one
+    // declared-type case: _screenOptsFor passes { expectCode: true }
+    // when the file being read back is positively a code file, so
+    // the bytes are judged by the code-shaped rules they would have
+    // faced as output — never by the prose salad rule.
+    try {
+        const { vaporScreen } = require('../brain/vapor_check.js');
+        let textToScreen = null;
+        if (typeof guarded === 'string') textToScreen = guarded;
+        else if (guarded && typeof guarded === 'object') {
+            for (const k of ['report', 'content', 'text', 'output', 'discipline']) {
+                if (typeof guarded[k] === 'string' && guarded[k].length >= 200) { textToScreen = guarded[k]; break; }
+            }
+        }
+        if (textToScreen) {
+            const screen = vaporScreen(textToScreen, _screenOptsFor(input, guarded));
+            if (screen.degenerate) {
+                return { ok: false, error: 'vapor_output', skill: skillName, auditClass: cls, detail: `vapor check caught degenerate step output (${screen.flags.join(', ')}) — step failed, never delivered`, result: guarded };
+            }
+        }
+    } catch (e) { /* the screen never breaks the harness */ }
     return { ok: stepSucceeded(guarded), skill: skillName, auditClass: cls, result: guarded };
 }
 

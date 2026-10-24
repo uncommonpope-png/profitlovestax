@@ -53,16 +53,24 @@ const CYCLES_DIR = path.join(BRAIN_DIR, 'growth-cycles');
 
 // The body keeps its provider passphrase in workbench/.env; the
 // server loads it at boot, so a standalone cycle does the same.
-// Values are never logged — only key names already set are skipped.
+// Electrician repair (2026-10-23): workbench.env is loaded too —
+// SESHAT_LOCAL_MODEL=off lives ONLY there, and this loader was the
+// path that never saw it, so a cycle launched without the operator
+// sourcing workbench.env first would silently re-enable Seshat's
+// local seat (resolveLocalSeat treats anything but 'off' as on).
+// First-set wins, exactly as before: process env > .env >
+// workbench.env. Values are never logged.
 function loadEnv() {
-    try {
-        const envPath = path.join(WB, '.env');
-        if (!fs.existsSync(envPath)) return;
-        for (const line of fs.readFileSync(envPath, 'utf8').split('\n')) {
-            const m = line.match(/^([A-Z_]+)=(.*)$/);
-            if (m && process.env[m[1]] === undefined) process.env[m[1]] = m[2].trim();
-        }
-    } catch { /* no .env → vault defaults apply, seats report themselves */ }
+    for (const name of ['.env', 'workbench.env']) {
+        try {
+            const envPath = path.join(WB, name);
+            if (!fs.existsSync(envPath)) continue;
+            for (const line of fs.readFileSync(envPath, 'utf8').split('\n')) {
+                const m = line.match(/^([A-Z_]+)=(.*)$/);
+                if (m && process.env[m[1]] === undefined) process.env[m[1]] = m[2].trim();
+            }
+        } catch { /* no env file → vault defaults apply, seats report themselves */ }
+    }
 }
 
 function readLedger() {
@@ -176,6 +184,9 @@ async function runCycle(spec = {}) {
         });
         const proof = await skill_graft_digestion({
             action: 'digest', batchId: `${batchId}-judge-proof`, judge: true,
+            // Electrician repair (2026-10-23): fixture/QA digestion
+            // scores into the fixture PLT ledger, never production 'gsk'.
+            soulId: 'gsk-fixtures',
             items: proofItems.map(({ expect, ...rest }) => rest),
         });
         record.stages.judgeProof = {

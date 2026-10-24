@@ -11,7 +11,14 @@ module.exports.run = async (params) => {
 };
 'use strict';
 
-const { chromium } = require('playwright');
+// WIRING SPRINT (2026-10-23): 'playwright' was a hard top-level require,
+// but the package was never installed for this tree — so this skill
+// failed to LOAD at all (capability exam: 168/169) and broke the skill
+// load sweep. The browser now resolves lazily at first use through
+// ../brain/browser_engine.js (Puppeteer from the workshop install, or
+// Playwright from gsk/node_modules, driving the already-present
+// Chromium binary). When nothing resolves, actions fail CLEAN with a
+// named browser_unavailable error instead of a load-time crash.
 
 const PLT_AFFINITY = { profit: 0.5, love: 0.3, tax: 0.2 };
 
@@ -45,10 +52,15 @@ async function skill_webapp_testing(input) {
 }
 
 async function launchBrowser() {
-    return await chromium.launch({
-        headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox'],
-    });
+    const engine = require('../brain/browser_engine.js');
+    // This skill is written in Playwright's API vocabulary (newContext,
+    // networkidle) — pin the library; a pinned miss fails clean below
+    // rather than breaking on the wrong API surface.
+    const browser = await engine.launchBrowser({ api: 'playwright' });
+    if (!browser) {
+        throw new Error('browser_unavailable: playwright did not resolve and/or no chromium binary found — see brain/browser_engine.js resolution order');
+    }
+    return browser;
 }
 
 async function runTests(target, testTypes, options) {

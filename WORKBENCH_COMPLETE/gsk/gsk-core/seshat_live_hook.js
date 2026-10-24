@@ -12,7 +12,11 @@ const fs = require('fs');
 const path = require('path');
 const { getFamilyEventBus } = require('./family_event_bus');
 
-const DEFAULT_SESHAT_DIR = 'C:\\Users\\uncom\\Desktop\\seshat-second-brain\\pages';
+// Electrician repair (2026-10-23): the default pointed at a Windows
+// Desktop path from the old machine (C:\Users\uncom\Desktop\...) —
+// dead on any other host. Seshat's pages live in the workbench's own
+// .seshat-brain store, resolved relative to this file.
+const DEFAULT_SESHAT_DIR = path.resolve(__dirname, '..', '..', 'workbench', '.seshat-brain', 'pages');
 
 class SeshatLiveHook {
     constructor(seshatDir = DEFAULT_SESHAT_DIR) {

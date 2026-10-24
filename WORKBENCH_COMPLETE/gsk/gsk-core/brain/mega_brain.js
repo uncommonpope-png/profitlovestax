@@ -122,6 +122,7 @@ class Brain {
         this._modelHealth = {};        // model -> { failures, lastFail, lastSuccess }
         this._lastGoodModel = null;    // prefer the model that just worked
         this._healthCooldownMs = options.healthCooldownMs || 60000; // 60s before retrying a dead model
+        this._seatCooldown = {};       // provider id -> epoch ms until which a 429-quota-dead seat is skipped (Electrician repair, 2026-10-23; provider-keyed because the two Gemini seats share one model name)
         this._maxModelAttempts = options.maxModelAttempts || Math.max(1, Number(process.env.GSK_MAX_MODEL_ATTEMPTS) || 8);
         this._lastThinkUsedFallback = false;
         this._brainFailures = 0;
@@ -384,9 +385,9 @@ class Brain {
             if (!fs.existsSync(dmPath)) return '';
             const dm = require(dmPath);
             if (typeof dm.search !== 'function' || typeof dm.recallBlock !== 'function') return '';
-            const hits = dm.search(prompt, 3);
+            const hits = dm.search(prompt, 4);
             if (!hits || hits.length === 0) return '';
-            const block = dm.recallBlock(prompt, 3);
+            const block = dm.recallBlock(prompt, 4);
             if (!block) return '';
             this._lastDeepRecall = { count: hits.length, top: { shelf: hits[0].shelf, source: hits[0].source, score: hits[0].score }, at: Date.now() };
             console.log(`[Brain] SESHAT DEEP RECALL fired: ${hits.length} hit(s) — top ${hits[0].shelf}/${hits[0].source} score=${hits[0].score}`);
@@ -425,7 +426,10 @@ class Brain {
         if (creds.gemini2) chain.push({ id: 'gemini2', defaultModel: 'gemini-3.5-flash', endpoint: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', apiKey: creds.gemini2, timeout: 60000 });
         if (creds.groq) chain.push({ id: 'groq', defaultModel: 'llama-3.3-70b-versatile', endpoint: 'https://api.groq.com/openai/v1/chat/completions', apiKey: creds.groq, timeout: 60000 });
         if (creds.openai) chain.push({ id: 'openai', defaultModel: 'gpt-4o-mini', endpoint: 'https://api.openai.com/v1/chat/completions', apiKey: creds.openai, timeout: 60000 });
-        if (creds.poolside) chain.push({ id: 'poolside', defaultModel: 'poolside/laguna-s-2.1', endpoint: 'https://inference.poolside.ai/v1/chat/completions', apiKey: creds.poolside, timeout: 90000 });
+        // POOLSIDE SUNSET GATE (Electrician repair, 2026-10-23): hosted
+        // inference ends 2026-10-31 — after 2026-11-01 00:00 UTC the
+        // seat is not even attempted, key or no key. Date logic only.
+        if (creds.poolside && Date.now() < Date.UTC(2026, 10, 1)) chain.push({ id: 'poolside', defaultModel: 'poolside/laguna-s-2.1', endpoint: 'https://inference.poolside.ai/v1/chat/completions', apiKey: creds.poolside, timeout: 90000 });
         // VAULT ROTATION (2026-10-22, owner's order): Cohere joins the
         // chain as the last rented seat — same proven seat pattern as
         // brain/look_loop.js TEXT_SEATS (command-a-03-2025 via Cohere's
@@ -453,15 +457,93 @@ class Brain {
             { role: 'system', content: system },
             { role: 'user', content: prompt },
         ];
-        const result = await handler.executeWithFallback({ providerChain: chain, messages });
-        if (result && result.success && result.content) {
-            this._lastDirectProvider = result.provider + '/' + result.model;
-            console.log(`[Brain] Direct provider path answered via ${this._lastDirectProvider} (OmniRoute absent)`);
-            return String(result.content);
+        // DEAD-SEAT COOLDOWN (Electrician repair, 2026-10-23): a seat
+        // that answered HTTP 429 (quota exhausted) is skipped for an
+        // hour instead of being re-billed at the head of every think —
+        // with both Gemini seats quota-dead, every think was paying
+        // two doomed round-trips before reaching a live seat. Seat
+        // order and failover semantics are unchanged for live seats.
+        // Never filters the chain to empty: if every seat is cooled,
+        // the full chain runs — a cooled seat beats no seat.
+        const _nowMs = Date.now();
+        const _cooled = chain.filter(c => (this._seatCooldown[c.id] || 0) > _nowMs);
+        let workingChain = chain;
+        if (_cooled.length > 0 && _cooled.length < chain.length) {
+            workingChain = chain.filter(c => (this._seatCooldown[c.id] || 0) <= _nowMs);
+            console.log(`[Brain] Seat cooldown: skipping ${_cooled.map(c => c.id).join(', ')} (HTTP 429 within the last hour)`);
         }
-        const detail = (result && result.failures || []).map(f => `${f.provider}: ${f.error}`).join(' | ') || (result && result.error) || 'unknown';
-        console.log('[Brain] Direct provider path failed:', String(detail).slice(0, 300));
+        // VAPOR CHECK (Wiring Sprint Phase 2, 2026-10-23): a seat that
+        // ANSWERS with degenerate output (empty / non-reply / salad —
+        // brain/vapor_check.js) used to be delivered as if it were a
+        // thought. Now it fails over: the offending seat is dropped
+        // from the chain and the next seat is asked. Only a screened
+        // answer — or no answer — leaves this method.
+        for (let attempt = 0; attempt < 3 && workingChain.length > 0; attempt++) {
+            const result = await handler.executeWithFallback({ providerChain: workingChain, messages });
+            // Learn quota deaths from every attempt's failure list —
+            // including successful attempts (the handler now surfaces
+            // the failures it stepped over on its success returns).
+            for (const f of (result && result.failures) || []) {
+                if (f.via === 'native' && /HTTP 429/.test(String(f.error || ''))) {
+                    this._seatCooldown[f.provider] = Date.now() + 3600000;
+                    console.log(`[Brain] Seat ${f.provider} quota-dead (HTTP 429) — cooling down for 1h`);
+                }
+            }
+            if (result && result.success && result.content) {
+                let screen = { degenerate: false, flags: [] };
+                try { screen = require('./vapor_check.js').vaporScreen(String(result.content)); } catch (e) { /* screen never breaks a think */ }
+                if (!screen.degenerate) {
+                    this._lastDirectProvider = result.provider + '/' + result.model;
+                    console.log(`[Brain] Direct provider path answered via ${this._lastDirectProvider} (OmniRoute absent)`);
+                    return String(result.content);
+                }
+                this._lastVaporCatch = { provider: result.provider, flags: screen.flags, at: Date.now() };
+                console.log(`[Brain] Vapor check caught degenerate output from ${result.provider} (${screen.flags.join(', ')}) — failing over to the next seat`);
+                workingChain = workingChain.filter(c => c.id !== result.provider);
+                continue;
+            }
+            const detail = (result && result.failures || []).map(f => `${f.provider}: ${f.error}`).join(' | ') || (result && result.error) || 'unknown';
+            console.log('[Brain] Direct provider path failed:', String(detail).slice(0, 300));
+            return null;
+        }
+        console.log('[Brain] Direct provider path: every seat produced degenerate output — returning no answer rather than vapor');
         return null;
+    }
+
+    /**
+     * COUNCIL THINK (Wiring Sprint Phase 2, 2026-10-23) — the opt-in
+     * heavy bench for build/judgment-class questions: two best live
+     * seats answer independently (with the same Seshat deep-recall
+     * context think() injects) and the digestion judge's machinery
+     * reconciles them — agreement stands, disagreement is picked with
+     * a reason or flagged as uncertainty. See brain/council.js.
+     *
+     * Returns the council's answer text, or null when the council
+     * cannot sit (fewer than two live seats / a seat failed) — the
+     * caller then falls back to think(). Council NEVER replaces the
+     * fast single-seat path; it is called deliberately. The full
+     * sitting (seats, both answers, reconciliation trace) is kept on
+     * this._lastCouncil for the record.
+     */
+    async thinkCouncil(prompt, soul_context = '') {
+        try {
+            const council = require('./council.js');
+            let deepBlock = '';
+            try { deepBlock = this._deepRecall(prompt) || ''; } catch (e) { /* recall never breaks a think */ }
+            const context = [deepBlock, soul_context].filter(Boolean).join('\n\n');
+            const r = await council.councilThink(prompt, { context });
+            this._lastCouncil = r;
+            if (r && r.success && r.answer) return r.answer;
+            if (r && r.success && r.agreement === 'uncertain') {
+                console.log('[Brain] Council sat but flagged uncertainty — no winner invented; falling back to single-seat think');
+                return null;
+            }
+            console.log('[Brain] Council unavailable:', r && r.error, r && r.detail || '');
+            return null;
+        } catch (e) {
+            console.log('[Brain] Council think threw:', e.message);
+            return null;
+        }
     }
 
     /**

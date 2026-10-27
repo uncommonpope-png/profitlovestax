@@ -47,6 +47,58 @@ if (!process.env.GSK_AUTONOMY_FIRST_DELAY_MS) process.env.GSK_AUTONOMY_FIRST_DEL
 dotenv.config();
 dotenv.config({ path: path.join(__dirname, "workbench.env") });
 
+// HEARTBEAT 2026-10-27: last-word witness for sudden deaths. A plain
+// top-level interval, deliberately NOT wired into loop, turn, or seat logic.
+// Every 10s it appends one synchronously flushed line (ISO time, pid, uptime,
+// RSS) so the next silent death leaves a last timestamp written from inside
+// this process. A gap after the last line bounds the kill window; no
+// in-process handler can log an outside kill itself.
+const HEARTBEAT_PATH = path.join(process.env.HOME || "", "workspace", "gsk-supervisor", "logs", "workbench-heartbeat.log");
+setInterval(() => {
+  try {
+    const line = `${new Date().toISOString()} pid=${process.pid} uptime_s=${Math.floor(process.uptime())} rss_mb=${(process.memoryUsage().rss / 1048576).toFixed(1)} heap_mb=${(process.memoryUsage().heapUsed / 1048576).toFixed(1)}\n`;
+    fs.appendFileSync(HEARTBEAT_PATH, line);
+  } catch {
+    // Heartbeat must never take the workbench down.
+  }
+}, 10000);
+
+// DEATH-WITNESS 2026-10-27: signal/crash handlers so a logged death
+// replaces a silent one. Each handler synchronously appends ONE line to the
+// heartbeat file AND writes the same line to stderr (the supervisor already
+// captures stderr into workbench.log). Signal handlers remove themselves and
+// re-raise the same signal so exit status matches default semantics.
+// Crash handlers log, remove themselves, and re-raise so Node's default
+// crash path exits nonzero. No new process.exit calls are added: the wedge
+// guard's exit(71) stays the only one. NOTE: an outside SIGKILL still
+// cannot be caught by any handler — that case is what the heartbeat gap
+// bounds.
+function deathWitnessWrite(line: string): void {
+  try { fs.appendFileSync(HEARTBEAT_PATH, line); } catch { /* never die logging */ }
+  try { process.stderr.write(line); } catch { /* ignore */ }
+}
+function deathWitnessLine(kind: string, detail: string): string {
+  const stack = detail.replace(/\n/g, " | ");
+  return `${new Date().toISOString()} DEATH-WITNESS ${kind} pid=${process.pid} uptime_s=${Math.floor(process.uptime())} rss_mb=${(process.memoryUsage().rss / 1048576).toFixed(1)} ${stack}\n`;
+}
+for (const sig of ["SIGTERM", "SIGINT", "SIGHUP"] as const) {
+  process.on(sig, () => {
+    deathWitnessWrite(deathWitnessLine("signal", `signal=${sig}`));
+    process.removeAllListeners(sig);
+    process.kill(process.pid, sig);
+  });
+}
+process.on("uncaughtException", (err: Error) => {
+  deathWitnessWrite(deathWitnessLine("uncaughtException", err instanceof Error ? (err.stack || err.message) : String(err)));
+  process.removeAllListeners("uncaughtException");
+  throw err;
+});
+process.on("unhandledRejection", (reason: unknown) => {
+  deathWitnessWrite(deathWitnessLine("unhandledRejection", reason instanceof Error ? (reason.stack || reason.message) : String(reason)));
+  process.removeAllListeners("unhandledRejection");
+  void Promise.reject(reason);
+});
+
 const app = express();
 const PORT = 3000;
 

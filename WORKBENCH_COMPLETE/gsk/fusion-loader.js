@@ -612,7 +612,7 @@ class GSKFusion {
             // P4b: restore cross-session links FIRST, then index fresh jsonl on top.
             const kgStatePath = path.join(this.dataDir, 'gsk', 'knowledge-graph.json');
             try {
-                const restored = knowledgeGraph.loadState(kgStatePath);
+                const restored = await knowledgeGraph.loadState(kgStatePath);
                 if (restored > 0) console.log(`  [FUSION] ✓ Knowledge graph restored (${restored} nodes, cross-session)`);
             } catch (e) {}
             try {

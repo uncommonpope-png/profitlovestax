@@ -178,6 +178,12 @@ for (const c of rawChunks) {
   seen.add(h);
   chunks.push(c);
 }
+// BUILD-PEAK FIX (2026-10-27): rawChunks still holds every pre-dedupe
+// chunk object (including dropped duplicates) while the index is built
+// and serialized. The kept objects already live in `chunks`, so release
+// the raw array now; the count is captured first for the final log.
+const rawBeforeDedupe = rawChunks.length;
+rawChunks.length = 0;
 
 // ── build dictionary + tf + postings ───────────────────────────────
 const termIndex = new Map();
@@ -225,10 +231,17 @@ const index = {
 // after sees the complete new inode, and no reader ever sees a
 // half-written file. On any verification failure the temp file is
 // removed and the live index is left untouched (process exits nonzero).
-const serialized = JSON.stringify(index);
+let serialized = JSON.stringify(index);
 const tmpOut = OUT + '.tmp-' + process.pid;
 try {
   fs.writeFileSync(tmpOut, serialized, 'utf8');
+  // BUILD-PEAK FIX (2026-10-27): the serialized string (~78MB) is dead
+  // after the write, but verification below re-reads + re-parses the
+  // temp file into a second full object. Nulling the string first
+  // keeps one whole copy out of the verification-time peak (was:
+  // index object + serialized string + temp-file string + verified
+  // object alive at once).
+  serialized = null;
   const tmpFd = fs.openSync(tmpOut, 'r');
   try { fs.fsyncSync(tmpFd); } finally { fs.closeSync(tmpFd); }
   // Integrity check: parse the temp file back and validate structure
@@ -259,5 +272,5 @@ const perShelf = {};
 for (const c of index.chunks) perShelf[c.shelf] = (perShelf[c.shelf] || 0) + 1;
 console.log(JSON.stringify({
   chunks: index.N, avgLen: Math.round(index.avgLen), terms: terms.length,
-  perShelf, indexBytes: fs.statSync(OUT).size, rawBeforeDedupe: rawChunks.length,
+  perShelf, indexBytes: fs.statSync(OUT).size, rawBeforeDedupe,
 }, null, 2));

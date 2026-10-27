@@ -94,6 +94,89 @@ function newestSourceMtime() {
   }
   return newest;
 }
+// BUILDER DISCIPLINE (2026-10-27): cross-process builder lock + shared
+// one-builder cap. The in-process cap (activeBuilder) cannot see
+// builders in OTHER processes (workbench vs growth-runner vs hunt
+// recall proofs all share one .seshat-brain), so a second process
+// could spawnSync a build while the workbench's async builder runs —
+// the exact storm the per-process cap was meant to stop, on a 2-CPU
+// box. The lock file lives in BRAIN_DIR (runtime shelf, gitignored,
+// and NOT under pages/ or deep/, so it never trips the watcher).
+// Acquire is atomic ('wx' create). A lock is stale when its pid is
+// dead (process.kill(pid, 0) throws ESRCH) or its timestamp is older
+// than BUILD_LOCK_STALE_MS. Staleness (15 min) exceeds every
+// legitimate hold: the async builder is killed at 10 min (below) and
+// the sync build is bounded at 240 s, so a lock older than 15 min
+// can only belong to a crashed process. Steal is race-safe: unlink
+// then 'wx' create; losing the race returns busy, never corrupt.
+// Release only unlinks when the stored token is ours, so a process
+// never deletes another holder's lock. Residual risk, accepted: pid
+// reuse within 15 min of a holder's death could read as alive — the
+// cost is just a deferred build, never corruption (build-index
+// writes via pid-suffixed tmp + atomic rename).
+const BUILD_LOCK_PATH = path.join(BRAIN_DIR, 'build.lock');
+const BUILD_LOCK_STALE_MS = 15 * 60 * 1000; // 15 min
+function lockPidAlive(pid) {
+  try { process.kill(pid, 0); return true; }
+  catch (e) { return e && e.code !== 'ESRCH'; }
+}
+function tryAcquireBuildLock() {
+  const token = process.pid + '-' + Date.now() + '-' + Math.random().toString(36).slice(2, 10);
+  const payload = JSON.stringify({ pid: process.pid, ts: Date.now(), token });
+  try {
+    fs.writeFileSync(BUILD_LOCK_PATH, payload, { flag: 'wx' });
+    return token;
+  } catch (e) {
+    if (!e || e.code !== 'EEXIST') return null;
+  }
+  let held = null;
+  try { held = JSON.parse(fs.readFileSync(BUILD_LOCK_PATH, 'utf8')); } catch { held = null; }
+  let stale = false;
+  if (held && typeof held.pid === 'number' && typeof held.ts === 'number') {
+    stale = (Date.now() - held.ts > BUILD_LOCK_STALE_MS) || !lockPidAlive(held.pid);
+  } else {
+    // Unparseable lock: fall back to file age (a live holder's lock
+    // is always parseable and young).
+    try { stale = (Date.now() - fs.statSync(BUILD_LOCK_PATH).mtimeMs > BUILD_LOCK_STALE_MS); }
+    catch { stale = true; }
+  }
+  if (!stale) return null;
+  try { fs.unlinkSync(BUILD_LOCK_PATH); } catch { return null; }
+  try {
+    fs.writeFileSync(BUILD_LOCK_PATH, payload, { flag: 'wx' });
+    return token;
+  } catch { return null; } // lost the race; the winner holds it
+}
+function releaseBuildLock(token) {
+  if (!token) return;
+  try {
+    const held = JSON.parse(fs.readFileSync(BUILD_LOCK_PATH, 'utf8'));
+    if (held && held.token === token) fs.unlinkSync(BUILD_LOCK_PATH);
+  } catch { /* already gone or unreadable; never delete blindly */ }
+}
+// Synchronous sleep (Atomics.wait is main-thread-safe in Node) and a
+// bounded wait for another process's in-flight build to land a fresh
+// index. Used ONLY by refreshNow's busy path, which runs on boot and
+// batch paths (server listen callback, growth-cycle, growth-actions,
+// graft skills) — never on the turn path, which uses the async
+// watcher — so the wait cannot wedge a chat turn.
+function sleepSync(ms) {
+  try {
+    const sab = new SharedArrayBuffer(4);
+    Atomics.wait(new Int32Array(sab), 0, 0, ms);
+  } catch { /* no sleep available: caller proceeds immediately */ }
+}
+function waitForFreshIndex(timeoutMs) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    try {
+      const idxMtime = fs.existsSync(INDEX_PATH) ? fs.statSync(INDEX_PATH).mtimeMs : 0;
+      if (idxMtime > 0 && newestSourceMtime() <= idxMtime + 250) return true;
+    } catch { /* keep waiting */ }
+    sleepSync(1000);
+  }
+  return false;
+}
 function refreshNow(reason = 'manual', opts = {}) {
   if (refreshing) return { refreshed: false, reason: 'already_refreshing' };
   // TURN-LAG FIX (2026-10-27): never rebuild when the index is already
@@ -111,6 +194,24 @@ function refreshNow(reason = 'manual', opts = {}) {
       }
     } catch { /* fall through to rebuild when the check itself fails */ }
   }
+  // BUILDER DISCIPLINE (2026-10-27): respect the same one-builder cap
+  // as the async path. Before this, refreshNow ignored activeBuilder
+  // and ran a 240 s spawnSync even while an async builder ran in
+  // this process — and it could not see builders in other processes
+  // at all. Now: if a builder is already running here, or another
+  // process holds the cross-process lock, do NOT spawn a second
+  // builder. Instead wait up to 30 s for the in-flight build to land
+  // a fresh index (a full build measures ~11 s, so this usually
+  // succeeds); a wait that lands fresh returns reason 'fresh', which
+  // existing callers already treat as success. Only a wait that
+  // expires reports 'builder_busy' — and the in-flight build still
+  // lands shortly after, picked up by load() via stamp.
+  let lockToken = null;
+  if (!activeBuilder) lockToken = tryAcquireBuildLock();
+  if (activeBuilder || !lockToken) {
+    if (waitForFreshIndex(30000)) return { refreshed: false, reason: 'fresh' };
+    return { refreshed: false, reason: 'builder_busy' };
+  }
   refreshing = true;
   try {
     const builder = path.join(__dirname, 'build-index.cjs');
@@ -121,7 +222,21 @@ function refreshNow(reason = 'manual', opts = {}) {
     return { refreshed: true, reason, chunks: cache.N, builtAt: cache.builtAt };
   } catch (e) {
     return { refreshed: false, reason: 'build_threw', detail: String(e && e.message || e).slice(0, 300) };
-  } finally { refreshing = false; }
+  } finally {
+    refreshing = false;
+    releaseBuildLock(lockToken);
+    // A spawn that deferred while our sync build held the slot asked
+    // for exactly one more build when the slot freed. Run it only if
+    // sources are STILL stale (our build may already have covered
+    // the writes); spawnBuilder re-checks the cap and the lock.
+    if (builderWanted && !activeBuilder) {
+      builderWanted = false;
+      try {
+        const idxMtime = fs.existsSync(INDEX_PATH) ? fs.statSync(INDEX_PATH).mtimeMs : 0;
+        if (newestSourceMtime() > idxMtime + 250) spawnBuilder();
+      } catch { /* backstop covers it */ }
+    }
+  }
 }
 function refreshIfStale() {
   try {
@@ -156,18 +271,47 @@ let lastAsyncSpawn = 0;
 let activeBuilder = null;
 let builderWanted = false;
 function spawnBuilder() {
-  if (activeBuilder) { builderWanted = true; return { spawned: false, reason: 'already_running' }; }
+  // Shared one-builder cap: an in-process async builder, or a sync
+  // build in progress (refreshing), defers with builderWanted.
+  if (activeBuilder || refreshing) { builderWanted = true; return { spawned: false, reason: 'already_running' }; }
+  // Cross-process cap: another process's builder defers WITHOUT
+  // latching builderWanted — no exit in this process will consume
+  // it, and the other process's build lands a fresh index that
+  // load() picks up by stamp. (The watcher / search backstop retries
+  // on the next write or search.)
+  const lockToken = tryAcquireBuildLock();
+  if (!lockToken) return { spawned: false, reason: 'lock_busy' };
   try {
     const child = spawn(process.execPath, [path.join(__dirname, 'build-index.cjs')], { cwd: path.join(__dirname, '..'), stdio: 'ignore', detached: false });
     activeBuilder = child;
-    child.on('error', () => {});
-    child.on('exit', () => {
+    // BUILDER TIMEOUT (2026-10-27): 10 minutes (600000 ms). A wedged
+    // builder must not latch builderWanted forever. 10 min is far
+    // above the ~11 s observed full-index build and below the 15-min
+    // lock staleness, so a timeout-killed builder's lock is always
+    // releasable by the next acquirer. The timer is unref'd so it
+    // never keeps the process alive on its own.
+    const killTimer = setTimeout(() => {
+      console.warn('[SESHAT WARN] index builder timed out after 10m; killing');
+      try { child.kill('SIGKILL'); } catch {}
+    }, 600000);
+    if (killTimer.unref) killTimer.unref();
+    // Cleanup runs exactly once: Node may emit 'error' without a
+    // following 'exit' (and vice versa), and the old code latched
+    // activeBuilder forever on the error-only path.
+    let cleaned = false;
+    const cleanup = () => {
+      if (cleaned) return;
+      cleaned = true;
+      try { clearTimeout(killTimer); } catch {}
+      releaseBuildLock(lockToken);
       activeBuilder = null;
       if (builderWanted) { builderWanted = false; spawnBuilder(); }
-    });
+    };
+    child.on('error', cleanup);
+    child.on('exit', cleanup);
     child.unref();
     return { spawned: true };
-  } catch (e) { return { spawned: false, reason: 'spawn_failed', detail: String(e && e.message || e).slice(0, 200) }; }
+  } catch (e) { releaseBuildLock(lockToken); return { spawned: false, reason: 'spawn_failed', detail: String(e && e.message || e).slice(0, 200) }; }
 }
 function scheduleAsyncRefresh() {
   try {

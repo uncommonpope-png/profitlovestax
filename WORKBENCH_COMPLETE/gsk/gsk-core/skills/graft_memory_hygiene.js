@@ -113,10 +113,14 @@ function recordOutcome(input = {}) {
         delete require.cache[require.resolve(DEEP_MEMORY)];
         const dm = require(DEEP_MEMORY);
         refresh = typeof dm.refreshNow === 'function' ? dm.refreshNow('record_outcome') : null;
-        if (!refresh || !refresh.refreshed) {
+        // TURN-LAG FIX (2026-10-27): refreshNow skips the rebuild when
+        // the index is already fresh ({refreshed:false, reason:'fresh'}).
+        // That is success, not failure — the outcome is already
+        // recallable. Only a real non-fresh failure bails out.
+        if (!refresh || (!refresh.refreshed && refresh.reason !== 'fresh')) {
             return { success: true, skill: 'graft_memory_hygiene', written: { page: pagePath }, indexRebuilt: false, recallVerified: false, warning: `index refresh did not run: ${JSON.stringify(refresh)} — outcome is on the unified shelf but NOT yet recallable` };
         }
-        indexLog = `refreshNow(record_outcome) → chunks=${refresh.chunks} builtAt=${refresh.builtAt}`;
+        indexLog = `refreshNow(record_outcome) → refreshed=${refresh.refreshed} reason=${refresh.reason} chunks=${refresh.chunks} builtAt=${refresh.builtAt}`;
     } catch (e) {
         return { success: true, skill: 'graft_memory_hygiene', written: { page: pagePath }, indexRebuilt: false, recallVerified: false, warning: `index refresh failed: ${String(e && e.message || e).slice(0, 200)} — outcome is on the unified shelf but NOT yet recallable` };
     }

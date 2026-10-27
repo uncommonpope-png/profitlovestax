@@ -169,6 +169,19 @@ async function fetchSource(url) {
 
 function appendLog(entry) {
     try { fs.mkdirSync(BRAIN_DIR, { recursive: true }); fs.appendFileSync(LOG_PATH, JSON.stringify(entry) + '\n', 'utf8'); } catch { /* log is evidence, not a gate */ }
+    // UNIFIED EVENT TRACE mirror (Steal List #5, 2026-10-23): every
+    // digestion outcome also lands on the body's ONE trace stream
+    // (brain/event_trace.js) as source 'seshat.digestion' — summary
+    // fields only, never the digested text. Guarded: the witness
+    // never gates the metabolism.
+    try {
+        const { trace } = require('../brain/event_trace.js');
+        trace('seshat.digestion', `digest_${entry.status}`, {
+            batchId: entry.batchId, title: String(entry.title || '').slice(0, 120),
+            trueValue: entry.trueValue !== undefined ? entry.trueValue : null,
+            file: entry.file || null,
+        }, {});
+    } catch { /* witness, never a gate */ }
 }
 
 async function digestItems(input = {}) {

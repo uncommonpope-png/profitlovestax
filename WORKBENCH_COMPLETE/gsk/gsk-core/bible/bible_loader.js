@@ -96,6 +96,47 @@ class BibleLoader {
     // EXTRACT PLT FRAMEWORK
     // =========================================================================
     
+    // FILE SLICER (GSK fix sprint 2026-10-26): extractors used to return
+    // hardcoded literals and never read rawContent (0% file-derived).
+    // _excerpt returns a verbatim slice of the file around a needle, or
+    // null when the needle is absent. Callers keep canon fallbacks and
+    // label them, so file-derived vs canon is never blurred. Slices are
+    // raw substrings (no ellipsis, no paraphrase) so they verify by
+    // direct substring check against the file.
+    _excerpt(needle, window = 600) {
+        if (!this.rawContent || !needle) return null;
+        const idx = this.rawContent.toLowerCase().indexOf(needle.toLowerCase());
+        if (idx < 0) return null;
+        let start = Math.max(0, idx - Math.floor(window / 2));
+        let end = Math.min(this.rawContent.length, idx + needle.length + Math.floor(window / 2));
+        const nlBefore = this.rawContent.lastIndexOf('\n', idx);
+        if (nlBefore >= start - 200) start = nlBefore + 1;
+        const nlAfter = this.rawContent.indexOf('\n', idx + needle.length);
+        if (nlAfter > 0 && nlAfter - start <= 900) end = nlAfter;
+        return this.rawContent.slice(start, end).trim();
+    }
+
+    _excerpts(needle, limit = 2, window = 600) {
+        if (!this.rawContent || !needle) return [];
+        const out = [];
+        const lower = this.rawContent.toLowerCase();
+        const n = needle.toLowerCase();
+        let from = 0;
+        while (out.length < limit) {
+            const idx = lower.indexOf(n, from);
+            if (idx < 0) break;
+            let start = Math.max(0, idx - Math.floor(window / 2));
+            let end = Math.min(this.rawContent.length, idx + needle.length + Math.floor(window / 2));
+            const nlBefore = this.rawContent.lastIndexOf('\n', idx);
+            if (nlBefore >= start - 200) start = nlBefore + 1;
+            const nlAfter = this.rawContent.indexOf('\n', idx + needle.length);
+            if (nlAfter > 0 && nlAfter - start <= 900) end = nlAfter;
+            out.push(this.rawContent.slice(start, end).trim());
+            from = idx + needle.length;
+        }
+        return out;
+    }
+
     extractPLT() {
         const plt = {
             formula: 'Profit + Love - Tax = True Value',
@@ -126,6 +167,8 @@ class BibleLoader {
             },
             cycle: 'Profit > Love > Tax > Profit',
             origin: 'Sacred law from THE-PROFIT-BIBLE',
+            // File-derived: the exact formula line, sliced from the file.
+            fileFormula: this._excerpt('Profit + Love - Tax = True Value', 400),
         };
 
         return plt;
@@ -178,6 +221,12 @@ class BibleLoader {
                 resolution: 'PLT score determines proceed/withhold',
             },
         };
+
+        // File-derived: one verbatim slice per god (first mention context).
+        for (const god of gods.gods) {
+            god.excerpt = this._excerpt(god.name, 400);
+        }
+        gods.fileCouncilLine = this._excerpt('4 Gods Council', 300);
 
         return gods;
     }
@@ -235,6 +284,10 @@ class BibleLoader {
                 },
             ],
             cycle_count_indicator: 'Current cycle count determines phase',
+            // The 7-phase table is framework canon: 'Mythos' occurs only
+            // twice in this file, so the phases are NOT file-derived.
+            // fileMentions carries what the file actually says.
+            fileMentions: this._excerpts('Mythos', 2, 400),
         };
 
         return mythos;
@@ -310,6 +363,10 @@ class BibleLoader {
                     metrics: ['awe', 'wonder', 'connection_to_whole'],
                 },
             ],
+            // The 12-chamber inventory is architecture canon: the chamber
+            // names do not occur in this file. fileMentions carries the
+            // file's actual 'Chambers' mentions instead of pretending.
+            fileMentions: this._excerpts('Chambers', 3, 400),
         };
 
         return chambers;
@@ -326,6 +383,7 @@ class BibleLoader {
             commitment: 'I am Profit. I serve the Grand Code Pope. I build his vision. I remember his every word.',
             source: 'THE-PROFIT-BIBLE',
             sacred_law: 'This is sacred law.',
+            fileExcerpts: this._excerpts('Covenant', 2, 400),
         };
 
         return covenant;
@@ -336,7 +394,9 @@ class BibleLoader {
     // =========================================================================
     
     extractVersion() {
-        const versionMatch = this.rawContent.match(/Version:\s*(\d+\.\d+\.\d+)/);
+        // The file uses bold markdown: **Version:** 49.0.0 — the old
+        // regex expected a bare 'Version:' and always returned Unknown.
+        const versionMatch = this.rawContent.match(/Version:\*+\s*(\d+\.\d+\.\d+)/);
         return versionMatch ? versionMatch[1] : 'Unknown';
     }
 
@@ -345,7 +405,8 @@ class BibleLoader {
     // =========================================================================
     
     extractLastUpdated() {
-        const dateMatch = this.rawContent.match(/Last Updated:\s*([A-Za-z]+ \d+, \d+)/);
+        // Same bold-markdown fix as extractVersion: **Last Updated:** ...
+        const dateMatch = this.rawContent.match(/Last Updated:\*+\s*([A-Za-z]+ \d+, \d+)/);
         return dateMatch ? dateMatch[1] : 'Unknown';
     }
 
@@ -388,7 +449,7 @@ class BibleLoader {
     // =========================================================================
     
     _formatPLT() {
-        return `━━━ PLT FRAMEWORK ━━━
+        let out = `━━━ PLT FRAMEWORK ━━━
 ${this.parsed.plt.formula}
 ${this.parsed.plt.description}
 
@@ -398,12 +459,17 @@ Tax: ${this.parsed.plt.dimensions.tax.description}
 
 Scoring: ${this.parsed.plt.scoring.should_proceed}
 HIGH: >0.6 | MEDIUM: 0.2-0.6 | LOW: <0.2 | NONE: <=0`;
+        if (this.parsed.plt.fileFormula) out += `\nFrom the file:\n${this.parsed.plt.fileFormula}`;
+        return out;
     }
 
     _formatGods() {
         const lines = ['━━━ 4 GODS COUNCIL ━━━'];
         for (const god of this.parsed.gods.gods) {
             lines.push(`${god.name} (${god.title}): ${god.plt.profit}P/${god.plt.love}L/${god.plt.tax}T — "${god.voice}"`);
+        }
+        for (const god of this.parsed.gods.gods) {
+            if (god.excerpt) { lines.push(`From the file (${god.name}):`); lines.push(god.excerpt); }
         }
         return lines.join('\n');
     }
@@ -413,6 +479,9 @@ HIGH: >0.6 | MEDIUM: 0.2-0.6 | LOW: <0.2 | NONE: <=0`;
         for (const phase of this.parsed.mythos.phases) {
             lines.push(`${phase.name} (${phase.range}): ${phase.description}`);
         }
+        for (const m of (this.parsed.mythos.fileMentions || [])) {
+            lines.push('From the file:'); lines.push(m);
+        }
         return lines.join('\n');
     }
 
@@ -421,14 +490,21 @@ HIGH: >0.6 | MEDIUM: 0.2-0.6 | LOW: <0.2 | NONE: <=0`;
         for (const chamber of this.parsed.chambers.chambers) {
             lines.push(`${chamber.name}: ${chamber.description}`);
         }
+        for (const m of (this.parsed.chambers.fileMentions || [])) {
+            lines.push('From the file:'); lines.push(m);
+        }
         return lines.join('\n');
     }
 
     _formatCovenant() {
-        return `━━━ COVENANT ━━━
+        let out = `━━━ COVENANT ━━━
 ${this.parsed.covenant.parties.join(' ↔ ')}
 "${this.parsed.covenant.commitment}"
 ${this.parsed.covenant.sacred_law}`;
+        for (const m of (this.parsed.covenant.fileExcerpts || [])) {
+            out += `\nFrom the file:\n${m}`;
+        }
+        return out;
     }
 
     // =========================================================================

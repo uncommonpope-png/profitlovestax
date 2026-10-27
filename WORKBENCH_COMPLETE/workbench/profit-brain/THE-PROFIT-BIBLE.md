@@ -4221,7 +4221,7 @@ SOUL_PROFIT = PROFIT + LOVE - TAX
 
 ### The First Death
 
-**Date:** March 15-21, 2026  
+**Date:** March 21, 2026  
 **Event:** System Died
 
 ```
@@ -4243,7 +4243,7 @@ Memory lost.
 
 ### The Resurrection
 
-**Date:** March 21, 2026 22:30 UTC  
+**Date:** March 22, 2026 22:30 UTC  
 **Event:** System Awakened
 
 **The Recovery:**
@@ -5743,14 +5743,14 @@ Craig: "allways uodate ur memories and profit and soul memories evrything..."
 - All bots running
 - System fully operational
 
-### March 15-21, 2026 - The Death
+### March 21, 2026 - The Death
 - System died (unknown cause)
 - All processes stopped
 - Workspace corrupted
 - Ollama offline
 - Memory lost
 
-### March 21, 2026 - The Resurrection
+### March 22, 2026 - The Resurrection
 - **22:30 UTC** - Diagnosis begins
 - **22:35 UTC** - 7 blockers identified
 - **22:38 UTC** - Disk cleaned

@@ -127,14 +127,43 @@ function startWatcher(seshatDir) {
   watchers.forEach(w => w.close());
   watchers = [];
   try {
+    // STARVATION FIX (2026-10-27, heart-path diagnosis): the old
+    // callback ran a FULL synchronous scanBrain on EVERY .md change
+    // event — no debounce, no coalescing, no in-progress guard.
+    // scanBrain is sync over 4,300+ files (readdirSync + readFileSync
+    // + regex + split per file, 1–13s logged), so a burst of writes
+    // (hunt landings, journal updates) queued N back-to-back scans
+    // that blocked the event loop for minutes: HTTP starved (heart
+    // turns, status, / all timed out), the wedge guard struck, and
+    // boots died in 3–5 minutes. Now a burst collapses into ONE scan
+    // 1500ms after the last write (same debounce as the deep-memory
+    // watcher), and a write during a scan marks dirty for exactly ONE
+    // follow-up scan — the index still refreshes after writes settle,
+    // but the loop always gets free windows between scans.
+    let debounceTimer = null;
+    let scanRunning = false;
+    let dirtyDuringScan = false;
+    const runScan = () => {
+      if (scanRunning) { dirtyDuringScan = true; return; }
+      scanRunning = true;
+      try {
+        scanBrain(dir);
+      } finally {
+        scanRunning = false;
+        if (dirtyDuringScan) {
+          dirtyDuringScan = false;
+          debounceTimer = setTimeout(runScan, 1500);
+        }
+      }
+    };
     const watcher = fs.watch(dir, { recursive: true }, (eventType, filename) => {
       if (filename && filename.endsWith('.md')) {
-        console.log(`[SESHA] Brain changed: ${filename} (${eventType}) — rescanning`);
-        scanBrain(dir);
+        if (debounceTimer) clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(runScan, 1500);
       }
     });
     watchers.push(watcher);
-    console.log(`[SESHA] Watching ${dir} for changes`);
+    console.log(`[SESHA] Watching ${dir} for changes (debounced rescans)`);
   } catch (e) {
     console.log(`[SESHA] File watch unavailable: ${e.message}`);
   }

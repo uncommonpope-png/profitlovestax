@@ -1,5 +1,7 @@
 # BUYaSOUL FAMILY — AGENT INSTRUCTIONS (GitHub Edition)
 
+> **SUPERSEDED Oct 26, 2026 (owner order): OmniRoute is RETIRED. The direct-provider chain replaced it; the Oct 26 server.ts strip removed the :20128 adoption/gate and the status blood slot. The OmniRoute-as-blood-flow rules below are HISTORICAL, not current — do not follow them for the live workbench.**
+
 > **THE INVESTIGATOR'S RULES (Blood-Flow Protocol — Never Violate)**
 > 1. **Omniroute is the blood flow.** Port :20128. NEVER kill. NEVER duplicate. ALWAYS scan first.
 > 2. **NEVER run `Stop-Process -Force` on all node processes.** That kills Omniroute. Exempt it.

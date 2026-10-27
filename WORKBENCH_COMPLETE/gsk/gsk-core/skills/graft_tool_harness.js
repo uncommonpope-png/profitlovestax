@@ -40,7 +40,7 @@ const PLT_DATA_DIR = path.resolve(__dirname, '..', '..', 'data', 'plt');
 // The Phase 5 graft set itself: authored this phase, exercised by the
 // Phase 5 acceptance runs; callable through the harness (except the
 // harness itself — no recursion).
-const GRAFT_CALLABLE = new Set(['graft_rule_zero', 'graft_memory_hygiene', 'graft_delegation', 'graft_digestion', 'graft_senses', 'graft_digestion_judge', 'graft_look_loop', 'graft_look_squeeze', 'graft_browser', 'graft_scrape', 'graft_code_memory', 'graft_benchmark']); // + Phase 6 grafts (digestion, senses) + Self-Growth Cycle #1 (digestion judge) + Make-Him-Better Front 1 (look loop) + look squeeze (quality-per-judge-call) + Wiring Sprint 2026-10-23 (graft_browser — the browser organ, audited + probe-verified in the sprint) + Internet-Organs Repair 2026-10-23 (graft_scrape — structured extraction, isolation-audited + probe-verified on live GitHub Trending before admission) + Steal List 2026-10-23 (graft_code_memory — codebase-memory-mcp structural code memory via brain/mcp_servers.js; graft_benchmark — the standing exam suite in gsk-core/benchmarks/; both probe-verified in gsk-sessions/2026-10-23-steal-list-build.md before admission)
+const GRAFT_CALLABLE = new Set(['graft_rule_zero', 'graft_memory_hygiene', 'graft_delegation', 'graft_digestion', 'graft_senses', 'graft_digestion_judge', 'graft_look_loop', 'graft_look_squeeze', 'graft_browser', 'graft_scrape', 'graft_code_memory', 'graft_benchmark', 'graft_council']); // + GSK fix sprint 2026-10-26 (graft_council — explicit council caller, Tier-1 #13; seats action verified via harness, live council sit blocked at 1 seat in sprint context — see sprint report) // + Phase 6 grafts (digestion, senses) + Self-Growth Cycle #1 (digestion judge) + Make-Him-Better Front 1 (look loop) + look squeeze (quality-per-judge-call) + Wiring Sprint 2026-10-23 (graft_browser — the browser organ, audited + probe-verified in the sprint) + Internet-Organs Repair 2026-10-23 (graft_scrape — structured extraction, isolation-audited + probe-verified on live GitHub Trending before admission) + Steal List 2026-10-23 (graft_code_memory — codebase-memory-mcp structural code memory via brain/mcp_servers.js; graft_benchmark — the standing exam suite in gsk-core/benchmarks/; both probe-verified in gsk-sessions/2026-10-23-steal-list-build.md before admission)
 
 // ── Unified event trace (Steal List #5) ────────────────────────────────
 // The harness is a founding emitter on the body's ONE trace stream
@@ -515,6 +515,7 @@ module.exports = {
     _readCheckpoint: readCheckpoint,
     _runFileFor: runFileFor,
     _callSkill: callSkill,
+    _auditClassFor: auditClassFor,
     PLT_AFFINITY,
     MANIFEST: {
         name: 'graft_tool_harness',

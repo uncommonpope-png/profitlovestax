@@ -459,6 +459,32 @@ class SkillsEngine {
     }
     
     // =========================================================================
+    // RELOAD (GSK fix sprint 2026-10-26, Tier-1 #16): SkillsEngine.reload()
+    // was missing, so fusion-loader's reloadSkills() SkillsEngine leg
+    // silently never ran. Re-scans the skills dir (purging require cache
+    // for skill files so changed files refresh) and merges NEW entries,
+    // mirroring the constructor (built-ins win on name collision).
+    // LIMIT: additions and refreshes only — deleted files are NOT pruned
+    // from the registry; a full rebuild is needed for pruning.
+    // =========================================================================
+
+    async reload() {
+        const skillsDir = path.join(__dirname);
+        for (const k of Object.keys(require.cache)) {
+            if (k.startsWith(skillsDir)) delete require.cache[k];
+        }
+        const fileSkills = loadSkillFiles();
+        let added = 0;
+        for (const [name, entry] of Object.entries(fileSkills)) {
+            if (!this.skill_registry[name]) {
+                this.skill_registry[name] = entry;
+                added++;
+            }
+        }
+        return { success: true, added, total: Object.keys(this.skill_registry).length };
+    }
+
+    // =========================================================================
     // HONESTY GUARD — Phase 4 (skills audit, SURGERY.md §3)
     // No code path may report unrun work as done. Converts fake success
     // shapes — empty results, the literal 'Completed', the fake-execute
@@ -488,6 +514,22 @@ class SkillsEngine {
         if (!skill) {
             const available = Object.keys(this.skill_registry).join(', ');
             throw new Error(`Unknown skill: "${skillName}". Available: ${available}`);
+        }
+
+        // AUDIT GATE (GSK fix sprint 2026-10-26, Tier-1 #15): file-backed
+        // skills pass through the same audit rule as the graft harness
+        // (graft allowlist, else Phase 4 audit class must be 'real').
+        // Built-in method skills (engine code, no file) pass through
+        // unchanged. Refusal happens BEFORE stats/witness side effects.
+        // The rule is borrowed, not copied: _auditClassFor is exported
+        // by graft_tool_harness.js, the single source of the rule.
+        if (!this['_skill_' + skillName] && skill._file) {
+            let auditClassFor = null;
+            try { ({ _auditClassFor: auditClassFor } = require('./graft_tool_harness.js')); } catch {}
+            const cls = auditClassFor ? auditClassFor(skillName, skill._file) : 'gate_unavailable';
+            if (cls !== 'real' && cls !== 'real (graft, Phase 5)') {
+                throw new Error(`Skill "${skillName}" not audited-real (audit class "${cls}") — the engine only runs audited-real file skills`);
+            }
         }
 
         this.stats.invocations++;

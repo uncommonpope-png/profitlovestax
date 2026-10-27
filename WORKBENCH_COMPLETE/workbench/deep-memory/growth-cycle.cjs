@@ -43,6 +43,7 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const os = require('os');
 
 const WB = path.resolve(__dirname, '..');
 const BRAIN_DIR = path.join(WB, '.seshat-brain');
@@ -105,6 +106,76 @@ function loadSkill(name) {
     return require(p);
 }
 
+// ── SCRIBE→SESHAT BRIDGE (GSK fix sprint 2026-10-26, Tier-2 #23) ─────
+// Scribe's ledgers are growth food, but RAW they are mostly noise.
+// Scribe-A (workbench scribe/data/ledger.jsonl, 1,814 records) is 1,500
+// boot skill-load-failure conflicts + 248 heartbeat-tagged observations
+// — both excluded. What is offered: non-heartbeat observations,
+// family_handshake, family_work (66 records backfill, then new lines).
+// Scribe-B (~/.soul-scribe/ledger.jsonl, 236 records) is 195 tool_use —
+// excluded; offered: lesson, conversation, council_verdict.
+// CORRECTION 2026-10-26: the first wiring pointed Scribe-A at
+// gsk/data/gsk/ledger.jsonl — that file is server.ts's ledger, NOT
+// Scribe's (its 172 learning/synthesis records are a different
+// subsystem's journal). The real Scribe-A is scribe/data/ledger.jsonl.
+// Records are offered oldest-first per ledger, capped so one backfill
+// cannot swamp a cycle's digestion. The watermark is a per-ledger
+// consumed-line count; it advances ONLY after a successful digest, so
+// a failed cycle retries the same lines. Each offered record becomes
+// its own tmp source file so the judge scores records individually
+// (one batch file would judge the whole batch as one item).
+// Per-ledger cap (not global) keeps the watermark exact: everything up
+// to the last picked line was either picked or filter-rejected, so
+// nothing is ever skipped by the cap.
+const SCRIBE_A_LEDGER = process.env.SCRIBE_A_LEDGER || path.resolve(__dirname, '..', '..', 'scribe', 'data', 'ledger.jsonl');
+const SCRIBE_B_LEDGER = process.env.SCRIBE_B_LEDGER || path.join(os.homedir(), '.soul-scribe', 'ledger.jsonl');
+const SCRIBE_WATERMARK_PATH = path.join(BRAIN_DIR, 'scribe-ingest-watermark.json');
+const SCRIBE_FOOD_KEEP = {
+    'scribe-A': (r) => r.type === 'family_handshake' || r.type === 'family_work' ||
+        (r.type === 'observation' && !((r.tags || []).includes('heartbeat'))),
+    'scribe-B': (r) => ['lesson', 'conversation', 'council_verdict'].includes(r.type),
+};
+const SCRIBE_PER_LEDGER_CAP = 10;
+
+function loadScribeWatermark() {
+    try { return JSON.parse(fs.readFileSync(SCRIBE_WATERMARK_PATH, 'utf8')); } catch { return {}; }
+}
+function saveScribeWatermark(wm) {
+    fs.writeFileSync(SCRIBE_WATERMARK_PATH, JSON.stringify(wm, null, 2), 'utf8');
+}
+function collectScribeFood(watermark, batchId) {
+    const wm = watermark || {};
+    const newWatermark = { ...wm };
+    const sources = [];
+    const warnings = [];
+    for (const [ledger, file] of [['scribe-A', SCRIBE_A_LEDGER], ['scribe-B', SCRIBE_B_LEDGER]]) {
+        let lines = [];
+        try { lines = fs.readFileSync(file, 'utf8').split('\n').filter(Boolean); } catch (e) {
+            // A missing ledger is a visible warning, never a silent skip
+            // (the silent-skip shape is what hid the wrong-path wiring).
+            warnings.push(`${ledger} ledger unreadable (${file}): ${e.message}`);
+            continue;
+        }
+        const from = Math.min(Number(wm[ledger]) || 0, lines.length);
+        let picked = 0;
+        for (let i = from; i < lines.length && picked < SCRIBE_PER_LEDGER_CAP; i++) {
+            let r = null;
+            try { r = JSON.parse(lines[i]); } catch { continue; }
+            if (!SCRIBE_FOOD_KEEP[ledger](r)) continue;
+            // Scribe-A records carry summary (content often null); Scribe-B
+            // carries content. Empty records are skipped, not offered.
+            const text = String(r.content || r.summary || '');
+            if (!text.trim()) continue;
+            const tmpPath = path.join(os.tmpdir(), `scribe-food-${batchId}-${ledger}-${i}.txt`);
+            fs.writeFileSync(tmpPath, text, 'utf8');
+            sources.push({ title: `scribe:${ledger}:${r.type}:${r.id ?? i}`, path: tmpPath });
+            newWatermark[ledger] = i + 1;
+            picked++;
+        }
+    }
+    return { sources, newWatermark, picked: sources.length, warnings };
+}
+
 async function runCycle(spec = {}) {
     loadEnv();
     const ledgerBefore = readLedger();
@@ -118,6 +189,19 @@ async function runCycle(spec = {}) {
 
     // ── INGEST + DIGEST ────────────────────────────────────────────
     const sources = Array.isArray(spec.sources) ? spec.sources : [];
+    // Scribe bridge (Tier-2 #23): append filtered new Scribe records.
+    // A bridge failure never breaks the cycle — it is a refusal, and the
+    // watermark does not advance, so the lines retry next cycle.
+    let scribeBatch = { sources: [], newWatermark: loadScribeWatermark(), warnings: [] };
+    try {
+        scribeBatch = collectScribeFood(scribeBatch.newWatermark, batchId);
+        sources.push(...scribeBatch.sources);
+        for (const w of (scribeBatch.warnings || [])) {
+            record.refusals.push({ stage: 'ingest', item: 'scribe-bridge', reason: w });
+        }
+    } catch (e) {
+        record.refusals.push({ stage: 'ingest', item: 'scribe-bridge', reason: `scribe food failed: ${e.message}` });
+    }
     const items = [];
     const seen = new Map(); // contentKey -> prior digest entry
     for (const e of ledgerBefore) if (e.kind === 'digest' && e.key) seen.set(e.key, e);
@@ -150,8 +234,14 @@ async function runCycle(spec = {}) {
             if (r) appendLedger({ kind: 'digest', cycle, key: items[i]._key, title: items[i].title, status: r.status, trueValue: r.trueValue, judge: r.judgeReview ? (r.judgeReview.status === 'answered' ? r.judgeReview.verdict : r.judgeReview.status) : null });
         }
     }
+    // Scribe watermark advances only on a successful digest, so a failed
+    // cycle retries the same Scribe lines next time.
+    if (digestion && scribeBatch.sources.length > 0) {
+        try { saveScribeWatermark(scribeBatch.newWatermark); } catch (e) { record.refusals.push({ stage: 'ingest', item: 'scribe-watermark', reason: `watermark save failed: ${e.message}` }); }
+    }
     record.stages.digest = {
         sourcesOffered: sources.length,
+        scribeSources: scribeBatch.sources.length,
         itemsDigested: items.length,
         skippedDuplicates,
         counts: digestion ? digestion.counts : { total: 0, landed: 0, quarantined: 0, fetchFailed: 0, injectionsDetected: 0, judged: 0 },
@@ -297,4 +387,4 @@ function recallProof(marker, query) {
     return { marker, refreshed: !!(refresh && refresh.refreshed), found: !!hit, source: hit ? hit.source : null, score: hit ? hit.score : null, totalHits: (hits || []).length };
 }
 
-module.exports = { runCycle, recallProof, _contentKey: contentKey, _paths: { LEDGER_PATH, CYCLES_DIR, SKILLS_DIR, DRAFTS_DIR } };
+module.exports = { runCycle, recallProof, collectScribeFood, loadScribeWatermark, saveScribeWatermark, _contentKey: contentKey, _paths: { LEDGER_PATH, CYCLES_DIR, SKILLS_DIR, DRAFTS_DIR } };

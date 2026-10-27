@@ -34,6 +34,14 @@ export default defineConfig(() => {
         'web-tree-sitter',
       ],
     },
+    server: {
+      watch: {
+        // Wedge fix 2026-10-27: keep Vite's watcher off the 198 MB Seshat
+        // brain — brain writes used to re-trigger the CSS pipeline rescan
+        // forever and wedge the boot (HTTP dead ~30s after every boot).
+        ignored: ['**/.seshat-brain/**'],
+      },
+    },
     build: {
       outDir: 'dist',
       emptyOutDir: true,

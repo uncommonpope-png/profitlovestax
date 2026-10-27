@@ -85,6 +85,32 @@ class KnowledgeGraph {
         return Array.from(results.values()).sort((a, b) => b.score - a.score);
     }
 
+    // TURN-LAG FIX 3 (2026-10-27): cheap existence test for callers that
+    // only need to know WHETHER any concept matches, not the ranked
+    // list. findConcepts() builds a full Map of every matching node
+    // and SORTS it -- on a 76k-node graph with unfiltered common terms
+    // ("learning", "guide", ...) a single call can allocate and sort
+    // tens of thousands of entries. buildFromKnowledgeJsonl calls it
+    // once per related title (~thousands of calls per boot) and only
+    // checks `existing.length === 0`, so the boot burned minutes of
+    // pure CPU inside that loop (observed: main thread ~60% CPU, zero
+    // I/O, log frozen between "Knowledge graph restored" and
+    // "Knowledge graph indexed" for 150s+). hasConcept returns true
+    // exactly when findConcepts would return non-empty (same term
+    // extraction, same index, live-node check), without building or
+    // sorting anything.
+    hasConcept(query) {
+        const terms = this._extractTerms(query);
+        for (const term of terms) {
+            const list = this.conceptIndex.get(term);
+            if (!list) continue;
+            for (const nodeId of list) {
+                if (this.nodes.has(nodeId)) return true;
+            }
+        }
+        return false;
+    }
+
     getRelatedNodes(nodeId, depth = 1) {
         const related = [];
         const visited = new Set();
@@ -234,8 +260,10 @@ class KnowledgeGraph {
                 if (entry.related && Array.isArray(entry.related)) {
                     for (const rel of entry.related) {
                         const relTitle = (rel.title || '').substring(0, 200);
-                        const existing = this.findConcepts(relTitle);
-                        if (existing.length === 0) {
+                        // TURN-LAG FIX 3: hasConcept is the cheap existence test;
+                        // findConcepts here only fed an emptiness check while paying
+                        // full Map+sort over huge posting lists (see hasConcept).
+                        if (!this.hasConcept(relTitle)) {
                             const relId = this.addNode('related', relTitle, 0.5);
                             this.nodes.get(relId).topic = topic;
                             this.addEdge(nodeId, relId, 'related', 0.6);

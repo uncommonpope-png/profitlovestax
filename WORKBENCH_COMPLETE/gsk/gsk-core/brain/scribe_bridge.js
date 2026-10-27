@@ -95,7 +95,22 @@ class ScribeBridge {
     // ── EVENT FORWARDING: GSK → SCRIBE memory ──────────────────
 
     async forwardEvent(event) {
-        if (!this.isAlive) return null;
+        // UNIFIED EVENT TRACE (Steal List #5, 2026-10-23): the
+        // witness forward is recorded on the body's ONE trace
+        // stream whether or not SCRIBE is alive — a dead witness
+        // must be visible in the trace, not silent. Content is
+        // summarized (type/tags/length), never copied. Guarded:
+        // the trace never gates the bridge.
+        const _emitTrace = (outcome) => {
+            try {
+                require('./event_trace.js').trace('scribe.bridge', 'witness_forward', {
+                    type: event.type || 'event', tags: event.tags || [],
+                    contentChars: String(event.content || event.summary || '').length,
+                    scribeAlive: !!this.isAlive, outcome,
+                }, {});
+            } catch { /* witness, never a gate */ }
+        };
+        if (!this.isAlive) { _emitTrace('not_forwarded_scribe_down'); return null; }
 
         const payload = {
             agent: 'gsk',
@@ -119,8 +134,10 @@ class ScribeBridge {
                 tags: event.tags || [],
             });
             if (result && result.success) this.stats.eventsForwarded++;
+            _emitTrace(result && result.success ? 'forwarded' : 'forward_failed');
             return result;
         } catch (e) {
+            _emitTrace('forward_error');
             return null;
         }
     }

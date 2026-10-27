@@ -20,6 +20,13 @@ function tokenize(s) {
 
 let cache = null;
 let cacheStamp = null;
+// FIX 1 (2026-10-26, stale-cache fallback): lastGoodCache is the last
+// index that parsed AND validated successfully. It is updated ONLY on
+// a successful load — a failed/truncated read never overwrites it.
+// On failure load() returns it instantly instead of letting the
+// caller degrade to empty recall.
+let lastGoodCache = null;
+let lastGoodStamp = null;
 function indexStamp() {
   try { const st = fs.statSync(INDEX_PATH); return st.mtimeMs + ':' + st.size; } catch { return null; }
 }
@@ -29,12 +36,38 @@ function load() {
   // journal write), reload instead of serving the boot-time snapshot.
   const stamp = indexStamp();
   if (cache && stamp === cacheStamp) return cache;
-  const raw = JSON.parse(fs.readFileSync(INDEX_PATH, 'utf8'));
-  const termIndex = new Map();
-  raw.terms.forEach((t, i) => termIndex.set(t, i));
-  cache = { ...raw, termIndex };
-  cacheStamp = stamp;
-  return cache;
+  try {
+    const raw = JSON.parse(fs.readFileSync(INDEX_PATH, 'utf8'));
+    // Structural validation: a truncated-but-parseable file (or a
+    // JSON value that is not an index at all) must count as corrupt,
+    // not as a valid empty index.
+    if (!raw || raw.version !== 1 || !Array.isArray(raw.terms) ||
+        !raw.postings || typeof raw.postings !== 'object' ||
+        !Array.isArray(raw.chunks) || typeof raw.N !== 'number' ||
+        raw.chunks.length !== raw.N) {
+      throw new Error('index structure invalid (missing terms/postings/chunks or N mismatch)');
+    }
+    const termIndex = new Map();
+    raw.terms.forEach((t, i) => termIndex.set(t, i));
+    cache = { ...raw, termIndex };
+    cacheStamp = stamp;
+    lastGoodCache = cache;
+    lastGoodStamp = stamp;
+    return cache;
+  } catch (e) {
+    if (lastGoodCache) {
+      console.warn('[SESHAT WARN] Failed to load deep-index (truncated or corrupt), falling back to last-good cache: ' + (e && e.message || e));
+      // Pin the stamp to the broken file so every later call serves
+      // the last-good cache instantly instead of re-parsing a 69MB
+      // broken file on every query; a new (renamed-in) good index
+      // changes the stamp and reloads normally.
+      cache = lastGoodCache;
+      cacheStamp = stamp;
+      return cache;
+    }
+    console.warn('[SESHAT WARN] Failed to load deep-index and no last-good cache available: ' + (e && e.message || e));
+    throw e;
+  }
 }
 
 // ── PHASE 6: refresh cadence ──────────────────────────────────────
@@ -61,8 +94,23 @@ function newestSourceMtime() {
   }
   return newest;
 }
-function refreshNow(reason = 'manual') {
+function refreshNow(reason = 'manual', opts = {}) {
   if (refreshing) return { refreshed: false, reason: 'already_refreshing' };
+  // TURN-LAG FIX (2026-10-27): never rebuild when the index is already
+  // fresh. Before this gate, every caller (hunt recall proofs, growth
+  // recall proofs, boot refresh) paid a full synchronous rebuild even
+  // when nothing had changed — dozens of rebuilds per hunt batch,
+  // each saturating a CPU on this 2-CPU box and starving the
+  // workbench's event loop until the wedge guard killed it mid-turn.
+  // A caller that truly needs a forced rebuild passes { force: true }.
+  if (!opts.force) {
+    try {
+      const idxMtime = fs.existsSync(INDEX_PATH) ? fs.statSync(INDEX_PATH).mtimeMs : 0;
+      if (idxMtime > 0 && newestSourceMtime() <= idxMtime + 250) {
+        return { refreshed: false, reason: 'fresh' };
+      }
+    } catch { /* fall through to rebuild when the check itself fails */ }
+  }
   refreshing = true;
   try {
     const builder = path.join(__dirname, 'build-index.cjs');
@@ -82,6 +130,55 @@ function refreshIfStale() {
     return { refreshed: false, reason: 'fresh', chunks: cache ? cache.N : undefined };
   } catch (e) { return { refreshed: false, reason: 'stale_check_failed', detail: String(e && e.message || e).slice(0, 200) }; }
 }
+// TURN-LAG FIX (2026-10-27): the search path must NEVER synchronously
+// rebuild. Before this change, search() called refreshIfStale(), which
+// ran the whole index build via spawnSync on the workbench's main
+// thread — tens of seconds of loop blackout on any turn whose recall
+// landed while sources were stale (which, with hunts and hooks writing
+// constantly, was most turns). The guard then read those blackouts as
+// wedges and killed the boot mid-turn. The async watcher below is the
+// designed rebuild mechanism ("the body never blocks on indexing");
+// this schedule helper is its backstop for staleness the watcher
+// missed: spawn the builder detached, serve the current index now,
+// and let the next search pick the new file up by stamp. Throttled to
+// one spawn per 60s per process so concurrent searches cannot fork a
+// builder storm of their own.
+let lastAsyncSpawn = 0;
+// TURN-LAG FIX 2 (2026-10-27): cap concurrent index builders at ONE per
+// process. Before this, the watcher spawned a builder on every 1.5s
+// debounce expiry while brain writes streamed in, so up to 4 builders
+// ran at once on 2 CPUs (observed 05:51–05:52Z during probe turn 1),
+// starving the workbench's loop (212s timer lag) until the boot died
+// underneath the turn. A build that starts after the last write
+// includes everything, so a second concurrent build is pure waste: if
+// one is running, remember that a rebuild is wanted and run exactly
+// one more when it exits.
+let activeBuilder = null;
+let builderWanted = false;
+function spawnBuilder() {
+  if (activeBuilder) { builderWanted = true; return { spawned: false, reason: 'already_running' }; }
+  try {
+    const child = spawn(process.execPath, [path.join(__dirname, 'build-index.cjs')], { cwd: path.join(__dirname, '..'), stdio: 'ignore', detached: false });
+    activeBuilder = child;
+    child.on('error', () => {});
+    child.on('exit', () => {
+      activeBuilder = null;
+      if (builderWanted) { builderWanted = false; spawnBuilder(); }
+    });
+    child.unref();
+    return { spawned: true };
+  } catch (e) { return { spawned: false, reason: 'spawn_failed', detail: String(e && e.message || e).slice(0, 200) }; }
+}
+function scheduleAsyncRefresh() {
+  try {
+    const idxMtime = fs.existsSync(INDEX_PATH) ? fs.statSync(INDEX_PATH).mtimeMs : 0;
+    if (idxMtime > 0 && newestSourceMtime() <= idxMtime + 250) return { scheduled: false, reason: 'fresh' };
+    const now = Date.now();
+    if (now - lastAsyncSpawn < 60000) return { scheduled: false, reason: 'throttled' };
+    lastAsyncSpawn = now;
+    return spawnBuilder();
+  } catch (e) { return { scheduled: false, reason: 'check_failed', detail: String(e && e.message || e).slice(0, 200) }; }
+}
 let watcher = null;
 let debounceTimer = null;
 function startRefreshWatcher(options = {}) {
@@ -92,11 +189,11 @@ function startRefreshWatcher(options = {}) {
     debounceTimer = setTimeout(() => {
       // Async rebuild so the body never blocks on indexing; load()
       // picks the new file up by stamp on the next search.
-      try {
-        const child = spawn(process.execPath, [path.join(__dirname, 'build-index.cjs')], { cwd: path.join(__dirname, '..'), stdio: 'ignore', detached: false });
-        child.on('error', () => {});
-        child.unref();
-      } catch { /* refreshIfStale on next search is the backstop */ }
+      // TURN-LAG FIX 2: spawnBuilder() caps concurrent builders at one
+      // per process (a second spawn while one runs is remembered and
+      // runs once on exit) — the pre-fix code spawned a builder on
+      // every debounce expiry, up to 4 at once on 2 CPUs.
+      try { spawnBuilder(); } catch { /* scheduleAsyncRefresh on next search is the backstop */ }
     }, debounceMs);
     if (debounceTimer.unref) debounceTimer.unref();
   };
@@ -119,7 +216,7 @@ function startRefreshWatcher(options = {}) {
  * { only } — predicate on the chunk to restrict the collection.
  */
 function search(query, k = 6, options = {}) {
-  if (!options.skipRefresh) refreshIfStale();
+  if (!options.skipRefresh) scheduleAsyncRefresh();
   const idx = load();
   const perSourceCap = options.perSourceCap !== undefined ? options.perSourceCap : 2;
   const qToks = [...new Set(tokenize(query))];
@@ -243,13 +340,51 @@ function recallHits(query, k = 6) {
 }
 
 /**
+ * ASYNC VECTOR FALLBACK (GSK fix sprint 2026-10-26, Tier-3 #37):
+ * BM25-only recall misses meaning (synonyms, paraphrase). This caller
+ * merges the base BM25 hits with the MiniLM+LanceDB vector store
+ * (.seshat-vectors, seshat_memory table) via the seshat hybridSearch.
+ * Opt-in and additive: the sync recallHits/recallBlock contract is
+ * untouched. The vector modules are required LAZILY inside this
+ * function only, so the sync path stays dependency-free; any vector
+ * failure (missing model, missing table, native load) degrades to
+ * BM25-only with a warning, never a throw. Hybrid scores rank but
+ * are NOT calibrated confidences (L2 distances on normalized vectors
+ * can push them negative) — callers must not threshold on them.
+ */
+async function recallHitsWithVectors(query, k = 6) {
+  const bm25 = recallHits(query, k);
+  let vectors = [];
+  try {
+    const { hybridSearch } = require('../profit-brain/body/seshat/core/hybridSearch.js');
+    const v = await hybridSearch(query, { limit: 3 });
+    vectors = (v || []).map(r => ({
+      source: 'vector:' + (r.file || 'unknown'),
+      title: 'vector hit',
+      text: r.text,
+      category: r.category,
+      hybridScore: r.hybridScore,
+      shelf: 'vector',
+    }));
+  } catch (e) {
+    console.warn('[deep-memory] vector fallback unavailable, BM25-only:', e.message);
+  }
+  return { bm25, vectors };
+}
+
+/**
  * Format a recall block for the system prompt. Empty string when
  * nothing in deep memory is relevant enough to attach.
  */
 function recallBlock(query, k = 6) {
   try {
     const hits = recallHits(query, k);
-    if (hits.length === 0) return '';
+    if (hits.length === 0) {
+      // FIX 1 (2026-10-26): silent empty recall is a failure signal,
+      // not a normal result — log it explicitly, with the query.
+      console.warn(`[SESHAT WARN] Recall returned empty or failed for query: ${query}. Falling back to cache.`);
+      return '';
+    }
     const parts = hits.map((h, i) =>
       `[${i + 1}] (Seshat deep memory · ${h.shelf} · ${h.source}${h.title ? ' · ' + h.title : ''})\n${h.text}`);
     return '## SESHAT DEEP MEMORY — recalled from your implanted memory\n' +
@@ -257,8 +392,10 @@ function recallBlock(query, k = 6) {
       'QUOTE DISCIPLINE (Phase 6): when a fact comes from a passage, copy its exact wording for names, file names, dates, counts and scores — quote the passage rather than paraphrasing it. A passage\'s TITLE (the file or heading it came from) is not its content: never present a title as the thing the passage says, and never swap a value for its label (a file\'s name is not its content; a marker is not the text it marks). If you are unsure of the exact wording, quote the shortest exact fragment you are sure of and say the rest is not in front of you.\n\n' +
       parts.join('\n\n');
   } catch (e) {
+    // FIX 1 (2026-10-26): same explicit warning on the failure path.
+    console.warn(`[SESHAT WARN] Recall returned empty or failed for query: ${query}. Falling back to cache.`);
     return '';
   }
 }
 
-module.exports = { search, recallBlock, recallHits, refreshNow, refreshIfStale, startRefreshWatcher, indexStamp };
+module.exports = { search, recallBlock, recallHits, recallHitsWithVectors, refreshNow, refreshIfStale, startRefreshWatcher, indexStamp, spawnBuilder };

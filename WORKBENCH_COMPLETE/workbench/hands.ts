@@ -12,7 +12,7 @@
  *               -> council gate + executor approvals -> execute -> journal
  *
  * Blood-flow law (hard denies that NO approval can override):
- *   - kill/taskkill/Stop-Process against family members (OmniRoute :20128,
+ *   - kill/taskkill/Stop-Process against family members (
  *     CPL :3457, scribe :4000, GSK :3001, workbench :3000) or twin-spawning
  *     any family service
  *   - irreversible git (push -f, reset --hard, clean -f)
@@ -29,10 +29,10 @@ import path from "path";
 import fs from "fs";
 
 const KILL_VERB = /\b(taskkill|pkill|killall|Stop-Process|kill)\b/i;
-const FAMILY_SERVICE = /\b(omniroute|omni-route|cpl_?daemon|scribe|gsk_daemon|boot-family)\b/i;
+const FAMILY_SERVICE = /\b(cpl_?daemon|scribe|gsk_daemon|boot-family)\b/i;
 const TWIN_SPAWN =
   /\b(npx|node|tsx|deno|bun)\s+([^\s]+\s+)?(tsx\s+)?(server\.ts|gsk_daemon\.js|boot-family\.cjs)\b/i;
-const FAMILY_START_HINT = /(npm run (start|dev))\b|(start\s+(omniroute|cpl|cpl_?daemon|scribe))/i;
+const FAMILY_START_HINT = /(npm run (start|dev))\b|(start\s+(cpl|cpl_?daemon|scribe))/i;
 const FORCE_GIT = /\bgit\b[^\n|;]*\b(push\s+(-f|--force)\b|reset\s+--hard\b|clean\s+-f\b)\b/i;
 const RECURSIVE_DELETE = /\b(del\s+\/s|rm\s+-rf|Remove-Item[^\n]*\s-Recurse)\b/i;
 const SYSTEM_OPS =

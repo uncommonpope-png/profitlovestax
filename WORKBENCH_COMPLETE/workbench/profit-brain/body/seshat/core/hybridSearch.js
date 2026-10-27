@@ -44,7 +44,13 @@ async function hybridSearch(query, options = {}) {
     // 3. Combine with BM25 keyword scoring
     const scored = vectorResults.map(r => {
         const bm25 = bm25Score(query, r.text || '');
-        const vectorScore = r.score || 0;
+        // FIX (GSK fix sprint 2026-10-26): searchVectors returns a
+        // DISTANCE (lower = closer). The old code fed distance straight
+        // into the 60% vector component, so WORSE matches scored HIGHER
+        // — inverted ranking, proven by probe (a web_fetch-failure lesson
+        // outranked the exact PLT formula chunk). Convert to similarity,
+        // matching vectorDB.hybridSearch's own convention (1 - distance).
+        const vectorScore = 1 - (r.score || 0);
         
         // Weighted combination: 60% vector, 40% keyword
         const combined = (0.6 * vectorScore) + (0.4 * bm25);

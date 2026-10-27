@@ -212,7 +212,49 @@ const index = {
   postings,
   chunks: chunks.map(c => ({ shelf: c.shelf, source: c.source, title: c.title, boost: c.boost, len: c.len, tf: c.tf, text: c.text })),
 };
-fs.writeFileSync(OUT, JSON.stringify(index), 'utf8');
+// FIX 1 (2026-10-26, atomic index writes): NEVER write directly over the
+// live index. A hunt/watcher rebuild that dies mid-write used to leave a
+// truncated deep-index.json on disk, and every later recall read it as
+// empty. Instead: (1) serialize once, (2) write to a temp file in the
+// SAME directory as OUT (same filesystem, so rename is atomic),
+// (3) fsync the temp file, (4) verify integrity by reading the temp
+// file back and JSON-parsing it + checking its structure, (5) only
+// then fs.renameSync over the live index. Concurrent readers are safe:
+// rename swaps the directory entry atomically — a reader opening
+// before the rename sees the complete old inode, a reader opening
+// after sees the complete new inode, and no reader ever sees a
+// half-written file. On any verification failure the temp file is
+// removed and the live index is left untouched (process exits nonzero).
+const serialized = JSON.stringify(index);
+const tmpOut = OUT + '.tmp-' + process.pid;
+try {
+  fs.writeFileSync(tmpOut, serialized, 'utf8');
+  const tmpFd = fs.openSync(tmpOut, 'r');
+  try { fs.fsyncSync(tmpFd); } finally { fs.closeSync(tmpFd); }
+  // Integrity check: parse the temp file back and validate structure
+  // before it is allowed to replace the live index.
+  let verified;
+  try {
+    verified = JSON.parse(fs.readFileSync(tmpOut, 'utf8'));
+  } catch (e) {
+    throw new Error('atomic write verification failed: temp index does not parse: ' + e.message);
+  }
+  if (!verified || verified.version !== 1 || !Array.isArray(verified.terms) ||
+      !verified.postings || typeof verified.postings !== 'object' ||
+      !Array.isArray(verified.chunks) || verified.N !== index.N ||
+      verified.chunks.length !== index.chunks.length ||
+      verified.terms.length !== index.terms.length) {
+    throw new Error('atomic write verification failed: temp index structure mismatch');
+  }
+  fs.renameSync(tmpOut, OUT);
+  try {
+    const dirFd = fs.openSync(path.dirname(OUT), 'r');
+    try { fs.fsyncSync(dirFd); } finally { fs.closeSync(dirFd); }
+  } catch { /* directory fsync is best-effort on some filesystems */ }
+} catch (e) {
+  try { fs.unlinkSync(tmpOut); } catch { /* temp already gone */ }
+  throw e;
+}
 const perShelf = {};
 for (const c of index.chunks) perShelf[c.shelf] = (perShelf[c.shelf] || 0) + 1;
 console.log(JSON.stringify({

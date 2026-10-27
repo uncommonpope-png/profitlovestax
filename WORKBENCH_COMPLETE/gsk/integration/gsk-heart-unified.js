@@ -81,10 +81,33 @@ class GSKHeartUnified {
     };
   }
 
+  // BLUEPRINT FIX 2 (2026-10-26, heart core): a chain entry is
+  // natively executable ONLY if Tier 2 (executeChatStream) can dial
+  // it — i.e. it carries an explicit endpoint/streamingEndpoint.
+  // The static catalog carries NO endpoint field on any of its 88
+  // entries (verified), so a catalog-built entry can never be dialed
+  // natively: it used to burn one dead native attempt per entry
+  // (the old first-5 fallback: qoder/mimocode/opencode/dahl/…).
+  // This predicate is deliberately strict — a bare provider id with
+  // no endpoint is dead for Tier 2 even if a native endpoint table
+  // elsewhere knows that provider, because Tier 2 never consults
+  // that table. Shipped seats survive: the server default chain and
+  // the chat() BYOK append both attach explicit endpoints (gemini →
+  // groq → openai → poolside-only-if-keyed), so poolside stays.
+  _hasNativeEndpoint(entry) {
+    return !!(entry && typeof entry === 'object' && (entry.endpoint || entry.streamingEndpoint));
+  }
+
+  _pruneDeadNativeEntries(list) {
+    return (Array.isArray(list) ? list : []).filter((e) => this._hasNativeEndpoint(e));
+  }
+
   _buildProviderChain(selectedModel) {
     const chain = [];
-    // Exact routed model first (e.g. "openai/gpt-4o-mini") so OmniRoute
-    // executes precisely what GSK's router decided.
+    // Exact routed model first (e.g. "openai/gpt-4o-mini") — kept in
+    // build order, then pruned below if it carries no native endpoint
+    // (a bare routed id is not dialable; the keyed BYOK equivalent is
+    // appended by chat() with an explicit endpoint when keyed).
     if (typeof selectedModel === 'string' && selectedModel.includes('/')) {
       const slash = selectedModel.indexOf('/');
       chain.push({ id: selectedModel.slice(0, slash), defaultModel: selectedModel.slice(slash + 1) });
@@ -99,13 +122,23 @@ class GSKHeartUnified {
       chain.push(...fallbacks);
     }
     if (chain.length === 0 && this.config.defaultProviderChain.length > 0) {
-      return this.config.defaultProviderChain;
+      return this._pruneDeadNativeEntries(this.config.defaultProviderChain);
     }
     if (chain.length === 0) {
       const availableProviders = Object.values(providers).slice(0, 5);
       chain.push(...availableProviders);
     }
-    return chain;
+    // Prune, preserving build order of survivors. If pruning empties
+    // the chain and a default chain exists, fall back to its pruned
+    // form (shipped seats carry endpoints, so they survive); otherwise
+    // return the empty chain honestly — chat() appends keyed BYOK
+    // seats to it before executing, and executeWithFallback reports
+    // "No providers in fallback chain" if none exist.
+    const pruned = this._pruneDeadNativeEntries(chain);
+    if (pruned.length === 0 && this.config.defaultProviderChain.length > 0) {
+      return this._pruneDeadNativeEntries(this.config.defaultProviderChain);
+    }
+    return pruned;
   }
 
   async complete(request) {
@@ -117,6 +150,76 @@ class GSKHeartUnified {
   }
 
    // ── SYSTEM 2: Gods Council wiring (lazy — boot stays fast, failures degrade) ──
+  // PERMANENT FIX 3 (2026-10-27, heart file — supersedes the server.ts
+  // blueprint wrapper, which must be retired once this proves live):
+  // the old brain proxy wired think() to an 'auto' chain with NO native
+  // endpoint and a dead :20128 gateway, so every think returned ''
+  // while _system2Gate still printed COUNCIL APPROVED with default PLT
+  // — a hollow verdict. The permanent brain is local-seat-first
+  // (Seshat's sovereign llama seat, keyless, env-gated exactly like the
+  // growth-cycle judge: SESHAT_LOCAL_MODEL=off disables it), with a
+  // bounded rented fallback over the shipped env-keyed seats, and the
+  // gate suppresses the header whenever every think of a gate came
+  // back empty. A gate that cannot deliberate in bounded time also
+  // passes the draft through WITHOUT a verdict header, instead of
+  // hanging the turn: a missing verdict is honest, a hung turn is not.
+  // Think budgets (measured Oct 27: local prompt processing ~273ms/
+  // token on this 2-vCPU box, so a god prompt costs ~30s+ before one
+  // generated token): local 45s abort, 256 output tokens (a god
+  // position is 1–2 sentences + JSON — more cap only burns seat time);
+  // gate deliberate race 90s.
+  _resolveHeartLocalSeat() {
+    if (String(process.env.SESHAT_LOCAL_MODEL || '').toLowerCase() === 'off') return null;
+    return {
+      id: 'local',
+      model: process.env.SESHAT_LOCAL_MODEL_NAME || 'qwen2.5-1.5b-instruct-q4_k_m',
+      endpoint: process.env.SESHAT_LOCAL_ENDPOINT || 'http://127.0.0.1:18222/v1/chat/completions',
+    };
+  }
+
+  async _heartLocalThink(prompt) {
+    const seat = this._resolveHeartLocalSeat();
+    if (!seat) return '';
+    try {
+      const r = await fetch(seat.endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: seat.model, messages: [{ role: 'user', content: prompt }], temperature: 0.7, max_tokens: 256 }),
+        signal: AbortSignal.timeout(45000),
+      });
+      if (!r.ok) return '';
+      const data = await r.json().catch(() => null);
+      const text = data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+      return typeof text === 'string' ? text : '';
+    } catch { return ''; }
+  }
+
+  // Shipped rented seats, env-keyed, same endpoints/timeouts as the
+  // workbench direct-provider chain. Poolside is sunset-gated
+  // (dies 2026-11-01 UTC) exactly like that chain.
+  _heartRentedChain() {
+    const creds = this.credentials || {};
+    const chain = [];
+    if (creds.gemini) chain.push({ id: 'gemini', defaultModel: 'gemini-3.5-flash', endpoint: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', apiKey: creds.gemini, timeout: 60000 });
+    if (creds.groq) chain.push({ id: 'groq', defaultModel: 'llama-3.3-70b-versatile', endpoint: 'https://api.groq.com/openai/v1/chat/completions', apiKey: creds.groq, timeout: 60000 });
+    if (creds.openai) chain.push({ id: 'openai', defaultModel: 'gpt-4o-mini', endpoint: 'https://api.openai.com/v1/chat/completions', apiKey: creds.openai, timeout: 60000 });
+    if (creds.poolside && Date.now() < Date.UTC(2026, 10, 1)) chain.push({ id: 'poolside', defaultModel: 'poolside/laguna-s-2.1', endpoint: 'https://inference.poolside.ai/v1/chat/completions', apiKey: creds.poolside, timeout: 90000 });
+    if (creds.cohere) chain.push({ id: 'cohere', defaultModel: 'command-a-03-2025', endpoint: 'https://api.cohere.ai/compatibility/v1/chat/completions', apiKey: creds.cohere, timeout: 60000 });
+    return chain;
+  }
+
+  async _deliberateBounded(council, topic, ms) {
+    let timer = null;
+    try {
+      return await Promise.race([
+        council.deliberate(topic),
+        new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('SYSTEM 2 gate timeout')), ms); }),
+      ]);
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+  }
+
   _ensureCouncil() {
     if (this._council !== undefined) return this._council;
     try {
@@ -126,19 +229,33 @@ class GSKHeartUnified {
         scribeBridge: this._scribeBridge || null
       });
       this._council = new GodsCouncil(null, this._councilBus);
-      // Brain proxy: direct executeWithFallback with an explicit chain —
-      // NEVER this.chat() (recursive deliberation loop) and never bare
-      // {messages} (executeWithFallback requires providerChain).
+      // Brain proxy: local seat first, rented fallback — NEVER
+      // this.chat() (recursive deliberation loop) and never the dead
+      // 'auto' chain. Think counts are tracked while a gate is active
+      // so the gate can tell a hollow deliberation from a real one.
+      const self = this;
+      self._system2ThinkState = { total: 0, empty: 0, active: false };
       this._council.brain = {
         think: async (prompt) => {
-          const r = await executeWithFallback({
-            providerChain: [{ id: 'auto', defaultModel: 'best-coding' }],
-            messages: [{ role: 'user', content: prompt }],
-          });
-          return r && r.content ? String(r.content) : '';
+          let text = await self._heartLocalThink(prompt);
+          if (!text.trim()) {
+            const chain = self._heartRentedChain();
+            if (chain.length > 0) {
+              try {
+                const r = await executeWithFallback({ providerChain: chain, messages: [{ role: 'user', content: prompt }] });
+                if (r && r.content) text = String(r.content);
+              } catch { /* rented fallback failing leaves text empty — the gate suppresses */ }
+            }
+          }
+          const st = self._system2ThinkState;
+          if (st && st.active) {
+            st.total += 1;
+            if (!text.trim()) st.empty += 1;
+          }
+          return text;
         },
       };
-      console.log('[SYSTEM 2] Gods Council armed — deliberation gate active');
+      console.log('[SYSTEM 2] Gods Council armed — deliberation gate active (permanent Fix 3: local seat first, rented fallback)');
     } catch (e) {
       console.warn('[SYSTEM 2] Council unavailable, gate in passthrough:', e.message);
       this._council = null;
@@ -153,13 +270,30 @@ class GSKHeartUnified {
     }
     const lastUser = [...messages].reverse().find((m) => m.role === 'user');
     const userMessage = (lastUser && lastUser.content) || 'Unknown action';
+    const st = this._system2ThinkState || (this._system2ThinkState = { total: 0, empty: 0, active: false });
+    st.total = 0;
+    st.empty = 0;
+    st.active = true;
+    // Strip a verdict header this gate did not earn: when every think
+    // came back empty, the deliberation was hollow and must never be
+    // presented as a verdict.
+    const stripHollowHeader = (content) => {
+      if (st.total > 0 && st.empty === st.total && typeof content === 'string') {
+        const stripped = content.replace(/^> \*\*\[PLT [^\]\n]*\| COUNCIL (APPROVED|CORRECTED)\]\*\*\n\n/, '');
+        if (stripped !== content) console.warn('[SYSTEM 2] Council brain empty on every think this gate — COUNCIL header SUPPRESSED (deliberation was hollow, never faked)');
+        return stripped;
+      }
+      return content;
+    };
     let verdict;
     try {
-      verdict = await council.deliberate(
-        `User asked: "${String(userMessage).slice(0, 300)}". Proposed action: "${String(draftText).slice(0, 500)}". Evaluate consequences.`
+      verdict = await this._deliberateBounded(council,
+        `User asked: "${String(userMessage).slice(0, 300)}". Proposed action: "${String(draftText).slice(0, 500)}". Evaluate consequences.`,
+        90000
       );
     } catch (e) {
-      console.warn('[SYSTEM 2] deliberate() failed — passthrough:', e.message);
+      st.active = false;
+      console.warn('[SYSTEM 2] deliberate() failed or timed out — passthrough WITHOUT verdict header:', e.message);
       return { content: draftText };
     }
 
@@ -177,8 +311,12 @@ class GSKHeartUnified {
     if (t > 0.8 && p < 0.4) {
       label = 'COUNCIL CORRECTED';
       console.warn(`[SYSTEM 2] Draft rejected (PLT ${trueValue}). ${verdict.resolution || ''}`);
-      const retry = await executeWithFallback({
-        providerChain: [{ id: 'auto', defaultModel: 'best-coding' }],
+      // Permanent Fix 3: the correction rewrite also used the dead
+      // 'auto' chain — it now uses the shipped rented seats (empty
+      // chain when keyless, which fails soft into the fall-through).
+      const rentedChain = this._heartRentedChain();
+      const retry = rentedChain.length > 0 ? await executeWithFallback({
+        providerChain: rentedChain,
         messages: [
           ...messages,
           { role: 'assistant', content: draftText },
@@ -187,21 +325,23 @@ class GSKHeartUnified {
             content: `The Gods Council REJECTED that response. Reason: ${verdict.resolution || 'high Tax, low Profit'}. Generate a new response that maximizes Profit and Love while minimizing Tax.`,
           },
         ],
-      });
+      }) : { success: false };
       if (retry && retry.success && retry.content) {
         text = retry.content;
         try {
-          const recheck = await council.deliberate(`Re-evaluating corrected action: "${String(text).slice(0, 400)}"`);
+          const recheck = await this._deliberateBounded(council, `Re-evaluating corrected action: "${String(text).slice(0, 400)}"`, 90000);
           const rp = recheck.plt_outcome || {};
           const np = typeof rp.profit === 'number' ? rp.profit : p;
           const nl = typeof rp.love === 'number' ? rp.love : l;
           const nt = typeof rp.tax === 'number' ? rp.tax : t;
-          return { content: `> **[PLT ${(np + nl - nt).toFixed(1)} | Profit ${np.toFixed(1)} Love ${nl.toFixed(1)} Tax ${nt.toFixed(1)} | ${label}]**\n\n${text}` };
+          st.active = false;
+          return { content: stripHollowHeader(`> **[PLT ${(np + nl - nt).toFixed(1)} | Profit ${np.toFixed(1)} Love ${nl.toFixed(1)} Tax ${nt.toFixed(1)} | ${label}]**\n\n${text}`) };
         } catch (e) { /* fall through with original scores */ }
       }
     }
 
-    return { content: `> **[PLT ${trueValue} | Profit ${p.toFixed(1)} Love ${l.toFixed(1)} Tax ${t.toFixed(1)} | ${label}]**\n\n${text}` };
+    st.active = false;
+    return { content: stripHollowHeader(`> **[PLT ${trueValue} | Profit ${p.toFixed(1)} Love ${l.toFixed(1)} Tax ${t.toFixed(1)} | ${label}]**\n\n${text}`) };
   }
 
   // ── MEMORY GATE (Phase 3): keyword fan-out recall against SCRIBE. ──

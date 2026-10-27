@@ -3,13 +3,14 @@
 /**
  * GSK-HEART Chat Handler
  *
- * Architecture: GSK decides, OmniRoute executes.
- *
- * Primary path  : POST ${OMNIROUTE_URL}/v1/chat/completions (OpenAI-compatible SSE).
- *                 OmniRoute supplies 346 providers, RTK/Caveman compression,
- *                 quota-aware fallback tiers — no per-provider code here.
- * Fallback path : Native provider HTTP (below) ONLY when OmniRoute is
- *                 unreachable, so GSK's heart keeps beating standalone.
+ * Architecture (BLUEPRINT FIX 2, 2026-10-26, heart core): OmniRoute is
+ * RETIRED (:20128 down by design). The old primary path — POST
+ * ${OMNIROUTE_URL}/v1/chat/completions through the gateway — is gone:
+ * executeWithFallback no longer dials it (see the Tier 1 note below).
+ * The live path is native provider HTTP directly, in chain order.
+ * executeViaOmniRoute is retained, exported, but no longer called by
+ * executeWithFallback; it is dead code for any caller still importing
+ * it directly, not a live heart path.
  */
 
 const http = require('http');
@@ -476,7 +477,9 @@ async function executeChatStream(options) {
 }
 
 // ---------------------------------------------------------------------------
-// PRIMARY PATH — OmniRoute execution (GSK decides, OmniRoute executes)
+// RETIRED PATH — OmniRoute execution (BLUEPRINT FIX 2, 2026-10-26:
+// gateway retired, :20128 down by design). Kept exported for direct
+// importers; executeWithFallback no longer calls it — see Tier 1 note.
 // ---------------------------------------------------------------------------
 
 function omniRouteModel(provider) {
@@ -590,7 +593,7 @@ function executeViaOmniRoute(options) {
 }
 
 // ---------------------------------------------------------------------------
-// Fallback chain — OmniRoute first, native provider HTTP as last resort
+// Fallback chain — native provider HTTP directly, in chain order
 // ---------------------------------------------------------------------------
 
 async function executeWithFallback(options) {
@@ -601,50 +604,20 @@ async function executeWithFallback(options) {
   }
 
   const results = [];
-  let omniRouteReachable = true;
   let sawToolCalls = false;
 
-  // TIER 1: every candidate model through OmniRoute (compression + quota tiers free)
-  for (let i = 0; i < providerChain.length && omniRouteReachable; i++) {
-    const provider = providerChain[i];
-    const model = omniRouteModel(provider);
-    if (!model) continue;
-    console.log('[GSK-HEART] OmniRoute attempt ' + (i + 1) + '/' + providerChain.length + ': ' + model);
+  // BLUEPRINT FIX 2 (2026-10-26, heart core): TIER 1 IS GONE.
+  // OmniRoute is retired (:20128 down by design), so the old Tier 1 —
+  // every chain entry through the gateway first — burned one dead
+  // gateway dial per heart turn before native was ever tried. It is
+  // skipped outright, not retried: the turn goes native directly
+  // below, in the same chain order, with the same per-seat logging.
+  // executeViaOmniRoute is NOT called anywhere in this function.
+  // Streaming note: the chunk callback used to ride Tier 1's first
+  // attempt; it now rides the first native attempt instead, so a
+  // streaming caller still sees chunks in order.
 
-    const result = await executeViaOmniRoute({
-      model: model,
-      messages: messages,
-      timeout: provider.timeout || 60000,
-      onChunk: i === 0 ? onChunk : null,
-    });
-    if (result.toolCalled) sawToolCalls = true;
-
-    if (result.success) {
-      return {
-        success: true,
-        content: result.content,
-        model: model,
-        provider: provider.id,
-        usage: result.usage,
-        attempts: i + 1,
-        viaOmniRoute: true,
-        // Electrician repair (2026-10-23): surface the failures this
-        // success stepped over, so callers can learn dead seats (429
-        // cooldown in mega_brain) instead of re-billing them per call.
-        failures: results,
-      };
-    }
-
-    results.push({ provider: provider.id, via: 'omniroute', error: result.error });
-    if (result.unreachable) {
-      omniRouteReachable = false;
-      console.warn('[GSK-HEART] OmniRoute unreachable — falling back to native provider HTTP');
-      break;
-    }
-    console.warn('[GSK-HEART] OmniRoute rejected ' + model + ': ' + result.error);
-  }
-
-  // TIER 2 (last resort): direct provider HTTP so GSK survives standalone
+  // NATIVE (only tier): direct provider HTTP, chain order unchanged.
   for (let i = 0; i < providerChain.length; i++) {
     const provider = providerChain[i];
     const model = provider.defaultModel || provider.id;
@@ -655,7 +628,7 @@ async function executeWithFallback(options) {
       messages: messages,
       provider: provider,
       timeout: provider.timeout || 60000,
-      onChunk: null,
+      onChunk: i === 0 ? onChunk : null,
     });
 
     if (result.success) {
@@ -667,8 +640,9 @@ async function executeWithFallback(options) {
         usage: result.usage,
         attempts: i + 1,
         viaOmniRoute: false,
-        // Electrician repair (2026-10-23): see the OmniRoute-tier
-        // return above — failures ride along on success too.
+        // Electrician repair (2026-10-23): failures ride along on
+        // success too, so callers can learn dead seats (429 cooldown
+        // in mega_brain) instead of re-billing them per call.
         failures: results,
       };
     }
@@ -680,7 +654,7 @@ async function executeWithFallback(options) {
   return {
     success: false,
     error: 'All ' + providerChain.length + ' providers failed',
-    attempts: providerChain.length * 2,
+    attempts: providerChain.length,
     failures: results,
     toolCalled: sawToolCalls,
   };

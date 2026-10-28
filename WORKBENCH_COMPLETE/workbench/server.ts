@@ -1760,6 +1760,25 @@ app.get("/api/gsk/status", async (req, res) => {
   }
 });
 
+app.get("/api/gsk/health", async (_req, res) => {
+  try {
+    const healthNs: any = await import(`file://${path.join(__dirname, "health.cjs")}`);
+    const healthMod = healthNs.collectHealth ? healthNs : healthNs.default;
+    res.json(await healthMod.collectHealth());
+  } catch (err: any) {
+    // Health never 500s: every probe failure is a null + reason inside
+    // the payload, and even a collector failure degrades to that shape.
+    res.json({
+      success: true,
+      up: { alive: true, uptimeSec: Math.floor(process.uptime()), pid: process.pid },
+      recall: { chunks: null, builtAt: null, stamp: null, reason: "health collector failed: " + err.message, source: null },
+      judge: { ms: null, reason: "no judge-latency record in the tree" },
+      scribe: { lastTs: null, lastId: null, lastType: null, reason: "health collector failed: " + err.message, source: null },
+      seat: { reachable: null, endpoint: "http://127.0.0.1:18222", reason: "health collector failed: " + err.message },
+    });
+  }
+});
+
 app.get("/api/gsk/consciousness/status", async (req, res) => {
   try {
     const response = await gskMCPRequest("/mcp/execute", {

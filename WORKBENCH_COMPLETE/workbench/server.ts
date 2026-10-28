@@ -1,6 +1,7 @@
 import express from "express";
 import path from "path";
 import dotenv from "dotenv";
+import os from "os";
 import http from "http";
 import fs from "fs";
 import crypto from "crypto"; // SURGERY 2026-10-20: vault encryption (op 3)
@@ -45,7 +46,26 @@ if (!process.env.GSK_AUTONOMY_FIRST_DELAY_MS) process.env.GSK_AUTONOMY_FIRST_DEL
 // already-set variable): shell/process env > .env > workbench.env.
 // No key value is ever logged here — presence only, downstream.
 dotenv.config();
-dotenv.config({ path: path.join(__dirname, "workbench.env") });
+// ZERO-KEY BASELINE CONTRACT 2026-10-27 (Craig's locked spec): a boot
+// with GSK_FORCE_LOCAL_BASELINE=1 is a keyless baseline boot. workbench.env
+// is NOT loaded on such a boot (it carries provider keys), and every known
+// provider credential var is deleted from this process, so no provider
+// code path below can see a credential even if the caller left one set.
+// Values are never logged — names only. Live boots (flag unset) keep the
+// old behavior exactly: shell/process env > .env > workbench.env.
+const ZERO_KEY_PROVIDER_VARS = [
+  "OPENAI_API_KEY", "GEMINI_API_KEY", "GEMINI_API_KEY_2", "GROQ_API_KEY",
+  "NVIDIA_API_KEY", "ANTHROPIC_API_KEY", "POOLSIDE_API_KEY", "COHERE_API_KEY",
+  "MCP_API_KEY", "NINE_ROUTER_API_KEY", "TAVILY_API_KEY", "MINIMAX_API_KEY",
+  "CLOUDFLARE_API_KEY", "GONKA_API_KEY", "VAULT_PASSPHRASE",
+];
+const zeroKeyBaselineForced = process.env.GSK_FORCE_LOCAL_BASELINE === "1";
+if (zeroKeyBaselineForced) {
+  for (const v of ZERO_KEY_PROVIDER_VARS) delete process.env[v];
+  console.log("[ZERO-KEY-BASELINE] forced: workbench.env skipped, provider vars stripped (names only, no values)");
+} else {
+  dotenv.config({ path: path.join(__dirname, "workbench.env") });
+}
 
 // HEARTBEAT 2026-10-27: last-word witness for sudden deaths. A plain
 // top-level interval, deliberately NOT wired into loop, turn, or seat logic.
@@ -53,7 +73,7 @@ dotenv.config({ path: path.join(__dirname, "workbench.env") });
 // RSS) so the next silent death leaves a last timestamp written from inside
 // this process. A gap after the last line bounds the kill window; no
 // in-process handler can log an outside kill itself.
-const HEARTBEAT_PATH = path.join(process.env.HOME || "", "workspace", "gsk-supervisor", "logs", "workbench-heartbeat.log");
+const HEARTBEAT_PATH = process.env.GSK_HEARTBEAT_PATH || path.join(process.env.HOME || "", "workspace", "gsk-supervisor", "logs", "workbench-heartbeat.log");
 setInterval(() => {
   try {
     const line = `${new Date().toISOString()} pid=${process.pid} uptime_s=${Math.floor(process.uptime())} rss_mb=${(process.memoryUsage().rss / 1048576).toFixed(1)} heap_mb=${(process.memoryUsage().heapUsed / 1048576).toFixed(1)}\n`;
@@ -100,7 +120,7 @@ process.on("unhandledRejection", (reason: unknown) => {
 });
 
 const app = express();
-const PORT = 3000;
+const PORT = Number(process.env.PORT || 3000) || 3000;
 
 // ── HANDS: single governed execution channel ──
 // One place where intent becomes repo mutation. The being's executor stack
@@ -135,8 +155,20 @@ const SCRIBE_URL = process.env.SCRIBE_URL || "http://127.0.0.1:4000";
 const GSK_HIBERNATE = process.env.GSK_HIBERNATE === "1";
 
 function scribeKey(): string {
+  // ZERO-KEY BASELINE FIX 2026-10-27: the supervisor-started Scribe
+  // holds a ScribeSoul-generated key at ~/.soul-scribe/.key (its
+  // dataDir default), NOT at scribe/.SCRIBE_KEY — that file does not
+  // exist, so the old fallback never matched and every /witness call
+  // 401'd (pre-existing breakage, same for the sliding-window witness).
+  // Resolution mirrors ScribeSoul: explicit file first, then
+  // ScribeSoul's auth file, then the legacy default. Values are never
+  // logged.
   try {
     const p = path.join(REPO_ROOT, "scribe", ".SCRIBE_KEY");
+    if (fs.existsSync(p)) return fs.readFileSync(p, "utf8").trim();
+  } catch {}
+  try {
+    const p = path.join(os.homedir(), ".soul-scribe", ".key");
     if (fs.existsSync(p)) return fs.readFileSync(p, "utf8").trim();
   } catch {}
   return "scribe-master-key-2026";
@@ -483,6 +515,108 @@ async function seshatRecallForTurn(message: string): Promise<string> {
   }
 }
 
+// ZERO-KEY BASELINE CONTRACT 2026-10-27: mode detection + local-only
+// answer path. Baseline mode is FORCED by GSK_FORCE_LOCAL_BASELINE=1, or
+// engages AUTOMATICALLY when no provider credential is present (env or
+// vault). The auto check is memoized: one vault read per process, never
+// per turn (the per-turn vault re-read was the OP5 peg). In baseline
+// mode the chat route below returns from answerZeroKeyBaseline BEFORE
+// any provider code path runs, so a provider credential can neither be
+// required nor spent by a baseline turn.
+let zeroKeyBaselineAutoCache: boolean | null = null;
+function zeroKeyBaselineHasProviderCreds(): boolean {
+  for (const v of ZERO_KEY_PROVIDER_VARS) {
+    if (process.env[v]) return true;
+  }
+  try {
+    const creds = resolveProviderCredentials();
+    return Object.values(creds).some(Boolean);
+  } catch {
+    return false;
+  }
+}
+function zeroKeyBaselineActive(): boolean {
+  if (zeroKeyBaselineForced) return true;
+  if (zeroKeyBaselineAutoCache === null) {
+    zeroKeyBaselineAutoCache = !zeroKeyBaselineHasProviderCreds();
+  }
+  return zeroKeyBaselineAutoCache;
+}
+function zeroKeyBaselineProviderCredsPresent(): boolean {
+  if (!zeroKeyBaselineActive()) return zeroKeyBaselineHasProviderCreds();
+  return false;
+}
+async function answerZeroKeyBaseline(message: string): Promise<any> {
+  const marker = `zero-key-baseline-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  // 1. Local recall over Seshat's brain store (deep index + brain
+  // files, BM25, read-only). Empty recall means this prompt is not
+  // answerable from local memory — an honest baseline failure, never
+  // a reason to reach for a provider.
+  const recallText = await seshatRecallForTurn(message);
+  const recallHits = Array.isArray(lastChatRecallHits) ? lastChatRecallHits : [];
+  if (!recallText.trim()) {
+    console.log(`[ZERO-KEY-BASELINE] turn ${marker}: no local recall — baseline cannot answer`);
+    return { success: false, baseline: true, zeroKeyBaseline: true, provider: "none", providerCredsPresent: false, error: "no local memory recall for this prompt", recallChars: 0, recallHits: 0, scribeLogged: false, marker };
+  }
+  // 2. Static skills: GSK's authored skill modules (the Graft) are the
+  // body's own skills — files on disk, no seat, no key. They ride as
+  // context, not as a provider call.
+  const skillNote = "Static skills (local only): GSK's authored skill modules — the Graft — plus Seshat's local brain store. No provider, seat, or external model is consulted for this turn.";
+  // 3. Compose on the LOCAL seat only (llama-server :18222). If the
+  // local seat is down, the turn fails honestly — fallback to a
+  // rented seat is hard-disabled in baseline mode.
+  const seat = resolveBlueprintLocalSeat();
+  if (!seat) {
+    console.log(`[ZERO-KEY-BASELINE] turn ${marker}: local seat unavailable — baseline cannot compose`);
+    return { success: false, baseline: true, zeroKeyBaseline: true, provider: "none", providerCredsPresent: false, error: "local seat unavailable", recallChars: recallText.length, recallHits: recallHits.length, scribeLogged: false, marker };
+  }
+  let composed = "";
+  try {
+    const r = await fetch(seat.endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: seat.model,
+        messages: [
+          { role: "system", content: "You are GSK answering from Seshat's local memory and GSK's authored static skills only. Use ONLY the recalled passages below. If they do not cover the question, say plainly what you do not know. Never claim a provider, seat, or external model answered." },
+          { role: "system", content: recallText.slice(0, 12000) },
+          { role: "system", content: skillNote },
+          { role: "user", content: message },
+        ],
+        max_tokens: 256,
+        temperature: 0,
+      }),
+      signal: AbortSignal.timeout(180000),
+    });
+    const j: any = await r.json().catch(() => null);
+    composed = String(j?.choices?.[0]?.message?.content || "").trim();
+    // Machinery must never be the answer, even from the local seat.
+    composed = stripToolCallLeaks(composed).text.trim();
+  } catch (e: any) {
+    console.log(`[ZERO-KEY-BASELINE] turn ${marker}: local seat failed — ${e.message}`);
+    return { success: false, baseline: true, zeroKeyBaseline: true, provider: "none", providerCredsPresent: false, error: `local seat failed: ${e.message}`, recallChars: recallText.length, recallHits: recallHits.length, scribeLogged: false, marker };
+  }
+  if (!composed) {
+    return { success: false, baseline: true, zeroKeyBaseline: true, provider: "none", providerCredsPresent: false, error: "local seat returned an empty answer", recallChars: recallText.length, recallHits: recallHits.length, scribeLogged: false, marker };
+  }
+  // 4. Witness through the existing SCRIBE flow (HTTP /witness, same
+  // shape as the sliding-window witness). A Scribe outage is reported
+  // in the response, not hidden — the contract test asserts
+  // scribeLogged true against the live Scribe.
+  let scribeLogged = false;
+  try {
+    const r = await fetch(`${SCRIBE_URL}/witness`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-API-Key": scribeKey() },
+      body: JSON.stringify({ type: "zero_key_baseline_turn", content: `${marker}\nQ: ${message}\nA: ${composed}`.slice(0, 8000), source: "GSK-baseline", tags: ["zero-key-baseline", marker] }),
+      signal: AbortSignal.timeout(10000),
+    });
+    scribeLogged = r.ok;
+  } catch { scribeLogged = false; }
+  console.log(`[ZERO-KEY-BASELINE] turn ${marker}: served locally (recall ${recallText.length} chars, ${recallHits.length} hits, scribeLogged=${scribeLogged})`);
+  return { success: true, baseline: true, zeroKeyBaseline: true, provider: "none", providerCredsPresent: zeroKeyBaselineProviderCredsPresent(), response: composed, recallChars: recallText.length, recallHits: recallHits.length, scribeLogged, marker, localSeat: seat.endpoint, mode: "local-memory-only" };
+}
+
 // F3(a): machinery must never be the answer. stripToolCallLeaks removes
 // complete <tool_call>...</tool_call> blocks (any dialect), an
 // unterminated <tool_call> tail (a generation truncated mid-block), and
@@ -820,6 +954,12 @@ app.post("/api/gsk/chat", async (req, res) => {
     const { message, context, history } = req.body;
     if (!message) return res.status(400).json({ error: "Missing message" });
     lastChatRecallHits = null; // QUOTE CHECK: this turn starts clean; directProviderChat re-stashes on recall
+    // ZERO-KEY BASELINE CONTRACT 2026-10-27: baseline turns run here,
+    // BEFORE world-build brokering, directProviderChat, the Being, and
+    // MCP — no provider code path is reachable from this branch.
+    if (zeroKeyBaselineActive()) {
+      return res.json(await answerZeroKeyBaseline(message));
+    }
     // OP 6 (2026-10-20): optional conversation history, mirroring
     // /api/profit/chat's pattern - valid {role, content} turns only,
     // last 10, passed to the direct-provider call. Absent -> the old
@@ -6068,13 +6208,19 @@ async function startServer() {
   console.log("-".repeat(60));
 
   // Non-blocking: UI comes up instantly while organs wake in background.
-  startAllServices().catch((e) => console.error("[Conductor] Awakening error:", e.message));
-  startWatchdog();
+  // ZERO-KEY BASELINE CONTRACT 2026-10-27: a baseline boot is minimal
+  // by design — no child services, no watchdog revivals, no Being wake
+  // (the 2GB fusion load is exactly what the baseline must not need).
+  // Recall, the local seat, and SCRIBE-over-HTTP are all the baseline
+  // turn uses. The wedge guard below still runs untouched.
+  if (zeroKeyBaselineActive()) console.log("[ZERO-KEY-BASELINE] minimal boot: services, watchdog, and Being wake skipped");
+  else startAllServices().catch((e) => console.error("[Conductor] Awakening error:", e.message));
+  if (!zeroKeyBaselineActive()) startWatchdog();
   startWedgeGuard();
 
   // Wake The Being � Profit, GSK, SCRIBE, Seshat � autonomously, right now.
   // The family starts working the instant the workbench is up.
-  getTheBeing().catch((e: any) => console.error("[BEING] Wake failed:", e?.message));
+  if (!zeroKeyBaselineActive()) getTheBeing().catch((e: any) => console.error("[BEING] Wake failed:", e?.message));
 
   // FORCE NO BROWSER CACHE on every response. This fixes the "IDE disappears"
   // bug where a user's stale disk cache serves old module graphs while the
@@ -6219,6 +6365,7 @@ async function startServer() {
     // shelf) is newer than it; then watch both shelves and rebuild on
     // a debounce when pages land. No manual build-index run, ever.
     (async () => {
+      if (zeroKeyBaselineActive()) { console.log("[ZERO-KEY-BASELINE] index cadence skipped (read-only recall)"); return; }
       try {
         const dm: any = await import(`file://${path.join(__dirname, "deep-memory", "deep-memory.cjs")}`);
         const dmm = dm.default || dm;
@@ -6239,7 +6386,7 @@ async function startServer() {
     // state file is seeded with the call ids already in each inbox
     // BEFORE the coordinator's restart (see the final report), so
     // the first tick does not hand every sitting call as "new".
-    try {
+    if (zeroKeyBaselineActive()) { console.log("[ZERO-KEY-BASELINE] telephone poller skipped (no inbox side effects)"); } else try {
       const { startPolling } = _require(path.join(__dirname, "telephone-poller.cjs"));
       telephonePoller = startPolling({
         onMessage: async ({ agentNumber, call }: any) => telephoneKernelReply(agentNumber, call),

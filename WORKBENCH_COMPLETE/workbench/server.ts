@@ -498,6 +498,24 @@ function loopCoerceReply(r: any): string {
 // to no recall; chat never breaks because memory did.
 async function seshatRecallForTurn(message: string): Promise<string> {
   try {
+    // BUILD 2 (2026-10-28, north-star program): hybrid recall first
+    // (BM25 + dense, RRF-fused, deterministically reranked). ANY
+    // failure — module load, vector store, empty fusion — falls back
+    // to the legacy 6-hit recall below, logged, never thrown.
+    try {
+      const hyb: any = await import(`file://${path.join(__dirname, "hybrid-recall.cjs")}`);
+      const hr = hyb.retrieve ? await hyb.retrieve(message) : null;
+      if (hr && hr.block) {
+        lastChatRecallHits = hr.top;
+        lastChatRetrieval = { usedHybrid: true, candidates: hr.candidates, fused: hr.fused, reranked: hr.reranked, top: hr.top.length, vectorAvailable: hr.vectorAvailable, denseExcluded: hr.denseExcluded };
+        console.log(`[SESHAT RECALL] Hybrid block attached (${hr.block.length} chars, ${hr.top.length} passages, vector=${hr.vectorAvailable})`);
+        return hr.block;
+      }
+      lastChatRetrieval = { usedHybrid: false, reason: "hybrid-empty" };
+    } catch (e: any) {
+      console.warn("[SESHAT RECALL] Hybrid recall unavailable, falling back to BM25 recall:", e.message);
+      lastChatRetrieval = { usedHybrid: false, reason: "hybrid-error" };
+    }
     const dm: any = await import(`file://${path.join(__dirname, "deep-memory", "deep-memory.cjs")}`);
     const recallBlock = dm.recallBlock || dm.default?.recallBlock;
     const block = typeof recallBlock === "function" ? String(recallBlock(message, 6) || "") : "";
@@ -506,6 +524,7 @@ async function seshatRecallForTurn(message: string): Promise<string> {
       if (typeof recallHits === "function") {
         try { lastChatRecallHits = recallHits(message, 6); } catch { /* stash is best-effort */ }
       }
+      if (!lastChatRetrieval || lastChatRetrieval.usedHybrid) lastChatRetrieval = { usedHybrid: false, reason: "legacy-fallback" };
       console.log(`[SESHAT RECALL] Deep-memory block attached for fallback surface (${block.length} chars)`);
     }
     return block;
@@ -554,9 +573,12 @@ async function answerZeroKeyBaseline(message: string): Promise<any> {
   // a reason to reach for a provider.
   const recallText = await seshatRecallForTurn(message);
   const recallHits = Array.isArray(lastChatRecallHits) ? lastChatRecallHits : [];
+  // BUILD 2: retrieval diagnostics from the recall attempt above
+  // (hybrid numbers when hybrid ran, fallback reason otherwise).
+  const retrieval = lastChatRetrieval && typeof lastChatRetrieval === "object" ? lastChatRetrieval : { usedHybrid: false };
   if (!recallText.trim()) {
     console.log(`[ZERO-KEY-BASELINE] turn ${marker}: no local recall — baseline cannot answer`);
-    return { success: false, baseline: true, zeroKeyBaseline: true, provider: "none", providerCredsPresent: false, error: "no local memory recall for this prompt", recallChars: 0, recallHits: 0, scribeLogged: false, marker };
+    return { success: false, baseline: true, zeroKeyBaseline: true, provider: "none", providerCredsPresent: false, error: "no local memory recall for this prompt", recallChars: 0, recallHits: 0, scribeLogged: false, marker, retrieval };
   }
   // 2. Static skills: GSK's authored skill modules (the Graft) are the
   // body's own skills — files on disk, no seat, no key. They ride as
@@ -568,7 +590,7 @@ async function answerZeroKeyBaseline(message: string): Promise<any> {
   const seat = resolveBlueprintLocalSeat();
   if (!seat) {
     console.log(`[ZERO-KEY-BASELINE] turn ${marker}: local seat unavailable — baseline cannot compose`);
-    return { success: false, baseline: true, zeroKeyBaseline: true, provider: "none", providerCredsPresent: false, error: "local seat unavailable", recallChars: recallText.length, recallHits: recallHits.length, scribeLogged: false, marker };
+    return { success: false, baseline: true, zeroKeyBaseline: true, provider: "none", providerCredsPresent: false, error: "local seat unavailable", recallChars: recallText.length, recallHits: recallHits.length, scribeLogged: false, marker, retrieval };
   }
   // BUILD 1 (2026-10-28, north-star program): the talking fix. The old
   // call used temperature 0 (greedy) with no stops and no sampling
@@ -607,7 +629,7 @@ async function answerZeroKeyBaseline(message: string): Promise<any> {
     composed = stripToolCallLeaks(composed).text.trim();
   } catch (e: any) {
     console.log(`[ZERO-KEY-BASELINE] turn ${marker}: local seat failed — ${e.message}`);
-    return { success: false, baseline: true, zeroKeyBaseline: true, provider: "none", providerCredsPresent: false, error: `local seat failed: ${e.message}`, recallChars: recallText.length, recallHits: recallHits.length, scribeLogged: false, marker };
+    return { success: false, baseline: true, zeroKeyBaseline: true, provider: "none", providerCredsPresent: false, error: `local seat failed: ${e.message}`, recallChars: recallText.length, recallHits: recallHits.length, scribeLogged: false, marker, retrieval };
   }
   // BUILD 1: cut a looped answer at the loop point, then record the
   // deterministic eval. The slow local judge is NOT consulted here —
@@ -620,7 +642,7 @@ async function answerZeroKeyBaseline(message: string): Promise<any> {
   }
   const baselineEval = talk?.deterministicEval ? talk.deterministicEval({ question: message, answer: composed, recallText, recallHits, maxTokens: decoding.max_tokens }) : null;
   if (!composed) {
-    return { success: false, baseline: true, zeroKeyBaseline: true, provider: "none", providerCredsPresent: false, error: "local seat returned an empty answer", recallChars: recallText.length, recallHits: recallHits.length, scribeLogged: false, marker };
+    return { success: false, baseline: true, zeroKeyBaseline: true, provider: "none", providerCredsPresent: false, error: "local seat returned an empty answer", recallChars: recallText.length, recallHits: recallHits.length, scribeLogged: false, marker, retrieval };
   }
   // 4. Witness through the existing SCRIBE flow (HTTP /witness, same
   // shape as the sliding-window witness). A Scribe outage is reported
@@ -631,13 +653,13 @@ async function answerZeroKeyBaseline(message: string): Promise<any> {
     const r = await fetch(`${SCRIBE_URL}/witness`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-API-Key": scribeKey() },
-      body: JSON.stringify({ type: "zero_key_baseline_turn", content: `${marker}\nQ: ${message}\nA: ${composed}\nEVAL: ${JSON.stringify(baselineEval)}`.slice(0, 8000), source: "GSK-baseline", tags: ["zero-key-baseline", marker] }),
+      body: JSON.stringify({ type: "zero_key_baseline_turn", content: `${marker}\nQ: ${message}\nA: ${composed}\nEVAL: ${JSON.stringify(baselineEval)}\nRETRIEVAL: ${JSON.stringify(retrieval)}`.slice(0, 8000), source: "GSK-baseline", tags: ["zero-key-baseline", marker] }),
       signal: AbortSignal.timeout(10000),
     });
     scribeLogged = r.ok;
   } catch { scribeLogged = false; }
-  console.log(`[ZERO-KEY-BASELINE] turn ${marker}: served locally (recall ${recallText.length} chars, ${recallHits.length} hits, scribeLogged=${scribeLogged}, loopDetected=${loopDetected}, evalPass=${baselineEval ? baselineEval.pass : "n/a"})`);
-  return { success: true, baseline: true, zeroKeyBaseline: true, provider: "none", providerCredsPresent: zeroKeyBaselineProviderCredsPresent(), response: composed, recallChars: recallText.length, recallHits: recallHits.length, scribeLogged, marker, localSeat: seat.endpoint, mode: "local-memory-only", loopDetected, loopReason, eval: baselineEval, decoding: { temperature: decoding.temperature, top_p: decoding.top_p, top_k: decoding.top_k, min_p: decoding.min_p, max_tokens: decoding.max_tokens, stop: decoding.stop } };
+  console.log(`[ZERO-KEY-BASELINE] turn ${marker}: served locally (recall ${recallText.length} chars, ${recallHits.length} hits, scribeLogged=${scribeLogged}, loopDetected=${loopDetected}, evalPass=${baselineEval ? baselineEval.pass : "n/a"}, retrieval=${JSON.stringify(retrieval)})`);
+  return { success: true, baseline: true, zeroKeyBaseline: true, provider: "none", providerCredsPresent: zeroKeyBaselineProviderCredsPresent(), response: composed, recallChars: recallText.length, recallHits: recallHits.length, scribeLogged, marker, localSeat: seat.endpoint, mode: "local-memory-only", loopDetected, loopReason, eval: baselineEval, retrieval, decoding: { temperature: decoding.temperature, top_p: decoding.top_p, top_k: decoding.top_k, min_p: decoding.min_p, max_tokens: decoding.max_tokens, stop: decoding.stop } };
 }
 
 // F3(a): machinery must never be the answer. stripToolCallLeaks removes
@@ -884,6 +906,14 @@ async function buildGskIdentitySystemPrompt(): Promise<string> {
 // Single-user body, one turn at a time — the handler resets this to
 // null before each call and only this function sets it.
 let lastChatRecallHits: any[] | null = null;
+// BUILD 2 (2026-10-28, north-star program): the retrieval report for
+// the last hybrid recall attempt — same single-turn stash discipline
+// as lastChatRecallHits. Shape: { usedHybrid, candidates, fused,
+// reranked, top, vectorAvailable, denseExcluded } when hybrid ran, or
+// { usedHybrid: false, reason } when it fell back. The baseline turn
+// copies this into its result as `retrieval`; it is diagnostics,
+// never a gate — a turn never fails because retrieval reporting did.
+let lastChatRetrieval: any = null;
 
 async function directProviderChat(message: string, context: string, history: any[] = []): Promise<string | null> {
   const creds = resolveProviderCredentials();

@@ -283,8 +283,16 @@ try {
   // index object + serialized string + temp-file string + verified
   // object alive at once).
   serialized = null;
-  const tmpFd = fs.openSync(tmpOut, 'r');
-  try { fs.fsyncSync(tmpFd); } finally { fs.closeSync(tmpFd); }
+  // WINDOWS FIX (2026-10-27, PC EPERM): fsync on a read-only handle
+  // fails EPERM on Windows (FlushFileBuffers needs write access),
+  // which killed every PC build at this line before the rename.
+  // Open read-write so fsync succeeds there, and treat fsync as
+  // best-effort anyway — the parse-back check below is the real
+  // integrity gate, and durability must never kill the build.
+  const tmpFd = fs.openSync(tmpOut, 'r+');
+  try { fs.fsyncSync(tmpFd); } catch (e) {
+    console.error('[build-index] WARN: tmp fsync best-effort failed (' + e.message + ') — continuing; parse-back verification still gates the rename.');
+  } finally { fs.closeSync(tmpFd); }
   // Integrity check: parse the temp file back and validate structure
   // before it is allowed to replace the live index.
   let verified;

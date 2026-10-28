@@ -134,14 +134,29 @@ function chunkPlain(shelf, source, content) {
 
 // ── walk the implant ───────────────────────────────────────────────
 function walk(dir, rel) {
-  for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+  let entries;
+  try {
+    entries = fs.readdirSync(dir, { withFileTypes: true });
+  } catch (e) {
+    console.error('[build-index] WARN: cannot list ' + dir + ' (' + e.message + ') — skipping that directory.');
+    skippedFiles++;
+    return;
+  }
+  for (const e of entries) {
     const r = rel ? rel + '/' + e.name : e.name;
     const full = path.join(dir, e.name);
     if (e.isDirectory()) { walk(full, r); continue; }
     if (r === 'deep/HOT-DIGEST.md' || r === 'deep/IMPLANT-MANIFEST.json') continue;
     const shelf = r.split('/')[1] || 'deep';
     const source = r; // relative to .seshat-brain
-    const content = fs.readFileSync(full, 'utf8');
+    let content;
+    try {
+      content = fs.readFileSync(full, 'utf8');
+    } catch (e) {
+      console.error('[build-index] WARN: cannot read ' + full + ' (' + e.message + ') — skipping that file.');
+      skippedFiles++;
+      continue;
+    }
     if (e.name.endsWith('.md')) chunkMarkdown(shelf, source, content);
     else if (e.name === 'memory-core.json') chunkMemoryCore(shelf, source, content);
     else if (e.name.endsWith('.jsonl')) chunkQwen(shelf, source, content);
@@ -149,6 +164,16 @@ function walk(dir, rel) {
     // catalog.json intentionally skipped: catalog-cards.md is its index surface.
   }
 }
+// BUILD-RESILIENCE (2026-10-27, PC blocker): the clone carries no
+// .seshat-brain (gitignored), so a PC build with an uncopied brain
+// used to die on a bare ENOENT inside walk(). Fail loud and clear
+// instead, so the operator knows the brain tree itself is missing.
+if (!fs.existsSync(DEEP)) {
+  console.error('[build-index] FATAL: deep shelf missing: ' + DEEP);
+  console.error('[build-index] The brain tree was not copied to this machine. Copy .seshat-brain/deep/ here first, then re-run.');
+  process.exit(2);
+}
+let skippedFiles = 0;
 walk(DEEP, 'deep');
 
 // ── PHASE 6: the unified live shelf joins the index ────────────────
@@ -159,12 +184,28 @@ walk(DEEP, 'deep');
 // page that also exists as a deep mirror from counting twice.
 function walkPages(dir, rel) {
   if (!fs.existsSync(dir)) return;
-  for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+  let entries;
+  try {
+    entries = fs.readdirSync(dir, { withFileTypes: true });
+  } catch (e) {
+    console.error('[build-index] WARN: cannot list ' + dir + ' (' + e.message + ') — skipping that directory.');
+    skippedFiles++;
+    return;
+  }
+  for (const e of entries) {
     const r = rel ? rel + '/' + e.name : e.name;
     const full = path.join(dir, e.name);
     if (e.isDirectory()) { walkPages(full, r); continue; }
     if (!e.name.endsWith('.md')) continue;
-    chunkMarkdown('pages', r, fs.readFileSync(full, 'utf8'));
+    let content;
+    try {
+      content = fs.readFileSync(full, 'utf8');
+    } catch (e) {
+      console.error('[build-index] WARN: cannot read ' + full + ' (' + e.message + ') — skipping that file.');
+      skippedFiles++;
+      continue;
+    }
+    chunkMarkdown('pages', r, content);
   }
 }
 walkPages(PAGES, 'pages');
@@ -272,5 +313,5 @@ const perShelf = {};
 for (const c of index.chunks) perShelf[c.shelf] = (perShelf[c.shelf] || 0) + 1;
 console.log(JSON.stringify({
   chunks: index.N, avgLen: Math.round(index.avgLen), terms: terms.length,
-  perShelf, indexBytes: fs.statSync(OUT).size, rawBeforeDedupe,
+  perShelf, indexBytes: fs.statSync(OUT).size, rawBeforeDedupe, skippedFiles,
 }, null, 2));

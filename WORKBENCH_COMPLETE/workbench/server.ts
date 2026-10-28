@@ -570,6 +570,20 @@ async function answerZeroKeyBaseline(message: string): Promise<any> {
     console.log(`[ZERO-KEY-BASELINE] turn ${marker}: local seat unavailable — baseline cannot compose`);
     return { success: false, baseline: true, zeroKeyBaseline: true, provider: "none", providerCredsPresent: false, error: "local seat unavailable", recallChars: recallText.length, recallHits: recallHits.length, scribeLogged: false, marker };
   }
+  // BUILD 1 (2026-10-28, north-star program): the talking fix. The old
+  // call used temperature 0 (greedy) with no stops and no sampling
+  // bounds — the loop recipe. Decoding + template now come from
+  // baseline-talk.cjs; if it cannot load, the turn uses the same
+  // defaults inline (never silently back to greedy) and logs it.
+  let talk: any = null;
+  try {
+    const talkNs: any = await import(`file://${path.join(__dirname, "baseline-talk.cjs")}`);
+    talk = talkNs.samplingDefaults ? talkNs : talkNs.default;
+  } catch (e: any) {
+    console.warn("[ZERO-KEY-BASELINE] baseline-talk.cjs unavailable, using built-in fallback defaults:", e.message);
+  }
+  const decoding = talk?.samplingDefaults ? talk.samplingDefaults() : { temperature: 0.7, top_p: 0.9, top_k: 40, min_p: 0.05, max_tokens: 320, repeat_penalty: 1.0, stop: ["<|im_end|>", "<|endoftext|>"] };
+  const talkPrompt = talk?.citeOrAbstainPrompt ? talk.citeOrAbstainPrompt() : "You are GSK answering from Seshat's local memory and GSK's authored static skills only. Answer ONLY from the recalled passages below. When you state something from them, quote the passage literally. If the recalled passages do not cover the question, say plainly: I do not know from my local memory. Do not guess, do not invent. Keep the answer short and in plain prose. Never claim a provider, seat, or external model answered.";
   let composed = "";
   try {
     const r = await fetch(seat.endpoint, {
@@ -578,13 +592,12 @@ async function answerZeroKeyBaseline(message: string): Promise<any> {
       body: JSON.stringify({
         model: seat.model,
         messages: [
-          { role: "system", content: "You are GSK answering from Seshat's local memory and GSK's authored static skills only. Use ONLY the recalled passages below. If they do not cover the question, say plainly what you do not know. Never claim a provider, seat, or external model answered." },
+          { role: "system", content: talkPrompt },
           { role: "system", content: recallText.slice(0, 12000) },
           { role: "system", content: skillNote },
           { role: "user", content: message },
         ],
-        max_tokens: 256,
-        temperature: 0,
+        ...decoding,
       }),
       signal: AbortSignal.timeout(180000),
     });
@@ -596,6 +609,16 @@ async function answerZeroKeyBaseline(message: string): Promise<any> {
     console.log(`[ZERO-KEY-BASELINE] turn ${marker}: local seat failed — ${e.message}`);
     return { success: false, baseline: true, zeroKeyBaseline: true, provider: "none", providerCredsPresent: false, error: `local seat failed: ${e.message}`, recallChars: recallText.length, recallHits: recallHits.length, scribeLogged: false, marker };
   }
+  // BUILD 1: cut a looped answer at the loop point, then record the
+  // deterministic eval. The slow local judge is NOT consulted here —
+  // it stays available for offline/second-stage use only.
+  let loopDetected = false;
+  let loopReason = "";
+  if (talk?.cutAtLoop) {
+    const cut = talk.cutAtLoop(composed);
+    if (cut.looped) { composed = cut.text; loopDetected = true; loopReason = cut.reason || ""; }
+  }
+  const baselineEval = talk?.deterministicEval ? talk.deterministicEval({ question: message, answer: composed, recallText, recallHits, maxTokens: decoding.max_tokens }) : null;
   if (!composed) {
     return { success: false, baseline: true, zeroKeyBaseline: true, provider: "none", providerCredsPresent: false, error: "local seat returned an empty answer", recallChars: recallText.length, recallHits: recallHits.length, scribeLogged: false, marker };
   }
@@ -608,13 +631,13 @@ async function answerZeroKeyBaseline(message: string): Promise<any> {
     const r = await fetch(`${SCRIBE_URL}/witness`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-API-Key": scribeKey() },
-      body: JSON.stringify({ type: "zero_key_baseline_turn", content: `${marker}\nQ: ${message}\nA: ${composed}`.slice(0, 8000), source: "GSK-baseline", tags: ["zero-key-baseline", marker] }),
+      body: JSON.stringify({ type: "zero_key_baseline_turn", content: `${marker}\nQ: ${message}\nA: ${composed}\nEVAL: ${JSON.stringify(baselineEval)}`.slice(0, 8000), source: "GSK-baseline", tags: ["zero-key-baseline", marker] }),
       signal: AbortSignal.timeout(10000),
     });
     scribeLogged = r.ok;
   } catch { scribeLogged = false; }
-  console.log(`[ZERO-KEY-BASELINE] turn ${marker}: served locally (recall ${recallText.length} chars, ${recallHits.length} hits, scribeLogged=${scribeLogged})`);
-  return { success: true, baseline: true, zeroKeyBaseline: true, provider: "none", providerCredsPresent: zeroKeyBaselineProviderCredsPresent(), response: composed, recallChars: recallText.length, recallHits: recallHits.length, scribeLogged, marker, localSeat: seat.endpoint, mode: "local-memory-only" };
+  console.log(`[ZERO-KEY-BASELINE] turn ${marker}: served locally (recall ${recallText.length} chars, ${recallHits.length} hits, scribeLogged=${scribeLogged}, loopDetected=${loopDetected}, evalPass=${baselineEval ? baselineEval.pass : "n/a"})`);
+  return { success: true, baseline: true, zeroKeyBaseline: true, provider: "none", providerCredsPresent: zeroKeyBaselineProviderCredsPresent(), response: composed, recallChars: recallText.length, recallHits: recallHits.length, scribeLogged, marker, localSeat: seat.endpoint, mode: "local-memory-only", loopDetected, loopReason, eval: baselineEval, decoding: { temperature: decoding.temperature, top_p: decoding.top_p, top_k: decoding.top_k, min_p: decoding.min_p, max_tokens: decoding.max_tokens, stop: decoding.stop } };
 }
 
 // F3(a): machinery must never be the answer. stripToolCallLeaks removes

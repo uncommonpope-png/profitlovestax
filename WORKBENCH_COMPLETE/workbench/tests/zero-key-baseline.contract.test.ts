@@ -87,7 +87,8 @@ async function main(): Promise<number> {
   const logPath = "/tmp/zero-key-baseline-test-server.log";
   const logStream = fs.createWriteStream(logPath);
   let logTail = "";
-  const child: ChildProcess = spawn("./node_modules/.bin/tsx", ["server.ts"], {
+  const tsxCli = path.join(WORKBENCH_DIR, "node_modules", "tsx", "dist", "cli.mjs");
+  const child: ChildProcess = spawn(process.execPath, [tsxCli, "server.ts"], {
     cwd: WORKBENCH_DIR,
     env: env as NodeJS.ProcessEnv,
     stdio: ["ignore", "pipe", "pipe"],

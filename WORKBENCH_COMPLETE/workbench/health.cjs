@@ -7,9 +7,12 @@
 "use strict";
 
 const fs = require("fs");
+const os = require("os");
 const path = require("path");
 
 const DEFAULT_INDEX = path.join(__dirname, ".seshat-brain", "deep-index.json");
+const HOME_LEDGER = path.join(os.homedir(), ".soul-scribe", "ledger.jsonl");
+const ENV_LEDGER = process.env.SCRIBE_DATA ? path.join(process.env.SCRIBE_DATA, "ledger.jsonl") : null;
 const DEFAULT_LEDGER = path.join(__dirname, "..", "scribe", "data", "ledger.jsonl");
 const LEDGER_FALLBACK = path.join(__dirname, "data", "ledger.jsonl");
 const SEAT_URL = "http://127.0.0.1:18222/health";
@@ -59,7 +62,7 @@ function readLedgerTail(ledgerPath) {
       if (!last) return { lastTs: null, lastId: null, lastType: null, reason: "ledger empty" };
       const row = JSON.parse(last);
       return {
-        lastTs: typeof row.ts === "string" ? row.ts : null,
+        lastTs: typeof row.timestamp === "string" ? row.timestamp : (typeof row.ts === "string" ? row.ts : null),
         lastId: typeof row.id === "string" ? row.id : null,
         lastType: typeof row.type === "string" ? row.type : null,
         reason: null,
@@ -104,7 +107,7 @@ async function probeSeat(probe) {
 // Never throws: every field degrades to null + reason on its own.
 async function collectHealth(opts = {}) {
   const indexPath = opts.indexPath || DEFAULT_INDEX;
-  const ledgerPaths = opts.ledgerPath ? [opts.ledgerPath] : [DEFAULT_LEDGER, LEDGER_FALLBACK];
+  const ledgerPaths = opts.ledgerPath ? [opts.ledgerPath] : [ENV_LEDGER, HOME_LEDGER, DEFAULT_LEDGER, LEDGER_FALLBACK].filter(Boolean);
   const idx = readIndexHead(indexPath);
   let scribe = null;
   let scribeSource = null;

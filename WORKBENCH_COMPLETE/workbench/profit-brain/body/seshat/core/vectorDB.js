@@ -83,6 +83,7 @@ async function upsertVectors(records) {
  */
 async function searchVectors(queryVector, limit = 10) {
     const t = await initVectorDB();
+    if (!t) return [];
     const results = await t.search(queryVector).limit(limit).toArray();
     return results.map(r => ({
         score: r._distance || r._score,
@@ -102,6 +103,7 @@ async function searchVectors(queryVector, limit = 10) {
  */
 async function hybridSearch(queryVector, keyword, limit = 10) {
     const t = await initVectorDB();
+    if (!t) return [];
     
     // First do vector search with wider net
     const vectorResults = await t.search(queryVector).limit(limit * 3).toArray();
@@ -131,6 +133,7 @@ async function hybridSearch(queryVector, keyword, limit = 10) {
  */
 async function getStats() {
     const t = await initVectorDB();
+    if (!t) return { table: TABLE_NAME, vectorCount: 0, path: DB_PATH };
     const count = await t.countRows();
     return { table: TABLE_NAME, vectorCount: count, path: DB_PATH };
 }

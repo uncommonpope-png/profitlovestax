@@ -595,6 +595,24 @@ async function answerZeroKeyBaseline(message: string): Promise<any> {
     return { success: false, baseline: true, zeroKeyBaseline: true, provider: "none", providerCredsPresent: false, error: "no local memory recall for this prompt", recallChars: 0, recallHits: 0, scribeLogged: false, marker, retrieval };
   }
 
+  // Load soul preamble (fail-open, never throws)
+  let preambleText = "";
+  let preambleNs: any = null;
+  try {
+    preambleNs = await import(`file://${path.join(__dirname, "soul-preamble.cjs")}`);
+    const loader = preambleNs.loadSoulPreamble || preambleNs.default?.loadSoulPreamble;
+    if (typeof loader === "function") {
+      preambleText = loader();
+    }
+  } catch (e: any) {
+    console.warn("[ZERO-KEY-BASELINE] soul-preamble.cjs unavailable:", e.message);
+  }
+  console.log(`[ZERO-KEY-BASELINE] preamble ${preambleText.length} chars`);
+
+  const recallSliceCap = typeof preambleNs?.recallCharsForPreamble === "function"
+    ? preambleNs.recallCharsForPreamble(preambleText)
+    : (preambleText ? 4000 : 8000);
+
   let talk: any = null;
   try {
     const talkNs: any = await import(`file://${path.join(__dirname, "baseline-talk.cjs")}`);
@@ -608,14 +626,15 @@ async function answerZeroKeyBaseline(message: string): Promise<any> {
   const effectiveRecallText = isToolTargetedQuery ? "" : recallText;
 
   const promptParts = [
+    preambleText ? `# Standing Identity & Core Doctrine:\n${preambleText}\n` : "",
     "You are GSK, an agent with access to local memory and tools.",
     "Tool initiative guidelines:",
     "- You have the search_memory tool to search local memory yourself. When asked about recorded facts, seat ports, or what port we recorded, you MUST call search_memory directly. Do NOT tell the user to search or say you need to search; actually emit the search_memory tool call immediately.",
     "- If asked to look up a website, domain, or URL (like example.com), immediately call fetch_url to retrieve it.",
-    "- If a question can be answered from static memory (like Soul Economy), answer directly in plain text with no tool calls.",
+    "- If a question can be answered from static memory (like Soul Economy or standing identity doctrine), answer directly in plain text with no tool calls.",
     "- When calling a tool, emit only the tool call without conversational commentary or parentheses.",
     "- Never guess or hallucinate contents.",
-    effectiveRecallText.trim() ? `\n# Recalled Memory:\n${effectiveRecallText.slice(0, 4000)}` : "",
+    effectiveRecallText.trim() ? `\n# Recalled Memory:\n${effectiveRecallText.slice(0, recallSliceCap)}` : "",
     `\n# Static Skills:\n${skillNote}`
   ];
   const talkPrompt = promptParts.filter(Boolean).join("\n");
@@ -693,7 +712,7 @@ async function answerZeroKeyBaseline(message: string): Promise<any> {
     scribeLogged = r.ok;
   } catch { scribeLogged = false; }
 
-  console.log(`[ZERO-KEY-BASELINE] turn ${marker}: served locally (recall ${recallText.length} chars, ${recallHits.length} hits, toolCalls=${toolResult ? toolResult.callsMade : 0}, scribeLogged=${scribeLogged}, loopDetected=${loopDetected}, evalPass=${baselineEval ? baselineEval.pass : "n/a"}, retrieval=${JSON.stringify(retrieval)})`);
+  console.log(`[ZERO-KEY-BASELINE] turn ${marker}: served locally (preamble=${preambleText.length} chars, recall ${recallText.length} chars, ${recallHits.length} hits, toolCalls=${toolResult ? toolResult.callsMade : 0}, scribeLogged=${scribeLogged}, loopDetected=${loopDetected}, evalPass=${baselineEval ? baselineEval.pass : "n/a"}, retrieval=${JSON.stringify(retrieval)})`);
   return {
     success: true,
     baseline: true,
@@ -701,6 +720,7 @@ async function answerZeroKeyBaseline(message: string): Promise<any> {
     provider: "none",
     providerCredsPresent: zeroKeyBaselineProviderCredsPresent(),
     response: composed,
+    preambleChars: preambleText.length,
     recallChars: recallText.length,
     recallHits: recallHits.length,
     scribeLogged,

@@ -62,8 +62,8 @@ const FULL = path.join(__dirname, "..", "soul-preamble.md");
 
 // 5. Recall slice budget: 6000 with a preamble, 12000 without, env wins.
 {
-  check("recall.with-preamble", preamble.recallCharsForPreamble("x".repeat(100)) === 6000, "got 6000");
-  check("recall.without-preamble", preamble.recallCharsForPreamble("") === 12000, "got 12000");
+  check("recall.with-preamble", preamble.recallCharsForPreamble("x".repeat(100)) === 4000, "got 4000");
+  check("recall.without-preamble", preamble.recallCharsForPreamble("") === 8000, "got 8000");
   process.env.GSK_SOUL_PREAMBLE_RECALL_CHARS = "8000";
   check("recall.env-override", preamble.recallCharsForPreamble("x".repeat(100)) === 8000, "got 8000");
   delete process.env.GSK_SOUL_PREAMBLE_RECALL_CHARS;

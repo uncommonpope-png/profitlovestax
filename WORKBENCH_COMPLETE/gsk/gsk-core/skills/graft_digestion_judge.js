@@ -60,6 +60,18 @@ const SEATS = [
     { id: 'cohere', model: 'command-a-03-2025', endpoint: 'https://api.cohere.ai/compatibility/v1/chat/completions' },
 ];
 
+
+const VERDICT_SCHEMA = {
+    type: 'object',
+    properties: {
+        verdict: { type: 'string', enum: ['keep', 'quarantine'] },
+        substance: { type: 'number' },
+        reason: { type: 'string' },
+    },
+    required: ['verdict', 'substance', 'reason'],
+    additionalProperties: false,
+};
+
 const RUBRIC = [
     'You are the second-stage digestion judge for a personal knowledge store (Seshat).',
     'A deterministic lexical filter already scored the item below as borderline: it is well-formed, but the filter cannot tell substance from fluent emptiness. That is your one job.',
@@ -106,17 +118,39 @@ function postJson(endpoint, apiKey, body, timeoutMs = 60000) {
 
 function parseVerdict(content) {
     if (typeof content !== 'string') return null;
-    const m = content.match(/\{[\s\S]*\}/);
+    let raw = content.trim();
+    if (raw.startsWith('{') && !raw.endsWith('}')) {
+        const quoteCount = (raw.match(/"/g) || []).length;
+        if (quoteCount % 2 !== 0) {
+            raw += '"}';
+        } else {
+            raw += '}';
+        }
+    }
+    const m = raw.match(/\{[\s\S]*\}/);
     if (!m) return null;
     try {
         const j = JSON.parse(m[0]);
-        if (j.verdict !== 'keep' && j.verdict !== 'quarantine') return null;
+        const v = String(j.verdict || '').toLowerCase();
+        if (v !== 'keep' && v !== 'quarantine') return null;
         return {
-            verdict: j.verdict,
+            verdict: v,
             substance: (typeof j.substance === 'number' && Number.isFinite(j.substance)) ? Math.max(0, Math.min(1, j.substance)) : null,
             reason: String(j.reason || '').slice(0, 300),
         };
-    } catch { return null; }
+    } catch {
+        const vMatch = raw.match(/"verdict"\s*:\s*"([^"]+)"/i);
+        if (!vMatch) return null;
+        const v = vMatch[1].toLowerCase();
+        if (v !== 'keep' && v !== 'quarantine') return null;
+        const sMatch = raw.match(/"substance"\s*:\s*([0-9.]+)/);
+        const rMatch = raw.match(/"reason"\s*:\s*"([^"]*)/);
+        return {
+            verdict: v,
+            substance: sMatch ? Math.max(0, Math.min(1, parseFloat(sMatch[1]))) : null,
+            reason: rMatch ? rMatch[1].slice(0, 300) : '',
+        };
+    }
 }
 
 async function judgeItem(input = {}) {
@@ -140,7 +174,8 @@ async function judgeItem(input = {}) {
     try {
         const vc = require('../brain/vault_credentials.js');
         creds = vc.resolveProviderCredentials();
-        if (typeof vc.resolveLocalSeat === 'function') localSeat = vc.resolveLocalSeat();
+        if (typeof vc.resolveJudgeSeat === 'function') localSeat = vc.resolveJudgeSeat();
+        else if (typeof vc.resolveLocalSeat === 'function') localSeat = vc.resolveLocalSeat();
     } catch { /* handled below */ }
     const allSeats = localSeat ? [localSeat, ...SEATS] : SEATS;
     const only = String(process.env.SESHAT_JUDGE_SEATS || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
@@ -155,7 +190,11 @@ async function judgeItem(input = {}) {
             model: seat.model,
             messages: [{ role: 'system', content: RUBRIC }, { role: 'user', content: userMsg }],
             max_tokens: 300, temperature: 0, stream: false,
+            stop: ['<|im_end|>', '<|endoftext|>'],
         };
+        if (seat.local && input.grammar !== false) {
+            body.json_schema = VERDICT_SCHEMA;
+        }
         const r = await postJson(seat.endpoint, key, body, input.timeoutMs || 60000);
         if (r.ok) {
             const parsed = parseVerdict(r.content);
@@ -163,7 +202,7 @@ async function judgeItem(input = {}) {
                 attempts.push({ provider: seat.id, model: seat.model, status: 'answered' });
                 return { success: true, skill: 'graft_digestion_judge', title, verdict: parsed.verdict, substance: parsed.substance, reason: parsed.reason, provider: seat.id, model: seat.model, attempts };
             }
-            attempts.push({ provider: seat.id, model: seat.model, status: 'failed', error: 'reply was not a parseable verdict JSON' });
+            attempts.push({ provider: seat.id, model: seat.model, status: 'failed', error: 'reply was not a parseable verdict JSON', raw: r.content });
             continue;
         }
         attempts.push({ provider: seat.id, model: seat.model, status: 'failed', error: r.error });
@@ -192,6 +231,7 @@ module.exports = {
     _judgeItem: judgeItem,
     _parseVerdict: parseVerdict,
     PLT_AFFINITY,
+    VERDICT_SCHEMA,
     MANIFEST: {
         name: 'graft_digestion_judge',
         description: 'Digestion judge (Self-Growth Cycle #1 build): second-stage reviewer for borderline digestion items — one strict-rubric call to the body provider chain (gemini → groq → openai → poolside → cohere) returning keep/quarantine + substance + reason as strict JSON. Catches the fluent-but-empty class the lexical rubric cannot. Unparseable/unavailable judge = explicit failure, never a silent keep.',

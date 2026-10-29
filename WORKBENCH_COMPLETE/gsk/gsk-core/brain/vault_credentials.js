@@ -132,4 +132,28 @@ function resolveLocalSeat() {
     };
 }
 
-module.exports = { readWorkbenchVault, resolveProviderCredentials, vaultPath, resolveLocalSeat, LOCAL_SEAT_DEFAULTS };
+
+/**
+ * Second-stage offline digestion judge (Round 5 SHIP, 2026-10-29).
+ * v5 is the official offline/second-stage judge artifact.
+ * The :18222 seat remains the clean 1.5B base for live conversation and tools;
+ * the judge resolves to v5 via SESHAT_JUDGE_MODEL_PATH / SESHAT_JUDGE_ENDPOINT.
+ */
+const JUDGE_SEAT_DEFAULTS = {
+    endpoint: 'http://127.0.0.1:18223/v1/chat/completions',
+    model: 'qwen2.5-1.5b-instruct-v5-q4_k_m',
+    modelPath: path.resolve('C:\\Users\\uncom\\Downloads\\PROFIT_HF\\base_gguf\\qwen2.5-1.5b-instruct-v5-q4_k_m.gguf'),
+};
+
+function resolveJudgeSeat() {
+    if (String(process.env.SESHAT_JUDGE_MODEL || '').toLowerCase() === 'off') return null;
+    return {
+        id: 'local',
+        model: process.env.SESHAT_JUDGE_MODEL_NAME || JUDGE_SEAT_DEFAULTS.model,
+        endpoint: process.env.SESHAT_JUDGE_ENDPOINT || JUDGE_SEAT_DEFAULTS.endpoint,
+        modelPath: process.env.GSK_JUDGE_MODEL_PATH || process.env.SESHAT_JUDGE_MODEL_PATH || JUDGE_SEAT_DEFAULTS.modelPath,
+        local: true,
+    };
+}
+
+module.exports = { readWorkbenchVault, resolveProviderCredentials, vaultPath, resolveLocalSeat, LOCAL_SEAT_DEFAULTS, resolveJudgeSeat, JUDGE_SEAT_DEFAULTS };

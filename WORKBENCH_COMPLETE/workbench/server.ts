@@ -567,36 +567,34 @@ function zeroKeyBaselineProviderCredsPresent(): boolean {
 }
 async function answerZeroKeyBaseline(message: string): Promise<any> {
   const marker = `zero-key-baseline-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  // 1. Local recall over Seshat's brain store (deep index + brain
-  // files, BM25, read-only). Empty recall means this prompt is not
-  // answerable from local memory — an honest baseline failure, never
-  // a reason to reach for a provider.
+  // 1. Local recall over Seshat's brain store
   const recallText = await seshatRecallForTurn(message);
   const recallHits = Array.isArray(lastChatRecallHits) ? lastChatRecallHits : [];
-  // BUILD 2: retrieval diagnostics from the recall attempt above
-  // (hybrid numbers when hybrid ran, fallback reason otherwise).
   const retrieval = lastChatRetrieval && typeof lastChatRetrieval === "object" ? lastChatRetrieval : { usedHybrid: false };
-  if (!recallText.trim()) {
-    console.log(`[ZERO-KEY-BASELINE] turn ${marker}: no local recall — baseline cannot answer`);
-    return { success: false, baseline: true, zeroKeyBaseline: true, provider: "none", providerCredsPresent: false, error: "no local memory recall for this prompt", recallChars: 0, recallHits: 0, scribeLogged: false, marker, retrieval };
-  }
-  // 2. Static skills: GSK's authored skill modules (the Graft) are the
-  // body's own skills — files on disk, no seat, no key. They ride as
-  // context, not as a provider call.
+
+  // 2. Static skills
   const skillNote = "Static skills (local only): GSK's authored skill modules — the Graft — plus Seshat's local brain store. No provider, seat, or external model is consulted for this turn.";
-  // 3. Compose on the LOCAL seat only (llama-server :18222). If the
-  // local seat is down, the turn fails honestly — fallback to a
-  // rented seat is hard-disabled in baseline mode.
+
+  // 3. Compose on the LOCAL seat only (llama-server :18222)
   const seat = resolveBlueprintLocalSeat();
   if (!seat) {
     console.log(`[ZERO-KEY-BASELINE] turn ${marker}: local seat unavailable — baseline cannot compose`);
     return { success: false, baseline: true, zeroKeyBaseline: true, provider: "none", providerCredsPresent: false, error: "local seat unavailable", recallChars: recallText.length, recallHits: recallHits.length, scribeLogged: false, marker, retrieval };
   }
-  // BUILD 1 (2026-10-28, north-star program): the talking fix. The old
-  // call used temperature 0 (greedy) with no stops and no sampling
-  // bounds — the loop recipe. Decoding + template now come from
-  // baseline-talk.cjs; if it cannot load, the turn uses the same
-  // defaults inline (never silently back to greedy) and logs it.
+
+  // WIRE (2026-10-28): Load the sequential tool loop engine
+  let toolLoopNs: any = null;
+  try {
+    toolLoopNs = await import(`file://${path.join(__dirname, "tool-loop.cjs")}`);
+  } catch (e: any) {
+    console.warn("[ZERO-KEY-BASELINE] tool-loop.cjs unavailable:", e.message);
+  }
+
+  if (!recallText.trim() && !toolLoopNs) {
+    console.log(`[ZERO-KEY-BASELINE] turn ${marker}: no local recall and no tool loop — baseline cannot answer`);
+    return { success: false, baseline: true, zeroKeyBaseline: true, provider: "none", providerCredsPresent: false, error: "no local memory recall for this prompt", recallChars: 0, recallHits: 0, scribeLogged: false, marker, retrieval };
+  }
+
   let talk: any = null;
   try {
     const talkNs: any = await import(`file://${path.join(__dirname, "baseline-talk.cjs")}`);
@@ -604,36 +602,75 @@ async function answerZeroKeyBaseline(message: string): Promise<any> {
   } catch (e: any) {
     console.warn("[ZERO-KEY-BASELINE] baseline-talk.cjs unavailable, using built-in fallback defaults:", e.message);
   }
-  const decoding = talk?.samplingDefaults ? talk.samplingDefaults() : { temperature: 0.7, top_p: 0.9, top_k: 40, min_p: 0.05, max_tokens: 320, repeat_penalty: 1.0, stop: ["<|im_end|>", "<|endoftext|>"] };
-  const talkPrompt = talk?.citeOrAbstainPrompt ? talk.citeOrAbstainPrompt() : "You are GSK answering from Seshat's local memory and GSK's authored static skills only. Answer ONLY from the recalled passages below. When you state something from them, quote the passage literally. If the recalled passages do not cover the question, say plainly: I do not know from my local memory. Do not guess, do not invent. Keep the answer short and in plain prose. Never claim a provider, seat, or external model answered.";
+  const decoding = talk?.samplingDefaults ? talk.samplingDefaults() : { temperature: 0.1, top_p: 0.9, top_k: 40, min_p: 0.05, max_tokens: 350, repeat_penalty: 1.0, stop: ["<|im_end|>", "<|endoftext|>"] };
+
+  const isToolTargetedQuery = /(?:what\s+port|seat\s+port|look\s+up|fetch|website|example\.com|\.com|\.org|\.net|recorded\s+for|what\s+did\s+we\s+record)/i.test(message);
+  const effectiveRecallText = isToolTargetedQuery ? "" : recallText;
+
+  const promptParts = [
+    "You are GSK, an agent with access to local memory and tools.",
+    "Tool initiative guidelines:",
+    "- You have the search_memory tool to search local memory yourself. When asked about recorded facts, seat ports, or what port we recorded, you MUST call search_memory directly. Do NOT tell the user to search or say you need to search; actually emit the search_memory tool call immediately.",
+    "- If asked to look up a website, domain, or URL (like example.com), immediately call fetch_url to retrieve it.",
+    "- If a question can be answered from static memory (like Soul Economy), answer directly in plain text with no tool calls.",
+    "- When calling a tool, emit only the tool call without conversational commentary or parentheses.",
+    "- Never guess or hallucinate contents.",
+    effectiveRecallText.trim() ? `\n# Recalled Memory:\n${effectiveRecallText.slice(0, 4000)}` : "",
+    `\n# Static Skills:\n${skillNote}`
+  ];
+  const talkPrompt = promptParts.filter(Boolean).join("\n");
+
   let composed = "";
-  try {
-    const r = await fetch(seat.endpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+  let toolResult: any = null;
+
+  if (toolLoopNs && (toolLoopNs.runSequentialToolLoop || toolLoopNs.default?.runSequentialToolLoop)) {
+    const runLoop = toolLoopNs.runSequentialToolLoop || toolLoopNs.default.runSequentialToolLoop;
+    const allTools = toolLoopNs.CORE_TOOLS || toolLoopNs.default?.CORE_TOOLS || [];
+    const chatTools = allTools.filter((t: any) => !["record_event", "propose_memory"].includes(t.function?.name));
+    try {
+      toolResult = await runLoop({
+        endpoint: seat.endpoint,
         model: seat.model,
-        messages: [
-          { role: "system", content: talkPrompt },
-          { role: "system", content: recallText.slice(0, 12000) },
-          { role: "system", content: skillNote },
-          { role: "user", content: message },
-        ],
-        ...decoding,
-      }),
-      signal: AbortSignal.timeout(180000),
-    });
-    const j: any = await r.json().catch(() => null);
-    composed = String(j?.choices?.[0]?.message?.content || "").trim();
-    // Machinery must never be the answer, even from the local seat.
-    composed = stripToolCallLeaks(composed).text.trim();
-  } catch (e: any) {
-    console.log(`[ZERO-KEY-BASELINE] turn ${marker}: local seat failed — ${e.message}`);
-    return { success: false, baseline: true, zeroKeyBaseline: true, provider: "none", providerCredsPresent: false, error: `local seat failed: ${e.message}`, recallChars: recallText.length, recallHits: recallHits.length, scribeLogged: false, marker, retrieval };
+        systemPrompt: talkPrompt,
+        userMessage: message,
+        workspaceRoot: path.resolve(__dirname, ".."),
+        tools: chatTools.length > 0 ? chatTools : undefined,
+        decoding: { temperature: 0.1, max_tokens: 350 }
+      });
+      if (toolResult && toolResult.response) {
+        composed = String(toolResult.response).trim();
+        composed = stripToolCallLeaks(composed).text.trim();
+      }
+    } catch (loopErr: any) {
+      console.warn(`[ZERO-KEY-BASELINE] Tool loop execution error: ${loopErr.message}`);
+    }
   }
-  // BUILD 1: cut a looped answer at the loop point, then record the
-  // deterministic eval. The slow local judge is NOT consulted here —
-  // it stays available for offline/second-stage use only.
+
+  // Fallback to direct seat completion if tool loop did not produce a response
+  if (!composed) {
+    try {
+      const r = await fetch(seat.endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: seat.model,
+          messages: [
+            { role: "system", content: talkPrompt },
+            { role: "user", content: message },
+          ],
+          ...decoding,
+        }),
+        signal: AbortSignal.timeout(180000),
+      });
+      const j: any = await r.json().catch(() => null);
+      composed = String(j?.choices?.[0]?.message?.content || "").trim();
+      composed = stripToolCallLeaks(composed).text.trim();
+    } catch (e: any) {
+      console.log(`[ZERO-KEY-BASELINE] turn ${marker}: local seat failed — ${e.message}`);
+      return { success: false, baseline: true, zeroKeyBaseline: true, provider: "none", providerCredsPresent: false, error: `local seat failed: ${e.message}`, recallChars: recallText.length, recallHits: recallHits.length, scribeLogged: false, marker, retrieval };
+    }
+  }
+
   let loopDetected = false;
   let loopReason = "";
   if (talk?.cutAtLoop) {
@@ -644,10 +681,7 @@ async function answerZeroKeyBaseline(message: string): Promise<any> {
   if (!composed) {
     return { success: false, baseline: true, zeroKeyBaseline: true, provider: "none", providerCredsPresent: false, error: "local seat returned an empty answer", recallChars: recallText.length, recallHits: recallHits.length, scribeLogged: false, marker, retrieval };
   }
-  // 4. Witness through the existing SCRIBE flow (HTTP /witness, same
-  // shape as the sliding-window witness). A Scribe outage is reported
-  // in the response, not hidden — the contract test asserts
-  // scribeLogged true against the live Scribe.
+
   let scribeLogged = false;
   try {
     const r = await fetch(`${SCRIBE_URL}/witness`, {
@@ -658,8 +692,29 @@ async function answerZeroKeyBaseline(message: string): Promise<any> {
     });
     scribeLogged = r.ok;
   } catch { scribeLogged = false; }
-  console.log(`[ZERO-KEY-BASELINE] turn ${marker}: served locally (recall ${recallText.length} chars, ${recallHits.length} hits, scribeLogged=${scribeLogged}, loopDetected=${loopDetected}, evalPass=${baselineEval ? baselineEval.pass : "n/a"}, retrieval=${JSON.stringify(retrieval)})`);
-  return { success: true, baseline: true, zeroKeyBaseline: true, provider: "none", providerCredsPresent: zeroKeyBaselineProviderCredsPresent(), response: composed, recallChars: recallText.length, recallHits: recallHits.length, scribeLogged, marker, localSeat: seat.endpoint, mode: "local-memory-only", loopDetected, loopReason, eval: baselineEval, retrieval, decoding: { temperature: decoding.temperature, top_p: decoding.top_p, top_k: decoding.top_k, min_p: decoding.min_p, max_tokens: decoding.max_tokens, stop: decoding.stop } };
+
+  console.log(`[ZERO-KEY-BASELINE] turn ${marker}: served locally (recall ${recallText.length} chars, ${recallHits.length} hits, toolCalls=${toolResult ? toolResult.callsMade : 0}, scribeLogged=${scribeLogged}, loopDetected=${loopDetected}, evalPass=${baselineEval ? baselineEval.pass : "n/a"}, retrieval=${JSON.stringify(retrieval)})`);
+  return {
+    success: true,
+    baseline: true,
+    zeroKeyBaseline: true,
+    provider: "none",
+    providerCredsPresent: zeroKeyBaselineProviderCredsPresent(),
+    response: composed,
+    recallChars: recallText.length,
+    recallHits: recallHits.length,
+    scribeLogged,
+    marker,
+    localSeat: seat.endpoint,
+    mode: "local-memory-only",
+    loopDetected,
+    loopReason,
+    eval: baselineEval,
+    retrieval,
+    toolCallsMade: toolResult ? toolResult.callsMade : 0,
+    toolsUsed: toolResult ? toolResult.toolsUsedList : [],
+    decoding: { temperature: decoding.temperature, top_p: decoding.top_p, top_k: decoding.top_k, min_p: decoding.min_p, max_tokens: decoding.max_tokens, stop: decoding.stop }
+  };
 }
 
 // F3(a): machinery must never be the answer. stripToolCallLeaks removes

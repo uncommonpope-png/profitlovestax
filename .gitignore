@@ -76,3 +76,5 @@ pyramid/downloads/
 *.sqlite
 *.db
 *.sqlite3
+.launcher.pid
+

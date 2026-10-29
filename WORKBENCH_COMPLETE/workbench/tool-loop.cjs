@@ -142,7 +142,7 @@ const CORE_TOOLS = [
     type: "function",
     function: {
       name: "fetch_url",
-      description: "Fetch web content from a public HTTP/HTTPS URL with SSRF protection, 5MB size cap, and text extraction.",
+      description: "Fetch web content from a public HTTP/HTTPS URL with SSRF protection, 5MB size cap, and text extraction. Use this tool whenever asked to look up, inspect, or summarize an external website or domain.",
       parameters: {
         type: "object",
         properties: {
@@ -156,11 +156,11 @@ const CORE_TOOLS = [
     type: "function",
     function: {
       name: "search_memory",
-      description: "Search 3-tier memory (curated canon and append-only event ledger) using the Tier C derived index.",
+      description: "Search the local event records and memory ledger for recorded ports, seat configuration, system events, and deployment facts. Call this tool whenever asked what was recorded, what port is configured, or what happened in previous steps.",
       parameters: {
         type: "object",
         properties: {
-          query: { type: "string", description: "Query to search across memory tiers" }
+          query: { type: "string", description: "Query to search memory" }
         },
         required: ["query"]
       }
@@ -199,19 +199,51 @@ const CORE_TOOLS = [
   }
 ];
 
-// Helper: Git Checkpoint (Aider edit discipline)
+// Helper: Git Checkpoint (Aider edit discipline with Shadow Ref support)
+let useShadowRef = process.env.GSK_SHADOW_CHECKPOINTS !== "0" && process.env.GSK_SHADOW_CHECKPOINTS !== "false";
+
+function setShadowCheckpoints(enabled) {
+  useShadowRef = Boolean(enabled);
+}
+
 function createGitCheckpoint(workspaceRoot, action, fullPath) {
   try {
     const isGit = execSync("git rev-parse --is-inside-work-tree", { cwd: workspaceRoot, stdio: ["ignore", "pipe", "ignore"], encoding: "utf8" }).trim();
     if (isGit !== "true") return { checkpointCreated: false, reason: "not a git repo" };
     const rel = path.relative(workspaceRoot, fullPath);
-    execSync(`git add "${rel}"`, { cwd: workspaceRoot, stdio: "ignore" });
+    execSync(`git add "${rel}"`, { cwd: workspaceRoot });
     const msg = `checkpoint: ${action} ${rel.replace(/\\/g, "/")}`;
-    execSync(`git commit -m "${msg}" --no-verify`, { cwd: workspaceRoot, stdio: "ignore" });
-    const commit = execSync("git rev-parse --short HEAD", { cwd: workspaceRoot, encoding: "utf8" }).trim();
-    return { checkpointCreated: true, commit, action, file: rel };
+
+    if (useShadowRef) {
+      // Shadow branch: records checkpoint commit on refs/heads/checkpoints without advancing HEAD or polluting main's history
+      const treeSha = execSync("git write-tree", { cwd: workspaceRoot, encoding: "utf8" }).trim();
+      let parentArg = "";
+      try {
+        const parentSha = execSync("git rev-parse refs/heads/checkpoints", { cwd: workspaceRoot, stdio: ["ignore", "pipe", "ignore"], encoding: "utf8" }).trim();
+        parentArg = `-p ${parentSha}`;
+      } catch {
+        try {
+          const headSha = execSync("git rev-parse HEAD", { cwd: workspaceRoot, stdio: ["ignore", "pipe", "ignore"], encoding: "utf8" }).trim();
+          parentArg = `-p ${headSha}`;
+        } catch {}
+      }
+      const commitCmd = parentArg
+        ? `git commit-tree ${treeSha} ${parentArg} -m "${msg}"`
+        : `git commit-tree ${treeSha} -m "${msg}"`;
+      const commitSha = execSync(commitCmd, { cwd: workspaceRoot, encoding: "utf8" }).trim();
+      execSync(`git update-ref refs/heads/checkpoints ${commitSha}`, { cwd: workspaceRoot, stdio: "ignore" });
+      try {
+        execSync(`git reset HEAD "${rel}"`, { cwd: workspaceRoot, stdio: "ignore" });
+      } catch {}
+      return { checkpointCreated: true, commit: commitSha.slice(0, 8), action, file: rel, ref: "refs/heads/checkpoints" };
+    } else {
+      execSync(`git commit -m "${msg}" --no-verify`, { cwd: workspaceRoot, stdio: "ignore" });
+      const commit = execSync("git rev-parse --short HEAD", { cwd: workspaceRoot, encoding: "utf8" }).trim();
+      return { checkpointCreated: true, commit, action, file: rel, ref: "HEAD" };
+    }
   } catch (e) {
-    return { checkpointCreated: false, reason: e.message };
+    const errDetails = e.stderr ? e.stderr.toString("utf8") : (e.stdout ? e.stdout.toString("utf8") : e.message);
+    return { checkpointCreated: false, reason: errDetails };
   }
 }
 
@@ -238,9 +270,13 @@ function isPrivateIp(ip) {
 }
 
 async function validatePublicUrl(rawUrl) {
+  let normalized = String(rawUrl || "").trim();
+  if (!/^https?:\/\//i.test(normalized)) {
+    normalized = `https://${normalized}`;
+  }
   let parsed;
   try {
-    parsed = new URL(rawUrl);
+    parsed = new URL(normalized);
   } catch {
     throw new Error(`Invalid URL format: '${rawUrl}'`);
   }
@@ -643,6 +679,7 @@ async function runSequentialToolLoop(opts) {
 
   let step = 0;
   let callsMade = 0;
+  const toolsUsedList = [];
   let malformedCount = 0;
   let repairSuccess = 0;
   let capHit = false;
@@ -673,7 +710,24 @@ async function runSequentialToolLoop(opts) {
     const msg = json?.choices?.[0]?.message;
     if (!msg) throw new Error("No response message returned from inference seat");
 
-    const toolCalls = msg.tool_calls;
+    let toolCalls = msg.tool_calls;
+    if (!Array.isArray(toolCalls) || toolCalls.length === 0) {
+      const content = (msg.content || "").trim();
+      const tcMatch = content.match(/<tool_call>\s*({[\s\S]*?})\s*<\/tool_call>/);
+      const fnMatch = content.match(/^([a-zA-Z0-9_]+)\s*\(\s*({[\s\S]*?})\s*\)$/m);
+      if (tcMatch) {
+        try {
+          const parsed = JSON.parse(tcMatch[1]);
+          toolCalls = [{ id: "call_" + Date.now(), type: "function", function: parsed }];
+        } catch {}
+      } else if (fnMatch) {
+        const fnName = fnMatch[1];
+        if (tools.some(t => t.function.name === fnName)) {
+          toolCalls = [{ id: "call_" + Date.now(), type: "function", function: { name: fnName, arguments: fnMatch[2] } }];
+        }
+      }
+    }
+
     // Base case: No tool call emitted -> Text response
     if (!Array.isArray(toolCalls) || toolCalls.length === 0) {
       finalResponse = msg.content || "";
@@ -730,6 +784,7 @@ async function runSequentialToolLoop(opts) {
 
     // Execute tool
     const result = await executeTool(validation.toolName, validation.parsedArgs, workspaceRoot);
+    toolsUsedList.push({ tool: validation.toolName, args: validation.parsedArgs, success: result.success });
 
     // Scribe Logging
     logToScribe({
@@ -764,6 +819,7 @@ async function runSequentialToolLoop(opts) {
     response: finalResponse.trim(),
     steps: step,
     callsMade,
+    toolsUsedList,
     malformedCount,
     repairSuccess,
     capHit,
@@ -779,5 +835,6 @@ module.exports = {
   resolveSanctionedPath,
   validateToolCall,
   executeTool,
-  runSequentialToolLoop
+  runSequentialToolLoop,
+  setShadowCheckpoints
 };

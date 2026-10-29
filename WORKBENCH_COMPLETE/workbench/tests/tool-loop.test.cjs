@@ -157,6 +157,25 @@ async function runTests() {
     check("command.denied", denyCmd.success === false && /refused/.test(denyCmd.error), denyCmd.error);
   }
 
+  // 5. Web Fetch & SSRF Protection
+  {
+    const loopbackRes = await executeTool("fetch_url", { url: "http://127.0.0.1:18222/v1/models" }, tmpDir);
+    check("ssrf.block_127_0_0_1", loopbackRes.success === false && /SSRF guard/.test(loopbackRes.error), loopbackRes.error);
+
+    const localhostRes = await executeTool("fetch_url", { url: "http://localhost:3000/" }, tmpDir);
+    check("ssrf.block_localhost", localhostRes.success === false && /SSRF guard/.test(localhostRes.error), localhostRes.error);
+
+    const metaRes = await executeTool("fetch_url", { url: "http://169.254.169.254/meta" }, tmpDir);
+    check("ssrf.block_metadata", metaRes.success === false && /SSRF guard/.test(metaRes.error), metaRes.error);
+
+    const lanRes = await executeTool("fetch_url", { url: "http://192.168.0.1/" }, tmpDir);
+    check("ssrf.block_lan", lanRes.success === false && /SSRF guard/.test(lanRes.error), lanRes.error);
+
+    // Public fetch test
+    const publicRes = await executeTool("fetch_url", { url: "https://example.com" }, tmpDir);
+    check("fetch.public_extract", publicRes.success === true && publicRes.text && publicRes.text.includes("documentation examples"), publicRes.text?.slice(0, 100));
+  }
+
   // Summary
   const failed = results.filter(r => !r.pass);
   console.log(`\nTool-Loop Tests: ${results.length - failed.length}/${results.length} PASSED`);

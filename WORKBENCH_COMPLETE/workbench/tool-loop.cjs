@@ -14,12 +14,16 @@
 const fs = require("fs");
 const path = require("path");
 const os = require("os");
-const { execSync } = require("child_process");
+const dns = require("dns").promises;
+const net = require("net");
+const { execSync, spawnSync } = require("child_process");
 
 const DEFAULT_WORKSPACE = path.resolve(__dirname, "..");
 const MAX_STEPS = 5;
 const MAX_READ_BYTES = 50000;
+const MAX_FETCH_BYTES = 5 * 1024 * 1024; // 5MB cap
 const COMMAND_TIMEOUT_MS = 10000;
+const FETCH_TIMEOUT_MS = 15000; // 15s timeout
 
 // Security & Confinement patterns
 const SECRET_PATHS = /(\.git-credentials|\.pm2[\\/]dump\.pm2|HF_TOKEN|NINE_ROUTER_API_KEY|SCRIBE_KEY|GENESIS_TOKEN|MCP_API_KEY|\.env($|[\\/.])|id_rsa|\.pem\b|\.aws|\.ssh)/i;
@@ -126,6 +130,20 @@ const CORE_TOOLS = [
         }
       }
     }
+  },
+  {
+    type: "function",
+    function: {
+      name: "fetch_url",
+      description: "Fetch web content from a public HTTP/HTTPS URL with SSRF protection, 5MB size cap, and text extraction.",
+      parameters: {
+        type: "object",
+        properties: {
+          url: { type: "string", description: "The public HTTP or HTTPS URL to fetch" }
+        },
+        required: ["url"]
+      }
+    }
   }
 ];
 
@@ -143,6 +161,77 @@ function createGitCheckpoint(workspaceRoot, action, fullPath) {
   } catch (e) {
     return { checkpointCreated: false, reason: e.message };
   }
+}
+
+// Helper: SSRF IP & Host Validation Guard
+function isPrivateIp(ip) {
+  if (net.isIPv4(ip)) {
+    const parts = ip.split(".").map(Number);
+    if (parts[0] === 127) return true; // 127.0.0.0/8
+    if (parts[0] === 10) return true; // 10.0.0.0/8
+    if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return true; // 172.16.0.0/12
+    if (parts[0] === 192 && parts[1] === 168) return true; // 192.168.0.0/16
+    if (parts[0] === 169 && parts[1] === 254) return true; // 169.254.0.0/16 (Link-local/AWS/GCP metadata)
+    if (parts[0] === 0) return true; // 0.0.0.0/8
+    if (parts[0] === 100 && parts[1] >= 64 && parts[1] <= 127) return true; // Carrier NAT
+    return false;
+  }
+  if (net.isIPv6(ip)) {
+    const clean = ip.toLowerCase();
+    if (clean === "::1" || clean === "::") return true;
+    if (clean.startsWith("fe80:") || clean.startsWith("fc") || clean.startsWith("fd")) return true;
+    return false;
+  }
+  return true;
+}
+
+async function validatePublicUrl(rawUrl) {
+  let parsed;
+  try {
+    parsed = new URL(rawUrl);
+  } catch {
+    throw new Error(`Invalid URL format: '${rawUrl}'`);
+  }
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    throw new Error(`Unsupported protocol: ${parsed.protocol}. Only http: and https: are allowed.`);
+  }
+  const hostname = parsed.hostname;
+  if (!hostname || hostname === "localhost" || hostname.endsWith(".local") || hostname.endsWith(".internal")) {
+    throw new Error(`SSRF guard: Forbidden hostname '${hostname}'`);
+  }
+  if (net.isIP(hostname)) {
+    if (isPrivateIp(hostname)) {
+      throw new Error(`SSRF guard: Private/loopback IP address '${hostname}' is forbidden`);
+    }
+    return parsed;
+  }
+  const addresses = await dns.lookup(hostname, { all: true });
+  for (const addr of addresses) {
+    if (isPrivateIp(addr.address)) {
+      throw new Error(`SSRF guard: Resolved IP '${addr.address}' for '${hostname}' is private/loopback`);
+    }
+  }
+  return parsed;
+}
+
+// Helper: Trafilatura Extraction (CPU-fast text extraction from HTML)
+function extractTextWithTrafilatura(html) {
+  try {
+    const pyScript = "import sys, trafilatura\\nhtml = sys.stdin.read()\\nres = trafilatura.extract(html)\\nprint(res or '')";
+    const child = spawnSync("python", ["-c", pyScript], {
+      input: html,
+      encoding: "utf8",
+      timeout: 10000
+    });
+    if (child.stdout && child.stdout.trim()) {
+      return child.stdout.trim();
+    }
+  } catch {}
+  return html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, " ")
+             .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, " ")
+             .replace(/<[^>]+>/g, " ")
+             .replace(/\s+/g, " ")
+             .trim();
 }
 
 // Helper: Path Confinement Guard
@@ -331,6 +420,51 @@ async function executeTool(name, args, workspaceRoot) {
       }
     }
 
+    case "fetch_url": {
+      const rawUrl = String(args.url || "").trim();
+      if (!rawUrl) return { success: false, error: "url is required" };
+      const parsedUrl = await validatePublicUrl(rawUrl);
+
+      const res = await fetch(parsedUrl.href, {
+        method: "GET",
+        headers: {
+          "User-Agent": "GSK-WebFetch/1.0 (+https://buyasoul.org)",
+          "Accept": "text/html,application/xhtml+xml,text/plain;q=0.9,*/*;q=0.8"
+        },
+        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS)
+      });
+
+      if (!res.ok) {
+        return { success: false, status: res.status, error: `HTTP ${res.status}: ${res.statusText}` };
+      }
+
+      const contentLength = parseInt(res.headers.get("content-length") || "0", 10);
+      if (contentLength > MAX_FETCH_BYTES) {
+        return { success: false, error: `Content-Length (${contentLength} bytes) exceeds 5MB cap` };
+      }
+
+      const text = await res.text();
+      const byteLen = Buffer.byteLength(text, "utf8");
+      if (byteLen > MAX_FETCH_BYTES) {
+        return { success: false, error: `Response payload (${byteLen} bytes) exceeds 5MB cap` };
+      }
+
+      const contentType = res.headers.get("content-type") || "";
+      let extracted = text;
+      if (contentType.includes("html") || text.includes("<html") || text.includes("<body")) {
+        extracted = extractTextWithTrafilatura(text);
+      }
+
+      return {
+        success: true,
+        url: rawUrl,
+        status: res.status,
+        content_type: contentType,
+        bytes: byteLen,
+        text: extracted.slice(0, 8000)
+      };
+    }
+
       default:
         return { success: false, error: `Unknown tool: ${name}` };
     }
@@ -390,7 +524,7 @@ function logToScribe(event) {
   } catch {}
 }
 
-const DEFAULT_SYSTEM_PROMPT = "You are GSK, an agent with access to local tools. You must complete tasks using tools sequentially. When calling a tool, emit only the tool call without conversational commentary or parentheses. Never guess or hallucinate file contents. When instructed to find and inspect a file, call find_files first, then call read_file on the found path before answering. When instructed to write and read back, call write_file first, then call read_file before answering.";
+const DEFAULT_SYSTEM_PROMPT = "You are GSK, an agent with access to local tools. You must complete tasks using tools sequentially. When calling a tool, emit only the tool call without conversational commentary or parentheses. Never guess or hallucinate contents. When instructed to find and inspect a file, call find_files first, then call read_file on the found path before answering. When instructed to write and read back, call write_file first, then call read_file before answering. When instructed to inspect a web page, call fetch_url.";
 
 // Main Sequential Tool Loop Engine
 async function runSequentialToolLoop(opts) {

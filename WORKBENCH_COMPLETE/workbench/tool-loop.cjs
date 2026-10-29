@@ -17,6 +17,13 @@ const os = require("os");
 const dns = require("dns").promises;
 const net = require("net");
 const { execSync, spawnSync } = require("child_process");
+const {
+  isTierBPath,
+  appendTierA,
+  proposeFact,
+  searchTierC,
+  rebuildTierCIndex
+} = require("./three-tier-memory.cjs");
 
 const DEFAULT_WORKSPACE = path.resolve(__dirname, "..");
 const MAX_STEPS = 5;
@@ -142,6 +149,51 @@ const CORE_TOOLS = [
           url: { type: "string", description: "The public HTTP or HTTPS URL to fetch" }
         },
         required: ["url"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "search_memory",
+      description: "Search 3-tier memory (curated canon and append-only event ledger) using the Tier C derived index.",
+      parameters: {
+        type: "object",
+        properties: {
+          query: { type: "string", description: "Query to search across memory tiers" }
+        },
+        required: ["query"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "record_event",
+      description: "Append an event, observation, or fact directly to the Tier A ground-truth ledger.",
+      parameters: {
+        type: "object",
+        properties: {
+          text: { type: "string", description: "The event text to append" },
+          type: { type: "string", description: "Optional event type or tag" }
+        },
+        required: ["text"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "propose_memory",
+      description: "Propose a fact for curated canon review. Direct write to canon is forbidden; proposals enter human review queue.",
+      parameters: {
+        type: "object",
+        properties: {
+          title: { type: "string", description: "Title of the proposed fact" },
+          content: { type: "string", description: "Body of the proposed canon addition" },
+          rationale: { type: "string", description: "Why this belongs in curated canon" }
+        },
+        required: ["title", "content"]
       }
     }
   }
@@ -336,6 +388,12 @@ async function executeTool(name, args, workspaceRoot) {
     }
 
     case "write_file": {
+      if (isTierBPath(args.path)) {
+        return {
+          success: false,
+          error: `Tier B Poisoning Defense: Direct model modification of curated canon ('${args.path}') is strictly forbidden. Use propose_memory to submit facts for review.`
+        };
+      }
       const fullPath = resolveSanctionedPath(args.path, workspaceRoot);
       if (fs.existsSync(fullPath)) {
         return { success: false, error: `File '${args.path}' already exists. Use patch_file to edit existing files.` };
@@ -354,6 +412,12 @@ async function executeTool(name, args, workspaceRoot) {
     }
 
     case "patch_file": {
+      if (isTierBPath(args.path)) {
+        return {
+          success: false,
+          error: `Tier B Poisoning Defense: Direct model modification of curated canon ('${args.path}') is strictly forbidden. Use propose_memory to submit facts for review.`
+        };
+      }
       const fullPath = resolveSanctionedPath(args.path, workspaceRoot);
       if (!fs.existsSync(fullPath)) {
         return { success: false, error: `File '${args.path}' does not exist.` };
@@ -465,6 +529,38 @@ async function executeTool(name, args, workspaceRoot) {
       };
     }
 
+    case "search_memory": {
+      const q = String(args.query || "").trim();
+      if (!q) return { success: false, error: "query is required" };
+      const hits = searchTierC(q, { topK: 5 });
+      return { success: true, count: hits.length, hits };
+    }
+
+    case "record_event": {
+      const txt = String(args.text || "").trim();
+      if (!txt) return { success: false, error: "text is required" };
+      const evt = appendTierA({
+        text: txt,
+        type: args.type || "observation",
+        source: "agent"
+      });
+      rebuildTierCIndex();
+      return { success: true, id: evt.id, timestamp: evt.timestamp };
+    }
+
+    case "propose_memory": {
+      const title = String(args.title || "").trim();
+      const content = String(args.content || "").trim();
+      if (!title || !content) return { success: false, error: "title and content are required" };
+      const res = proposeFact({
+        title,
+        content,
+        rationale: args.rationale || "",
+        proposed_by: "agent"
+      });
+      return res;
+    }
+
       default:
         return { success: false, error: `Unknown tool: ${name}` };
     }
@@ -524,7 +620,7 @@ function logToScribe(event) {
   } catch {}
 }
 
-const DEFAULT_SYSTEM_PROMPT = "You are GSK, an agent with access to local tools. You must complete tasks using tools sequentially. When calling a tool, emit only the tool call without conversational commentary or parentheses. Never guess or hallucinate contents. When instructed to find and inspect a file, call find_files first, then call read_file on the found path before answering. When instructed to write and read back, call write_file first, then call read_file before answering. When instructed to inspect a web page, call fetch_url.";
+const DEFAULT_SYSTEM_PROMPT = "You are GSK, an agent with access to local tools. You must complete tasks using tools sequentially. When calling a tool, emit only the tool call without conversational commentary or parentheses. Never guess or hallucinate contents. When instructed to find and inspect a file, call find_files first, then call read_file on the found path before answering. When instructed to write and read back, call write_file first, then call read_file before answering. When instructed to inspect a web page, call fetch_url. When instructed to search memory, call search_memory. When instructed to record an event, call record_event. When instructed to propose a canon fact, call propose_memory.";
 
 // Main Sequential Tool Loop Engine
 async function runSequentialToolLoop(opts) {

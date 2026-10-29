@@ -176,6 +176,29 @@ async function runTests() {
     check("fetch.public_extract", publicRes.success === true && publicRes.text && publicRes.text.includes("documentation examples"), publicRes.text?.slice(0, 100));
   }
 
+  // 6. 3-Tier Memory & Poisoning Defense
+  {
+    // Tier B direct write refusal (poisoning defense)
+    const tierBWrite = await executeTool("write_file", { path: "curated-canon/doctrine.md", content: "fake canon" }, tmpDir);
+    check("memory.tier_b_write_refusal", tierBWrite.success === false && /Tier B Poisoning Defense/.test(tierBWrite.error), tierBWrite.error);
+
+    // Tier B direct patch refusal (poisoning defense)
+    const tierBPatch = await executeTool("patch_file", { path: "deep/genesis/THE-PROFIT-BIBLE.md", target: "foo", replacement: "bar" }, tmpDir);
+    check("memory.tier_b_patch_refusal", tierBPatch.success === false && /Tier B Poisoning Defense/.test(tierBPatch.error), tierBPatch.error);
+
+    // Tier A event append
+    const recordRes = await executeTool("record_event", { text: "Audit event: Qwen 1.5B upgraded with 3-tier memory", type: "system_update" }, tmpDir);
+    check("memory.tier_a_record", recordRes.success === true && typeof recordRes.id === "string", JSON.stringify(recordRes));
+
+    // Propose fact to review queue
+    const propRes = await executeTool("propose_memory", { title: "New Metric", content: "Recall precision measured at 100%" }, tmpDir);
+    check("memory.propose_queue", propRes.success === true && propRes.status === "pending_review", JSON.stringify(propRes));
+
+    // Search Tier C derived index
+    const searchRes = await executeTool("search_memory", { query: "Qwen 1.5B upgraded" }, tmpDir);
+    check("memory.tier_c_search", searchRes.success === true && searchRes.count > 0 && searchRes.hits[0].text.includes("3-tier memory"), JSON.stringify(searchRes.hits?.[0]));
+  }
+
   // Summary
   const failed = results.filter(r => !r.pass);
   console.log(`\nTool-Loop Tests: ${results.length - failed.length}/${results.length} PASSED`);

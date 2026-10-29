@@ -96,9 +96,17 @@ async function runTests() {
 
   // 3. File Tools Execution (write, read, patch, find)
   {
-    // Write new file
+    // Initialize temporary git repo to test Aider checkpoint discipline
+    try {
+      execSync("git init", { cwd: tmpDir, stdio: "ignore" });
+      execSync("git config user.email 'test@test.local'", { cwd: tmpDir, stdio: "ignore" });
+      execSync("git config user.name 'Test Runner'", { cwd: tmpDir, stdio: "ignore" });
+    } catch {}
+
+    // Write new file with checkpoint
     const writeRes = await executeTool("write_file", { path: "test.txt", content: "Line 1\nTarget Line\nLine 3" }, tmpDir);
     check("execute.write_file", writeRes.success === true && writeRes.bytesWritten > 0, JSON.stringify(writeRes));
+    check("execute.write_checkpoint", writeRes.checkpoint !== null && typeof writeRes.checkpoint === "string", "Commit: " + writeRes.checkpoint);
 
     // Overwrite refuse
     const dupRes = await executeTool("write_file", { path: "test.txt", content: "New Content" }, tmpDir);
@@ -108,9 +116,11 @@ async function runTests() {
     const readRes = await executeTool("read_file", { path: "test.txt", start_line: 1, end_line: 2 }, tmpDir);
     check("execute.read_file", readRes.success === true && readRes.lines_read === 2 && readRes.content === "Line 1\nTarget Line", readRes.content);
 
-    // Patch file (exact match)
+    // Patch file (exact match) with checkpoint & diff preview
     const patchRes = await executeTool("patch_file", { path: "test.txt", target: "Target Line", replacement: "Patched Line" }, tmpDir);
     check("execute.patch_file", patchRes.success === true && patchRes.replacements === 1, JSON.stringify(patchRes));
+    check("execute.patch_checkpoint", patchRes.checkpoint !== null && typeof patchRes.checkpoint === "string", "Commit: " + patchRes.checkpoint);
+    check("execute.patch_diffPreview", typeof patchRes.diffPreview === "string" && patchRes.diffPreview.includes("- Target Line") && patchRes.diffPreview.includes("+ Patched Line"), patchRes.diffPreview);
 
     // Verify patch
     const readPatched = await executeTool("read_file", { path: "test.txt" }, tmpDir);
@@ -120,9 +130,22 @@ async function runTests() {
     const patchMissing = await executeTool("patch_file", { path: "test.txt", target: "Nonexistent", replacement: "X" }, tmpDir);
     check("execute.patch_refuse_missing", patchMissing.success === false && /not found/.test(patchMissing.error), patchMissing.error);
 
-    // Find files
+    // Patch refuse if target appears multiple times
+    await executeTool("write_file", { path: "multi.txt", content: "foo bar foo" }, tmpDir);
+    const patchMulti = await executeTool("patch_file", { path: "multi.txt", target: "foo", replacement: "baz" }, tmpDir);
+    check("execute.patch_refuse_ambiguous", patchMulti.success === false && /must match exactly once/.test(patchMulti.error), patchMulti.error);
+
+    // Find files by name
     const findRes = await executeTool("find_files", { pattern: "test.txt" }, tmpDir);
     check("execute.find_files", findRes.success === true && findRes.files.includes("test.txt"), JSON.stringify(findRes.files));
+
+    // Find files by grep content
+    const grepRes = await executeTool("find_files", { content_pattern: "Patched Line" }, tmpDir);
+    check("execute.grep_content", grepRes.success === true && grepRes.files.includes("test.txt"), JSON.stringify(grepRes.files));
+
+    // Git status & diff inspect
+    const gitStatusRes = await executeTool("git_status", { diff: true }, tmpDir);
+    check("execute.git_status", gitStatusRes.success === true, JSON.stringify(gitStatusRes));
   }
 
   // 4. Command Execution Guard

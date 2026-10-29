@@ -129,6 +129,22 @@ const CORE_TOOLS = [
   }
 ];
 
+// Helper: Git Checkpoint (Aider edit discipline)
+function createGitCheckpoint(workspaceRoot, action, fullPath) {
+  try {
+    const isGit = execSync("git rev-parse --is-inside-work-tree", { cwd: workspaceRoot, stdio: ["ignore", "pipe", "ignore"], encoding: "utf8" }).trim();
+    if (isGit !== "true") return { checkpointCreated: false, reason: "not a git repo" };
+    const rel = path.relative(workspaceRoot, fullPath);
+    execSync(`git add "${rel}"`, { cwd: workspaceRoot, stdio: "ignore" });
+    const msg = `checkpoint: ${action} ${rel.replace(/\\/g, "/")}`;
+    execSync(`git commit -m "${msg}" --no-verify`, { cwd: workspaceRoot, stdio: "ignore" });
+    const commit = execSync("git rev-parse --short HEAD", { cwd: workspaceRoot, encoding: "utf8" }).trim();
+    return { checkpointCreated: true, commit, action, file: rel };
+  } catch (e) {
+    return { checkpointCreated: false, reason: e.message };
+  }
+}
+
 // Helper: Path Confinement Guard
 function resolveSanctionedPath(userPath, workspaceRoot) {
   if (typeof userPath !== "string" || !userPath.trim()) {
@@ -154,8 +170,9 @@ function resolveSanctionedPath(userPath, workspaceRoot) {
 
 // Tool Implementation Handlers
 async function executeTool(name, args, workspaceRoot) {
-  switch (name) {
-    case "read_file": {
+  try {
+    switch (name) {
+      case "read_file": {
       const fullPath = resolveSanctionedPath(args.path, workspaceRoot);
       if (!fs.existsSync(fullPath)) {
         return { success: false, error: `File not found: ${args.path}` };
@@ -186,7 +203,8 @@ async function executeTool(name, args, workspaceRoot) {
     case "find_files": {
       const rawPattern = String(args.pattern || "").trim();
       const pattern = rawPattern.replace(/\\/g, "").toLowerCase();
-      if (!pattern) return { success: false, error: "pattern is required" };
+      const contentPattern = args.content_pattern ? String(args.content_pattern) : null;
+      if (!pattern && !contentPattern) return { success: false, error: "pattern or content_pattern is required" };
       const sub = args.subpath ? resolveSanctionedPath(args.subpath, workspaceRoot) : workspaceRoot;
       const matches = [];
 
@@ -201,7 +219,22 @@ async function executeTool(name, args, workspaceRoot) {
             if (ent.isDirectory()) {
               walk(full);
             } else if (ent.isFile()) {
-              if (ent.name.toLowerCase().includes(pattern) || rel.toLowerCase().includes(pattern)) {
+              let matched = false;
+              if (pattern && (ent.name.toLowerCase().includes(pattern) || rel.toLowerCase().includes(pattern))) {
+                matched = true;
+              }
+              if (contentPattern) {
+                try {
+                  const stat = fs.statSync(full);
+                  if (stat.size <= 256 * 1024) {
+                    const content = fs.readFileSync(full, "utf8");
+                    if (content.includes(contentPattern)) {
+                      matched = true;
+                    }
+                  }
+                } catch {}
+              }
+              if (matched) {
                 matches.push(rel);
                 if (matches.length >= 25) break;
               }
@@ -220,7 +253,15 @@ async function executeTool(name, args, workspaceRoot) {
       }
       fs.mkdirSync(path.dirname(fullPath), { recursive: true });
       fs.writeFileSync(fullPath, String(args.content || ""), "utf8");
-      return { success: true, path: args.path, bytesWritten: Buffer.byteLength(args.content || "", "utf8") };
+      const bytesWritten = Buffer.byteLength(args.content || "", "utf8");
+      const cp = createGitCheckpoint(workspaceRoot, "create", fullPath);
+      return {
+        success: true,
+        path: args.path,
+        bytesWritten,
+        diffPreview: `+++ b/${args.path}\n+ ${String(args.content || "").slice(0, 150)}`,
+        checkpoint: cp.checkpointCreated ? cp.commit : null
+      };
     }
 
     case "patch_file": {
@@ -243,7 +284,14 @@ async function executeTool(name, args, workspaceRoot) {
       }
       const updated = original.replace(target, replacement);
       fs.writeFileSync(fullPath, updated, "utf8");
-      return { success: true, path: args.path, replacements: 1 };
+      const cp = createGitCheckpoint(workspaceRoot, "patch", fullPath);
+      return {
+        success: true,
+        path: args.path,
+        replacements: 1,
+        diffPreview: `--- a/${args.path}\n+++ b/${args.path}\n- ${target.slice(0, 100)}\n+ ${replacement.slice(0, 100)}`,
+        checkpoint: cp.checkpointCreated ? cp.commit : null
+      };
     }
 
     case "run_command": {
@@ -272,10 +320,10 @@ async function executeTool(name, args, workspaceRoot) {
 
     case "git_status": {
       try {
-        const status = execSync("git status --short", { cwd: workspaceRoot, encoding: "utf8" });
+        const status = execSync("git status --short .", { cwd: workspaceRoot, encoding: "utf8" });
         let diff = "";
         if (args.diff) {
-          diff = execSync("git diff --stat", { cwd: workspaceRoot, encoding: "utf8" });
+          diff = execSync("git diff --stat .", { cwd: workspaceRoot, encoding: "utf8" });
         }
         return { success: true, status: status.trim(), diff: diff.trim() };
       } catch (e) {
@@ -283,8 +331,11 @@ async function executeTool(name, args, workspaceRoot) {
       }
     }
 
-    default:
-      return { success: false, error: `Unknown tool: ${name}` };
+      default:
+        return { success: false, error: `Unknown tool: ${name}` };
+    }
+  } catch (err) {
+    return { success: false, error: err.message };
   }
 }
 
@@ -339,12 +390,14 @@ function logToScribe(event) {
   } catch {}
 }
 
+const DEFAULT_SYSTEM_PROMPT = "You are GSK, an agent with access to local tools. You must complete tasks using tools sequentially. When calling a tool, emit only the tool call without conversational commentary or parentheses. Never guess or hallucinate file contents. When instructed to find and inspect a file, call find_files first, then call read_file on the found path before answering. When instructed to write and read back, call write_file first, then call read_file before answering.";
+
 // Main Sequential Tool Loop Engine
 async function runSequentialToolLoop(opts) {
   const {
     endpoint = "http://127.0.0.1:18222/v1/chat/completions",
     model = "qwen2.5-1.5b-instruct-q4_k_m",
-    systemPrompt = "You are GSK, an agent with access to local tools. When asked to inspect, find, read, or write files, call the appropriate tool. Use sequential calls.",
+    systemPrompt = DEFAULT_SYSTEM_PROMPT,
     userMessage,
     workspaceRoot = DEFAULT_WORKSPACE,
     maxSteps = MAX_STEPS,

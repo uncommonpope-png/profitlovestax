@@ -3,7 +3,7 @@
 ## 1. Source Provenance
 - **Baseline Doctrine/Launcher SHA**: `d22d5f2` (preamble rebase into `talkPrompt`, 155/155 tests passing)
 - **Prior Manifest SHA**: `6b73cae`
-- **Package Build SHA**: `8efd279` (Phase 1 gap fixes, scrubbed brain + dense LanceDB vectors, `install-gsk.ps1` v1)
+- **Package Build SHA**: `b7de465` (Phase 1 gap fixes, scrubbed brain + dense LanceDB vectors, `install-gsk.ps1` v1)
 - **Branch**: `main`
 - **Repository**: `https://github.com/uncommonpope-png/profitlovestax` (sole configured Git remote `origin`; no second remote exists)
 
@@ -14,7 +14,7 @@
 ### A. Installer & Supervisor Entrypoints
 | File | Path | Size (Bytes) | Role |
 |------|------|-------------|------|
-| `install-gsk.ps1` | `install-gsk.ps1` | 15,301 | Single-run Windows PowerShell setup script (prereqs, checkout, GGUF byte check, fresh `npm install`, brain/vector build, health proof, clean stop) |
+| `install-gsk.ps1` | `install-gsk.ps1` | 15,305 | Single-run Windows PowerShell setup script (prereqs, checkout, GGUF byte check, fresh `npm install`, brain/vector build, health proof, clean stop) |
 | `launch-family.cjs` | `launch-family.cjs` | 16,658 | Unified supervisor entrypoint for local seat (`:18222`) and workbench (`:3000`) |
 
 ### B. Core Workbench & Seshat Engine Files

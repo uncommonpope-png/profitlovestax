@@ -3,7 +3,7 @@
 ## 1. Source Provenance
 - **Baseline Doctrine/Launcher SHA**: `d22d5f2` (preamble rebase into `talkPrompt`, 155/155 tests passing)
 - **Prior Manifest SHA**: `6b73cae`
-- **Package Build SHA**: `PENDING_COMMIT_SHA` (Phase 1 gap fixes, scrubbed brain + dense LanceDB vectors, `install-gsk.ps1` v1)
+- **Package Build SHA**: `8efd279` (Phase 1 gap fixes, scrubbed brain + dense LanceDB vectors, `install-gsk.ps1` v1)
 - **Branch**: `main`
 - **Repository**: `https://github.com/uncommonpope-png/profitlovestax` (sole configured Git remote `origin`; no second remote exists)
 

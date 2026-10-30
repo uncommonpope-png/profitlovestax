@@ -2,7 +2,7 @@
 
 ## 1. Source Provenance
 - **Baseline Git SHA**: `d22d5f2` (preamble rebase into talkPrompt, 155/155 tests passing)
-- **Manifest Commit SHA**: Will be recorded upon commit to `main`
+- **Manifest Commit SHA**: `1f1e570` (Package manifest and self-contained base_gguf detection)
 - **Branch**: `main`
 - **Repository**: `https://github.com/buyasoul-ai/Profitlord` (local clone: `Profit\Repo`)
 

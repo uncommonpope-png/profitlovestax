@@ -22,7 +22,7 @@ param(
     [switch]$RebuildVectors
 )
 
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Continue"
 
 function Fail-Prerequisite([string]$Message) {
     Write-Host ""

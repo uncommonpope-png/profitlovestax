@@ -142,10 +142,15 @@ async function getStats() {
  * Delete all vectors (for re-indexing)
  */
 async function clearTable() {
-    if (db) {
+    if (!db) {
+        db = await lancedb.connect(DB_PATH);
+    }
+    const tableNames = await db.tableNames();
+    if (tableNames.includes(TABLE_NAME)) {
         await db.dropTable(TABLE_NAME);
         console.log('[SESHA] Cleared vector table');
     }
+    table = null;
 }
 
 module.exports = {

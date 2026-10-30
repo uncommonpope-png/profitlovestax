@@ -1,0 +1,25 @@
+---
+title: SOUL-NOTE - GSK Research - UCB CS168 — CS Self-Learning (计算机网络)
+type: research
+verified: true
+date: 2026-10-28T19:01:12.231Z
+---
+
+# GSK Research — UCB CS168 — CS Self-Learning (计算机网络)
+
+## Verified Finding
+UCB in the U.S. | UCB: UCB is a global biopharma company focused on creating value for people living with severe diseases. Learn more about how UCB delivers value for patients through its patient assistance program, treatment tracker and more. | UCB Selects Georgia for New U.S. Biologics Manufacturing ...: UCB, Brussels, Belgium (www.ucb.com) is a global biopharmaceutical company focused on the discovery and development of innovative medicines and solutions to transform the lives of people living with severe diseases of the immune system or of the central nervous system. | UCB: UCB, a global biopharma company headquartered in Brussels, Belgium, focused on developing treatments for severe neurological and immunological diseases | Products | UCB: [Information on UCB's Products] Keppra® (levetiracetam) injectionFull Prescribing Information and Medication Guide Keppra® (levetiracetam) tablets and oral solutionFull Prescribing Information and Medication Guide Keppra XR® (levetiracetam)Full Prescribing Information and Medication Guide | UCB (company): UCB (Union Chimique Belge) is a multinational biopharmaceutical company headquartered in Brussels, Belgium. UCB is an international company with revenue of €4.178 billion in 2016 [2] which focuses primarily on research and development, specifically involving medications centered on epilepsy, Parkinson's disease, and Crohn's disease. [2] .
+
+## Source Excerpts
+- UCB in the U.S. | UCB Skip to main content UCB's Global Corporate Website Welcome to UCB in the United States Healthcare Professionals Patients Investors Facebook Twitter YouTube LinkedIn Instagram Main navigation UCB - Inspired by patients. Driven by science. Chercher Home UCB in the U.S. UCB in the U.S. U.S. Leadership Team U.S. PharmD Fellowships Patients U.S. Clinical Trials U.S. Population Health at UCB Moments that Matter Innovation U.S. Innovation Products R&amp;D Disease Areas Disease Ar ([source](https://www.ucb-usa.com/))
+- UCB Selects Georgia for New U.S. Biologics Manufacturing Facility; ~$5B Economic Impact and ~330 Permanent Jobs | UCB Skp to main content Main navigation Menu Innovation Innovation Overview Drug modalities Pipeline Clinical studies Publications Funding You might be interested in... Page Hypothesize That! Discover our new science podcast, where science meets conjecture and curiosity Page Publications - A dedicated space where we share a collection of our scientific peer-reviewed... Page Pipeline  ([source](https://www.ucb.com/newsroom/press-releases/article/ucb-selects-georgia-for-new-us-biologics-manufacturing-facility-5b-economic-impact-and-330-permanent-jobs))
+- Inspired by Patients. Driven by Science. Skp to main content Main navigation Menu Innovation Innovation Overview Drug modalities Pipeline Clinical studies Publications Funding You might be interested in... Page Hypothesize That! Discover our new science podcast, where science meets conjecture and curiosity Page Publications - A dedicated space where we share a collection of our scientific peer-reviewed... Page Pipeline - Check out our clinical development pipeline spanning several therapy areas  ([source](https://www.ucb.com/))
+- Products | UCB Skip to main content UCB's Global Corporate Website Welcome to UCB in the United States Healthcare Professionals Patients Investors Facebook Twitter YouTube LinkedIn Instagram Main navigation UCB - Inspired by patients. Driven by science. Chercher Home UCB in the U.S. UCB in the U.S. U.S. Leadership Team U.S. PharmD Fellowships Patients U.S. Clinical Trials U.S. Population Health at UCB Moments that Matter Innovation U.S. Innovation Products R&amp;D Disease Areas Disease Areas Der ([source](https://www.ucb-usa.com/Innovation/Products))
+- UCB (company) - Wikipedia Jump to content Main menu Main menu move to sidebar hide Navigation Main page Contents Current events Random article About Wikipedia Contact us Contribute Help Learn to edit Community portal Recent changes Upload file Special pages Search Search Appearance Donate Create account Log in Personal tools Donate Create account Log in Contents move to sidebar hide (Top) 1 History 2 Notable drugs developed by UCB 3 Corporate governance 4 Operations 5 Scandals 6 References 7 Ext ([source](https://en.wikipedia.org/wiki/UCB_(company)))
+
+## Sources
+1. [UCB in the U.S. | UCB](https://www.ucb-usa.com/) — HTTP 200
+2. [UCB Selects Georgia for New U.S. Biologics Manufacturing ...](https://www.ucb.com/newsroom/press-releases/article/ucb-selects-georgia-for-new-us-biologics-manufacturing-facility-5b-economic-impact-and-330-permanent-jobs) — HTTP 200
+3. [UCB](https://www.ucb.com/) — HTTP 200
+4. [Products | UCB](https://www.ucb-usa.com/Innovation/Products) — HTTP 200
+5. [UCB (company)](https://en.wikipedia.org/wiki/UCB_(company)) — HTTP 200

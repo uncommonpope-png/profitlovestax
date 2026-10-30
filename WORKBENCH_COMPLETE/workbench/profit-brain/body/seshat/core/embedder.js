@@ -21,7 +21,7 @@ let embedder = null;
  */
 async function initEmbedder() {
     if (embedder) return embedder;
-    
+
     console.log('[SESHA] Loading embedding model (all-MiniLM-L6-v2)...');
     embedder = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2', {
         quantized: true,
@@ -38,7 +38,7 @@ async function initEmbedder() {
  */
 async function embedText(text) {
     const pipe = await initEmbedder();
-    const output = await pipe(text, { pooling: 'mean', normalize: true });
+    const output = await pipe(String(text || '').slice(0, 2400), { pooling: 'mean', normalize: true, truncation: true });
     // output is a Tensor, extract data as Float32Array
     return output.data;
 }
@@ -48,12 +48,24 @@ async function embedText(text) {
  * @param {string[]} texts - Array of texts to embed
  * @returns {Promise<Float32Array[]>} Array of 384-dim embeddings
  */
-async function embedBatch(texts) {
+async function embedBatch(texts, batchSize = 16) {
+    if (!texts || texts.length === 0) return [];
     const pipe = await initEmbedder();
-    const results = [];
-    for (const text of texts) {
-        const output = await pipe(text, { pooling: 'mean', normalize: true });
-        results.push(output.data);
+    // Sort indices by bounded text length to minimize padding waste and cap peak RAM
+    const bounded = texts.map(t => String(t || '').slice(0, 2400));
+    const order = bounded.map((t, idx) => ({ idx, len: t.length })).sort((a, b) => a.len - b.len);
+    const results = new Array(texts.length);
+    for (let i = 0; i < order.length; i += batchSize) {
+        const slice = order.slice(i, i + batchSize);
+        const batchTexts = slice.map(o => bounded[o.idx]);
+        const output = await pipe(batchTexts, { pooling: 'mean', normalize: true, truncation: true });
+        const dim = output.dims[output.dims.length - 1];
+        for (let j = 0; j < slice.length; j++) {
+            results[slice[j].idx] = output.data.slice(j * dim, (j + 1) * dim);
+        }
+        if ((i + slice.length) % 1024 < batchSize || i + slice.length === order.length) {
+            console.log(`[SESHA] Embedded ${i + slice.length}/${order.length} chunks`);
+        }
     }
     return results;
 }

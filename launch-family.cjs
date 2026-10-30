@@ -33,7 +33,25 @@ const SEAT_PORT = parseInt(process.env.GSK_SEAT_PORT || "18222", 10);
 const WORKBENCH_PORT = parseInt(process.env.GSK_WORKBENCH_PORT || "3000", 10);
 
 // Paths to Binaries & Models
-const LLAMA_SERVER_BIN = process.env.GSK_LLAMA_SERVER_BIN || "C:\\Users\\uncom\\.lmstudio\\extensions\\backends\\llama.cpp-win-x86_64-avx2-2.66.0\\llama-server.exe";
+function resolveLlamaServerBin() {
+  if (process.env.GSK_LLAMA_SERVER_BIN) return process.env.GSK_LLAMA_SERVER_BIN;
+  const candidates = [
+    path.join(REPO_ROOT, "llama", "llama-server.exe"),
+    path.join(WORKBENCH_DIR, ".transformers-cache", "llama", "llama-server.exe"),
+    "C:\\Users\\uncom\\.lmstudio\\extensions\\backends\\llama.cpp-win-x86_64-avx2-2.66.0\\llama-server.exe"
+  ];
+  for (const c of candidates) {
+    if (fs.existsSync(c)) return c;
+  }
+  if (process.platform === "win32") {
+    try {
+      const found = execSync("where.exe llama-server.exe", { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).split(/\r?\n/)[0].trim();
+      if (found && fs.existsSync(found)) return found;
+    } catch {}
+  }
+  return candidates[2];
+}
+const LLAMA_SERVER_BIN = resolveLlamaServerBin();
 const BASE_GGUF_DIR = process.env.GSK_BASE_GGUF_DIR || (fs.existsSync(path.join(REPO_ROOT, "base_gguf")) ? path.join(REPO_ROOT, "base_gguf") : (fs.existsSync(path.join(REPO_ROOT, "models")) ? path.join(REPO_ROOT, "models") : "C:\\Users\\uncom\\Downloads\\PROFIT_HF\\base_gguf"));
 
 const SEAT_MODELS = {

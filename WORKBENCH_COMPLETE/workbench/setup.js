@@ -28,7 +28,7 @@ const VECTOR_DIR = path.join(WORKBENCH_DIR, '.seshat-vectors');
 
 const MODEL_URL = 'https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_k_m.gguf';
 const MODEL_FILE = 'qwen2.5-0.5b-instruct-q4_k_m.gguf';
-const LLAMA_URL = 'https://github.com/ggerganov/llama.cpp/releases/download/b3952/llama-b3952-bin-win-x64.zip';
+const LLAMA_URL = 'https://github.com/ggml-org/llama.cpp/releases/download/b3952/llama-b3952-bin-win-avx2-x64.zip';
 // A real llama.cpp release zip is tens of MB. Anything under 1 MB is a
 // stub/error page, not an archive — never let it pass as a download.
 const LLAMA_ZIP_MIN_BYTES = 1024 * 1024;
@@ -93,6 +93,10 @@ function downloadFile(url, dest, onProgress, redirectsLeft = 5) {
 }
 
 async function setupModel() {
+    if (process.env.GSK_SKIP_POSTINSTALL_DOWNLOADS === '1') {
+        log('Skipping optional 0.5B reflex GGUF download (GSK_SKIP_POSTINSTALL_DOWNLOADS=1).');
+        return;
+    }
     ensureDir(CACHE_DIR);
     const modelPath = path.join(CACHE_DIR, MODEL_FILE);
 
@@ -106,7 +110,11 @@ async function setupModel() {
 }
 
 async function setupLlama() {
-    // The shipped llama.cpp binaries are a WINDOWS build (win-x64.zip).
+    if (process.env.GSK_SKIP_POSTINSTALL_DOWNLOADS === '1') {
+        log('Skipping optional llama.cpp zip download (GSK_SKIP_POSTINSTALL_DOWNLOADS=1).');
+        return;
+    }
+    // The shipped llama.cpp binaries are a WINDOWS build (win-avx2-x64.zip).
     // On any other platform the binary could never run — skip the whole
     // step honestly instead of dying on a missing PowerShell.
     if (process.platform !== 'win32') {
@@ -161,15 +169,22 @@ async function setupLlama() {
 async function setupVectors() {
     ensureDir(VECTOR_DIR);
     const lancePath = path.join(VECTOR_DIR, 'seshat_memory.lance');
+    const versionsPath = path.join(lancePath, '_versions');
 
-    if (fs.existsSync(lancePath)) {
-        log('Vector store already initialized — skipping.');
+    // Never create an empty seshat_memory.lance/.initialized directory:
+    // LanceDB treats a .lance folder without _versions/ as a corrupt table
+    // and throws on openTable('seshat_memory'). Clean up any legacy stub.
+    if (fs.existsSync(lancePath) && !fs.existsSync(versionsPath)) {
+        fs.rmSync(lancePath, { recursive: true, force: true });
+        log('Removed empty legacy seshat_memory.lance stub.');
+    }
+
+    if (fs.existsSync(versionsPath)) {
+        log('Vector store already populated — skipping.');
         return;
     }
 
-    fs.mkdirSync(lancePath, { recursive: true });
-    fs.writeFileSync(path.join(lancePath, '.initialized'), '');
-    log('Vector store initialized.');
+    log('Vector store directory ready (.seshat-vectors).');
 }
 
 /**
@@ -198,6 +213,7 @@ async function setupCplWorld() {
         cwd: worldDir,
         stdio: 'inherit',
         timeout: 600000,
+        shell: process.platform === 'win32',
     });
     if (res.error) throw new Error(`CPL world dependency install failed to start: ${res.error.message}`);
     if (res.status !== 0) throw new Error(`CPL world dependency install exited with code ${res.status} — the :3458 spatial bridge will not start until cpl/world dependencies are installed.`);
@@ -230,6 +246,7 @@ async function setupGskDeps() {
         cwd: gskDir,
         stdio: 'inherit',
         timeout: 600000,
+        shell: process.platform === 'win32',
     });
     if (res.error) throw new Error(`GSK daemon dependency install failed to start: ${res.error.message}`);
     if (res.status !== 0) throw new Error(`GSK daemon dependency install exited with code ${res.status} — the :3002 thought stream will not start until gsk dependencies are installed.`);

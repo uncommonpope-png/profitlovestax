@@ -33,8 +33,8 @@ const SEAT_PORT = parseInt(process.env.GSK_SEAT_PORT || "18222", 10);
 const WORKBENCH_PORT = parseInt(process.env.GSK_WORKBENCH_PORT || "3000", 10);
 
 // Paths to Binaries & Models
-const LLAMA_SERVER_BIN = "C:\\Users\\uncom\\.lmstudio\\extensions\\backends\\llama.cpp-win-x86_64-avx2-2.66.0\\llama-server.exe";
-const BASE_GGUF_DIR = "C:\\Users\\uncom\\Downloads\\PROFIT_HF\\base_gguf";
+const LLAMA_SERVER_BIN = process.env.GSK_LLAMA_SERVER_BIN || "C:\\Users\\uncom\\.lmstudio\\extensions\\backends\\llama.cpp-win-x86_64-avx2-2.66.0\\llama-server.exe";
+const BASE_GGUF_DIR = process.env.GSK_BASE_GGUF_DIR || (fs.existsSync(path.join(REPO_ROOT, "base_gguf")) ? path.join(REPO_ROOT, "base_gguf") : (fs.existsSync(path.join(REPO_ROOT, "models")) ? path.join(REPO_ROOT, "models") : "C:\\Users\\uncom\\Downloads\\PROFIT_HF\\base_gguf"));
 
 const SEAT_MODELS = {
   "1.5b": {

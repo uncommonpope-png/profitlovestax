@@ -3,14 +3,14 @@
 Node.js, CommonJS, zero dependencies. Runs with plain `node`.
 
 ```sh
-node plan-executor.test.cjs   # 22 tests, exit 0 on pass
+node plan-executor.test.cjs   # 36 tests, exit 0 on pass
 ```
 
 ## What it implements
 
 A DAG plan executor that runs level by level, with the replan,
 hedging, rescue, and recalibration rules from north-star research
-batches 169, 171, 173, 175, 177. Task functions are caller-supplied:
+batches 169, 171, 173, 175, 177, 179. Task functions are caller-supplied:
 each task is `{ id, dependsOn?, kind?, readOnly?, run }` where `run`
 is `async (ctx) => value` and `ctx = { taskId, levelIndex, prefix,
 executor }`. `prefix` is the list of completed levels only.
@@ -35,6 +35,14 @@ executor }`. `prefix` is the list of completed levels only.
 | Stuck threshold T_stuck = max(2× frozen p95, p99 if frozen n ≥ 1000), else 2× frozen p95 | 177 Part 2 | `stuckThresholdMs()` |
 | Rescue gates, all required: read-only + idempotent, zero progress, true proven abort, single re-issue, budget fit (≥ 2× frozen p95); rescue rate > 2% trips the threshold to 3× p95 | 177 gates 1–6 | `evaluateStuckRescue()`, `recordRescue()` |
 | Frozen-baseline recalibration: weekly-check function, ≥100 new calls required, re-freeze only on 20% drift holding 2 consecutive windows OR a CUSUM alarm; downward re-freeze automatic, upward re-freeze refused while the breaker is tripped; re-freeze resets the breaker window, degrading log retained | 177 Part 3 | `weeklyRecalibrationCheck()`, `freezeBaseline()` |
+| Per-mode T_stuck, ONLY where the mode is dispatch-observable from the call's inputs (cache key present/absent, index present/absent, argument class, endpoint selected): each mode gets its own frozen baseline (own p95, own p99 if n_mode ≥ 1000, own version); T_stuck(mode) = max(2× frozen p95(mode), frozen p99(mode) if n_mode ≥ 1000); n floors PER MODE (n_mode < 100: no T_stuck, no rescue for that mode; 100 ≤ n_mode < 1000: 2× p95 only). A tool with one mode at n = 800 and another at n = 40 rescues in the first and waits in the second — that asymmetry is correct | 179 Part 1 | `observeMode()`, `freezeModeBaseline()` / `freezeAllModeBaselines()`, `stuckThresholdMsForMode()`, `evaluateStuckRescueForMode()` |
+| Circular-label ban: a mode label assigned AFTER the call completes (e.g. "calls over 1s were slow mode") is forbidden — refused loudly, never silently accepted | 179 Part 1 | `observeMode()` throws on `afterCompletion` / `dispatchObservable: false`; `postHocModeLabel()` always throws; `modeLabelAtDispatch()` is the dispatch-time path |
+| Unobservable-mode tools: ONE pooled baseline, pooled T_stuck = max(2× pooled p95, pooled p99) (bias toward fewer rescues); the zero-progress gate already narrows spurious rescues to silent slow-mode calls; on a rescue-rate trip the response is a mode-split INVESTIGATION, NOT a blind raise to 3× pooled p95 | 179 Part 1 | `pooledStuckThresholdForUnobservableModes()`, `ToolLatencyTracker` with `{ unobservableModes: true }`, `recordRescue()` investigation path, `unobservableRescueRateResponse()` |
+| Mode-share drift: the frozen baseline tuple gains mode label + mode share; a share shift > 20% between freeze and window is a drift signal on its own even if neither mode's p95 moved; the sleep-job path logs it and must NOT re-freeze the pooled baseline to absorb it | 179 Part 1 | `frozenBaselineTuple()`, `modeBaselineTuple()`, `checkModeShareDrift()` (never touches any frozen baseline) |
+| Bimodality detectors as TRIGGERS for a split investigation (not gates): (a) a dispatch input separating the latency histogram into two clusters whose medians differ by an order of magnitude (≥ 10×); (b) pooled p95/p50 ratio exceeding ~10× with a visible gap (largest consecutive-value ratio ≥ 2×). A formal mixture test (Hartigan dip) is a later refinement, NOT required or implemented | 179 Part 1 | `bimodalityByDispatchInput()`, `bimodalityByPooledRatio()` |
+| Abortable as a three-state field per tool: UNKNOWN (no declaration, no observation — rescue unavailable) → DECLARED (mechanism claimed — rescue STILL unavailable) → PROVEN (at least one abort issued and its effect observed — rescue available) or DISPROVEN (abort issued and work observably continued — rescue disabled). Disproof is STICKY: re-declaration alone never restores rescue; restoration requires re-declare AND re-prove | 179 Part 2 | `AbortAudit` (`declare()`, `recordPositiveProof()`, `recordNegativeProof()`, `recordDisproof()`) |
+| Provability classes: HARD (process kill, thread cancel, handle close, connection close where the implementation dies with it — one observed kill suffices, stays proven across versions unless the mechanism changes); COOPERATIVE (cancellation token / AbortSignal / context.Context — proof is an observed early exit attributable to the signal, version-sensitive, re-proven per version); PROTOCOL (MCP notifications/cancelled, Streamable HTTP stream close — proof is NEGATIVE ONLY, recorded as "proven-negatively, window W, n observations", sufficient for read-only tools alone; for non-read-only tools protocol abort is NEVER sufficient for rescue, consistent with never-hedge-commits) | 179 Part 2 | `AbortAudit` (`noteVersion()`, `noteMechanismChange()`, `rescueAvailable()`, `toRecord()`), `abortAuditRescueAvailable()` |
+| Rescue gate 3 restated: "abortable = PROVEN in the audit, with a class-appropriate proof." Other gates unchanged (read-only + idempotent, zero progress, single re-issue, budget fit, separate rescue-rate metric). Proof accrues from real stuck-call rescues and real user cancels, not from declarations. A sacrificial probe is legitimate ONLY for a HARD mechanism (bounded cost, definitive result); never for a cooperative mechanism on a stateful tool | 179 Part 2 | `evaluateStuckRescue({ abortAudit })` (audit canonical when supplied; boolean `abortAvailable`/`abortProven` path kept for Batch 177 compatibility), `AbortAudit.sacrificialProbeLegitimate()` |
 
 ### Signal convention
 
@@ -82,10 +90,32 @@ otherwise, and the Batch 16 three-class split is untouched here.
   observations level-wise; it does not compute prefix-poisoning scores
   or the level-wise emitter accumulation statistic (Batch 169's
   emitter test remains a separate piece).
-- **Bimodal tools unhandled.** A tool with cached/uncached modes may
-  misfire a pooled-p95 multiple on one mode; the rescue-rate trip is
-  the backstop, and per-mode thresholds are owed (Batch 177 open
-  question).
+- **Mode chapter and audit chapter are design specs awaiting logged
+  per-tool latencies and real abort observations.** No tool latencies,
+  mode shares, or abort observations were measured in Batch 179 —
+  there are no logged per-tool latency distributions or abort logs to
+  calibrate on. The 10× p95/p50 bimodality trigger, the 20% mode-share
+  drift threshold (borrowed from Batch 177's p95 drift number), and
+  the negative-observation window W for protocol aborts are design
+  judgments, not measurements; W itself is unnamed (it must exceed the
+  tool's normal late-response window, which is tool-specific). The MCP
+  cancellation synthesis in Batch 179 is secondary (a blog synthesis +
+  SDK docs), not a read of the MCP spec text itself; the "SHOULD stop
+  / MAY ignore / MUST NOT respond" triple should be verified against
+  the spec before it is built on. A formal mixture test (Hartigan dip)
+  is a later refinement, not implemented here; the visible-gap rule in
+  `bimodalityByPooledRatio()` (largest consecutive-value ratio ≥ 2×)
+  is a design judgment, not a paper constant.
+- **Per-mode auto-freeze caveat.** `observeMode()` auto-freezes a mode
+  at its first 100 samples, mirroring the pooled tracker's behaviour;
+  a sleep job that wants the full sample set as the frozen baseline
+  should call `freezeModeBaseline()` / `freezeAllModeBaselines()`
+  explicitly (the tests do this for n > 100 sets).
+- **Audit proof sources are caller-attested.** `AbortAudit` refuses
+  proof without a source in {real-stuck-rescue, real-user-cancel,
+  sacrificial-probe} and refuses sacrificial probes for non-HARD
+  classes, but it cannot verify that a caller-supplied "real" event
+  really happened — that verification lives in the caller's logging.
 - **Upward re-freeze rule follows the task formulation:** upward
   re-freeze is refused while the breaker is tripped and allowed once
   the drift test passes with the breaker clear. Batch 177's stricter

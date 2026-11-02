@@ -12,6 +12,13 @@ const {
   ToolLatencyTracker,
   earlyExitWins,
   PlanExecutor,
+  MODE_SHARE_DRIFT_THRESHOLD,
+  modeLabelAtDispatch,
+  postHocModeLabel,
+  bimodalityByDispatchInput,
+  bimodalityByPooledRatio,
+  AbortAudit,
+  abortAuditRescueAvailable,
 } = require('./plan-executor.cjs');
 
 const read = (id, dependsOn, run) => ({ id, dependsOn, kind: 'read', readOnly: true, run: run || (async () => `${id}-done`) });
@@ -333,6 +340,266 @@ test('audit records the four Batch 173 fields and the win statistic compares cor
 });
 
 // ---------------------------------------------------------- modal select
+
+// ------------------------------------------------------- Batch 179: per-mode T_stuck
+
+function modeTrackerWith(label, n, ms) {
+  const t = new ToolLatencyTracker('tool');
+  for (let i = 0; i < n; i++) t.observeMode(label, ms);
+  return t;
+}
+
+test('Batch 179: per-mode T_stuck uses each mode\'s own p95/p99 and n floors', () => {
+  const t = new ToolLatencyTracker('tool');
+  for (let i = 0; i < 985; i++) t.observeMode('fast', 50);
+  for (let i = 0; i < 15; i++) t.observeMode('fast', 5000);
+  t.freezeModeBaseline('fast'); // explicit freeze captures the full 1000-sample set (auto-freeze at 100 would hold only the first 100)
+  assert.equal(t.stuckThresholdMsForMode('fast'), 5000); // n=1000: max(2x50, p99 5000)
+  const t2 = modeTrackerWith('slow', 800, 5000);
+  t2.freezeModeBaseline('slow');
+  assert.equal(t2.stuckThresholdMsForMode('slow'), 10000); // 100<=n<1000: 2x p95 only
+  assert.equal(t2.modeBaselineTuple('slow').label, 'slow');
+  assert.equal(t2.modeBaselineTuple('slow').frozenN, 800);
+});
+
+test('Batch 179: per-mode n floor — n_mode < 100 has no T_stuck; 800 vs 40 asymmetry is correct', () => {
+  const t = new ToolLatencyTracker('tool');
+  for (let i = 0; i < 800; i++) t.observeMode('cached', 50);
+  for (let i = 0; i < 40; i++) t.observeMode('uncached', 5000);
+  t.freezeModeBaseline('cached'); // full 800-sample set; uncached stays unfrozen at n=40
+  assert.equal(t.stuckThresholdMsForMode('cached'), 100);
+  assert.equal(t.stuckThresholdMsForMode('uncached'), null); // waits, does not rescue
+  const cachedRescue = t.evaluateStuckRescueForMode('cached', { readOnly: true, idempotent: true, progressMade: false, abortAvailable: true, abortProven: true, attemptsUsed: 0, remainingBudgetMs: 1000 });
+  assert.equal(cachedRescue.rescue, true);
+  assert.equal(cachedRescue.thresholdMs, 100);
+  assert.equal(t.evaluateStuckRescueForMode('uncached', { readOnly: true, idempotent: true, progressMade: false, abortAvailable: true, abortProven: true }).rescue, false);
+});
+
+test('Batch 179: circular-label ban — post-hoc mode classification is refused, never silently accepted', () => {
+  const t = new ToolLatencyTracker('tool');
+  assert.throws(() => t.observeMode('slow', 1500, { afterCompletion: true }), /circular-label ban/);
+  assert.throws(() => t.observeMode('slow', 1500, { dispatchObservable: false }), /circular-label ban/);
+  assert.throws(() => postHocModeLabel(), /circular-label ban/);
+  // Dispatch-observable labelling works: cache key present/absent at dispatch.
+  const label = modeLabelAtDispatch({ cacheKey: null }, (inputs) => (inputs.cacheKey ? 'hit' : 'miss'));
+  assert.equal(label, 'miss');
+  t.observeMode(label, 5000);
+  assert.equal(t.modes.get('miss').observations.length, 1);
+});
+
+test('Batch 179: unobservable-mode tool keeps one pooled baseline biased toward fewer rescues', () => {
+  const t = new ToolLatencyTracker('tool', { unobservableModes: true });
+  for (let i = 0; i < 985; i++) t.observe(50);
+  for (let i = 0; i < 15; i++) t.observe(5000);
+  t.freezeBaseline();
+  // Pooled form: max(2 x pooled p95, pooled p99) even though the pooled
+  // p99 here rests on the slow tail — the bias is toward fewer rescues.
+  assert.equal(t.pooledStuckThresholdForUnobservableModes(), 5000);
+  assert.equal(t.stuckThresholdMs(), 5000); // pooled Batch 177 form agrees at n=1000
+  // Rescue-rate trip on an unobservable tool: investigation, NOT a 3x raise.
+  for (let i = 0; i < 100; i++) t.observe(50);
+  t.recordRescue(); t.recordRescue();
+  const r = t.recordRescue();
+  assert.equal(r.action, 'mode-split-investigation');
+  assert.equal(t.stuckMultiplier, 2); // never blindly raised to 3x pooled p95
+  assert.equal(t.degradingLog.filter((e) => e.kind === 'mode-split-investigation').length, 1);
+  assert.equal(t.unobservableRescueRateResponse().action, 'mode-split-investigation');
+});
+
+test('Batch 179: mode-share shift >20% is a drift signal on its own and never re-freezes the pooled baseline', () => {
+  const t = new ToolLatencyTracker('tool');
+  for (let i = 0; i < 90; i++) t.observeMode('hit', 50);
+  for (let i = 0; i < 10; i++) t.observeMode('hit', 50); // hit reaches 100, auto-freezes
+  for (let i = 0; i < 100; i++) t.observeMode('miss', 5000);
+  t.freezeAllModeBaselines();
+  const hitShare = t.modeBaselineTuple('hit').frozenShare; // 0.5
+  assert.equal(hitShare, 0.5);
+  assert.equal(MODE_SHARE_DRIFT_THRESHOLD, 0.20);
+  // Neither mode's p95 moved; only the share moved (hit 0.5 -> 0.2).
+  const before = t.frozenP95; // pooled baseline untouched by mode freezes (null here)
+  const r = t.checkModeShareDrift({ hit: 0.2, miss: 0.8 });
+  assert.equal(r.refrozen, false);
+  assert.equal(r.driftSignals.length, 2); // both modes shifted 30 points
+  assert.equal(r.driftSignals[0].kind, 'mode-share-drift');
+  assert.equal(t.modeShareDriftLog.length, 2);
+  assert.equal(t.frozenP95, before); // sleep job logged, did not absorb the shift
+  // Within-20% shift is not a signal.
+  assert.equal(t.checkModeShareDrift({ hit: 0.45, miss: 0.55 }).driftSignals.length, 0);
+});
+
+test('Batch 179: frozen baseline tuple gains mode label + mode share', () => {
+  const t = new ToolLatencyTracker('tool');
+  for (let i = 0; i < 100; i++) t.observeMode('hit', 10);
+  for (let i = 0; i < 100; i++) t.observeMode('miss', 1000);
+  t.freezeAllModeBaselines(); // shares recomputed on one denominator (100/200 each)
+  const tuple = t.frozenBaselineTuple();
+  assert.equal(tuple.modes.length, 2);
+  const hit = tuple.modes.find((m) => m.label === 'hit');
+  assert.equal(hit.frozenP95, 10);
+  assert.equal(hit.frozenShare, 0.5);
+  assert.equal(tuple.modes.find((m) => m.label === 'miss').frozenP95, 1000);
+});
+
+// ------------------------------------------------------- Batch 179: bimodality detectors
+
+test('Batch 179: bimodality detector (a) — dispatch input separating clusters by >=10x median triggers a split investigation', () => {
+  const samples = [];
+  for (let i = 0; i < 20; i++) samples.push({ latencyMs: 50, dispatchValue: 'hit' });
+  for (let i = 0; i < 20; i++) samples.push({ latencyMs: 5000, dispatchValue: 'miss' });
+  const d = bimodalityByDispatchInput(samples);
+  assert.equal(d.trigger, true);
+  assert.equal(d.medianRatio, 100);
+  assert.match(d.reason, /mode-split investigation/);
+  // Same-median clusters do not trigger.
+  const flat = [];
+  for (let i = 0; i < 20; i++) flat.push({ latencyMs: 50, dispatchValue: 'a' });
+  for (let i = 0; i < 20; i++) flat.push({ latencyMs: 60, dispatchValue: 'b' });
+  assert.equal(bimodalityByDispatchInput(flat).trigger, false);
+});
+
+test('Batch 179: bimodality detector (b) — pooled p95/p50 >10x with a visible gap triggers; neither alone suffices', () => {
+  const latencies = [];
+  for (let i = 0; i < 90; i++) latencies.push(50);
+  for (let i = 0; i < 10; i++) latencies.push(5000);
+  const d = bimodalityByPooledRatio(latencies);
+  assert.equal(d.trigger, true);
+  assert.ok(d.ratio > 10);
+  assert.ok(d.maxGapRatio >= 2);
+  // A smooth tail (no visible gap, ratio below 10x) does not trigger.
+  const smooth = [];
+  for (let i = 0; i < 100; i++) smooth.push(50 + i * 5); // 50..545
+  const s = bimodalityByPooledRatio(smooth);
+  assert.equal(s.trigger, false); // consecutive-value gap ratio here is < 2x throughout
+  // Ratio at/below 10x does not trigger even with a gap.
+  const mild = [];
+  for (let i = 0; i < 90; i++) mild.push(50);
+  for (let i = 0; i < 10; i++) mild.push(200);
+  assert.equal(bimodalityByPooledRatio(mild).trigger, false);
+});
+
+// ------------------------------------------------------- Batch 179: abort audit
+
+test('Batch 179: abort audit three-state — UNKNOWN/DECLARED rescue unavailable, PROVEN available', () => {
+  const a = new AbortAudit('tool');
+  assert.equal(a.state, 'UNKNOWN');
+  assert.equal(a.rescueAvailable({ readOnly: true }).available, false);
+  assert.equal(a.declare('AbortSignal', 'COOPERATIVE').state, 'DECLARED');
+  assert.equal(a.rescueAvailable({ readOnly: true }).available, false); // declared still unavailable
+  // A declaration is not proof: proof without a real source is refused.
+  assert.equal(a.recordPositiveProof({ attributableToSignal: true }).ok, false);
+  assert.equal(a.state, 'DECLARED');
+  const proven = a.recordPositiveProof({ attributableToSignal: true, source: 'real-user-cancel' });
+  assert.equal(proven.ok, true);
+  assert.equal(a.state, 'PROVEN');
+  assert.equal(a.rescueAvailable({ readOnly: true }).available, true);
+  assert.deepEqual(a.toRecord().proof, { kind: 'positive', source: 'real-user-cancel', attributableToSignal: true });
+});
+
+test('Batch 179: disproof is sticky — re-declaration alone never restores rescue; re-declare AND re-prove does', () => {
+  const a = new AbortAudit('tool');
+  a.declare('process kill', 'HARD');
+  a.recordPositiveProof({ source: 'real-stuck-rescue' });
+  assert.equal(a.state, 'PROVEN');
+  a.recordDisproof({ observation: 'abort issued and work observably continued' });
+  assert.equal(a.state, 'DISPROVEN');
+  assert.equal(a.rescueAvailable({ readOnly: true }).available, false);
+  // Re-declaration alone: still disproven.
+  const redecl = a.declare('process kill', 'HARD');
+  assert.equal(redecl.state, 'DISPROVEN');
+  assert.equal(redecl.reDeclared, true);
+  assert.equal(a.rescueAvailable({ readOnly: true }).available, false);
+  // Proof without re-declaration would also fail; with it, restoration works.
+  const b = new AbortAudit('tool2');
+  b.declare('process kill', 'HARD');
+  b.recordPositiveProof({ source: 'real-stuck-rescue' });
+  b.recordDisproof({});
+  assert.equal(b.recordPositiveProof({ source: 'real-user-cancel' }).ok, false); // no re-declare yet
+  b.declare('process kill', 'HARD');
+  assert.equal(b.recordPositiveProof({ source: 'real-user-cancel' }).ok, true);
+  assert.equal(a.recordPositiveProof({ source: 'real-user-cancel' }).ok, true);
+  assert.equal(a.state, 'PROVEN');
+});
+
+test('Batch 179: provability classes — HARD survives versions, COOPERATIVE re-proves per version, PROTOCOL is negative-only and read-only-only', () => {
+  const hard = new AbortAudit('killer');
+  hard.declare('process kill', 'HARD');
+  hard.recordPositiveProof({ source: 'sacrificial-probe' });
+  assert.equal(hard.noteVersion('2.0').state, 'PROVEN'); // hard stays proven across versions
+  assert.equal(hard.noteMechanismChange('thread cancel').state, 'DECLARED'); // mechanism change re-opens
+  const coop = new AbortAudit('token-tool', { version: '1.0' });
+  coop.declare('AbortSignal', 'COOPERATIVE');
+  assert.equal(coop.recordPositiveProof({ attributableToSignal: false, source: 'real-user-cancel' }).ok, false); // unattributed early end is not proof
+  assert.equal(coop.recordPositiveProof({ attributableToSignal: true, source: 'real-user-cancel' }).ok, true);
+  assert.equal(coop.noteVersion('2.0').state, 'DECLARED'); // version-sensitive: re-prove
+  assert.equal(coop.rescueAvailable({ readOnly: true }).available, false);
+  const proto = new AbortAudit('mcp-tool');
+  proto.declare('notifications/cancelled', 'PROTOCOL');
+  assert.equal(proto.recordPositiveProof({ source: 'real-user-cancel' }).ok, false); // negative only
+  assert.equal(proto.recordNegativeProof({ windowMs: 5000, nObservations: 12, source: 'real-user-cancel' }).ok, true);
+  assert.equal(proto.toRecord().proof.kind, 'negative');
+  assert.equal(proto.rescueAvailable({ readOnly: true }).available, true); // read-only: sufficient
+  assert.equal(proto.rescueAvailable({ readOnly: false }).available, false); // non-read-only: never sufficient
+  assert.equal(abortAuditRescueAvailable(proto.toRecord(), false).available, false); // plain snapshot behaves the same
+});
+
+test('Batch 179: sacrificial probe legitimate only for HARD, never for cooperative on a stateful tool', () => {
+  const hard = new AbortAudit('killer');
+  hard.declare('process kill', 'HARD');
+  assert.equal(hard.sacrificialProbeLegitimate().legitimate, true);
+  const coop = new AbortAudit('token-tool');
+  coop.declare('AbortSignal', 'COOPERATIVE');
+  assert.equal(coop.sacrificialProbeLegitimate().legitimate, false);
+  assert.equal(coop.recordPositiveProof({ attributableToSignal: true, source: 'sacrificial-probe', stateful: true }).ok, false);
+  const proto = new AbortAudit('mcp-tool');
+  proto.declare('notifications/cancelled', 'PROTOCOL');
+  assert.equal(proto.sacrificialProbeLegitimate().legitimate, false);
+});
+
+test('Batch 179: rescue gate 3 restated — abortable = PROVEN in the audit, class-appropriate proof; other gates unchanged', () => {
+  const t = trackerWith(100, 100);
+  const base = { readOnly: true, idempotent: true, progressMade: false, attemptsUsed: 0, remainingBudgetMs: 1000 };
+  const declared = new AbortAudit('tool');
+  declared.declare('AbortSignal', 'COOPERATIVE');
+  assert.equal(t.evaluateStuckRescue({ ...base, abortAudit: declared }).rescue, false);
+  const proven = new AbortAudit('tool');
+  proven.declare('AbortSignal', 'COOPERATIVE');
+  proven.recordPositiveProof({ attributableToSignal: true, source: 'real-stuck-rescue' });
+  const ok = t.evaluateStuckRescue({ ...base, abortAudit: proven });
+  assert.equal(ok.rescue, true);
+  assert.equal(ok.mode, 'abort-and-restart');
+  // Other gates still bite with a proven audit: progress, single re-issue, budget.
+  assert.equal(t.evaluateStuckRescue({ ...base, abortAudit: proven, progressMade: true }).rescue, false);
+  assert.equal(t.evaluateStuckRescue({ ...base, abortAudit: proven, attemptsUsed: 1 }).rescue, false);
+  assert.equal(t.evaluateStuckRescue({ ...base, abortAudit: proven, remainingBudgetMs: 150 }).rescue, false);
+  // Protocol negative proof + non-read-only: gate 3 fails even though gate 1's
+  // readOnly flag is what the audit checks — here readOnly false fails gate 1
+  // first, so check the audit directly for the protocol rule (covered above).
+  const proto = new AbortAudit('mcp');
+  proto.declare('notifications/cancelled', 'PROTOCOL');
+  proto.recordNegativeProof({ windowMs: 5000, nObservations: 3, source: 'real-user-cancel' });
+  assert.equal(abortAuditRescueAvailable(proto, false).available, false);
+  assert.equal(abortAuditRescueAvailable(proto, true).available, true);
+});
+
+test('Batch 179: per-mode rescue uses the mode threshold, not the pooled one (fast mode rescues where pooled would wait)', () => {
+  const t = new ToolLatencyTracker('tool');
+  for (let i = 0; i < 100; i++) t.observeMode('fast', 50);
+  for (let i = 0; i < 100; i++) t.observeMode('slow', 5000);
+  // Pooled p95 would sit in the slow mode; the fast mode's own T_stuck is 100ms.
+  assert.equal(t.stuckThresholdMsForMode('fast'), 100);
+  assert.equal(t.stuckThresholdMsForMode('slow'), 10000);
+  const fastRescue = t.evaluateStuckRescueForMode('fast', { readOnly: true, idempotent: true, progressMade: false, abortAvailable: true, abortProven: true, attemptsUsed: 0, remainingBudgetMs: 1000 });
+  assert.equal(fastRescue.rescue, true);
+  assert.equal(fastRescue.thresholdMs, 100);
+  assert.equal(fastRescue.label, 'fast');
+  // Mode rescue-rate trip moves only that mode's multiplier.
+  for (let i = 0; i < 100; i++) t.observeMode('fast', 50);
+  t.recordModeRescue('fast'); t.recordModeRescue('fast');
+  const tripped = t.recordModeRescue('fast');
+  assert.equal(tripped.tripped, true);
+  assert.equal(t.stuckThresholdMsForMode('fast'), 150);
+  assert.equal(t.stuckThresholdMsForMode('slow'), 10000); // slow mode untouched
+});
 
 test('modal selection picks the largest normalized-AST equivalence class, with the mode-collapse warning', () => {
   const norm = (c) => `${c.tool}|${String(c.args.q).toLowerCase()}`;

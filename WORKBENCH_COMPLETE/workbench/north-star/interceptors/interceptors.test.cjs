@@ -7,7 +7,248 @@ const assert = require('node:assert/strict');
 const {
   InterceptorChain, InterceptorError, ChainRefusedError,
   CODES, METHODS, isTimeoutError, redactPayload,
+  CANCELLATION_TRIPLE, cancellationPageSaysMustNotRespond,
+  serverCancelledExpected, serverCancelledAbsenceVerdict,
+  sessionCloseCancels, modernOnlyLegacyResponse,
+  sessionClosedImpliesAllCancelled, INITIALIZE_NON_CANCELLABILITY_2026,
+  canPoolObservations, AUDIT_TUPLE_FIELDS, validateAuditTuple,
+  makeAbortAuditEntry, normalizeSignalForm, computeW,
+  classifyCancelObservation, AbortProofSet,
+  claimServerStoppedFromMessageSilence, evaluateHttpAbort,
+  isProtocolObservation, JSON_SERVER_OBLIGATION, TS_V2_MECHANISM,
+  runtimeSignalStatus, nodeSignalPresent, NODE_HANDLER_EDGES,
+  gate3Abortable,
 } = require('./interceptors.cjs');
+
+// --- Batches 181 / 184 / 186 / 188: cancellation + abort audit ---
+
+const stdioObs = (over = {}) => ({
+  tool: 't1', mode: 'fast', transport: 'stdio', era: '2025',
+  levelTimeoutRemainingMs: 10000, wMs: 1000, eventsAfterCancel: [],
+  ...over,
+});
+
+test('A: cancellation triple precision — page says SHOULD, MUST lives on transport page', () => {
+  assert.equal(CANCELLATION_TRIPLE.serverStopProcessing, 'SHOULD');
+  assert.equal(CANCELLATION_TRIPLE.serverNotSendResponse, 'SHOULD (cancellation page)');
+  assert.equal(cancellationPageSaysMustNotRespond(), false);
+  assert.match(CANCELLATION_TRIPLE.mustNotRespondSource, /transport page/);
+  assert.deepEqual(CANCELLATION_TRIPLE.mayIgnoreCases,
+    ['request unknown', 'processing already completed', 'request cannot be cancelled']);
+  assert.equal(CANCELLATION_TRIPLE.clientLateResponse, 'SHOULD ignore');
+});
+
+test('B: server-sent cancelled narrowed to subscription teardown; absence never a failed abort', () => {
+  assert.equal(serverCancelledExpected({ era: '2026', purpose: 'tool-call' }), false);
+  assert.equal(serverCancelledExpected({ era: '2026', purpose: 'subscription-teardown' }), true);
+  assert.equal(serverCancelledExpected({ era: '2025', purpose: 'tool-call' }), false);
+  assert.equal(serverCancelledAbsenceVerdict(), 'not-a-failure');
+});
+
+test('B: session channels gone on 2026; per-request cancellation only', () => {
+  assert.equal(sessionCloseCancels({ era: '2026' }), false);
+  assert.equal(sessionCloseCancels({ era: '2025' }), true);
+  assert.equal(modernOnlyLegacyResponse('GET'), 405);
+  assert.equal(modernOnlyLegacyResponse('DELETE'), 405);
+  assert.equal(sessionClosedImpliesAllCancelled({ era: '2026' }), false);
+  assert.match(INITIALIZE_NON_CANCELLABILITY_2026, /moot/);
+});
+
+test('B: stdio observations pool across eras; HTTP observations do not', () => {
+  const s25 = { tool: 't', mode: 'm', transport: 'stdio', era: '2025' };
+  const s26 = { tool: 't', mode: 'm', transport: 'stdio', era: '2026' };
+  const h25 = { tool: 't', mode: 'm', transport: 'http', era: '2025' };
+  const h26 = { tool: 't', mode: 'm', transport: 'http', era: '2026' };
+  assert.equal(canPoolObservations(s25, s26), true);
+  assert.equal(canPoolObservations(h25, h26), false);
+  assert.equal(canPoolObservations(s25, { ...s25, mode: 'other' }), false);
+});
+
+test('C: audit tuple requires all six fields', () => {
+  assert.deepEqual(AUDIT_TUPLE_FIELDS,
+    ['era', 'transport', 'signalForm', 'mode', 'wFormula', 'frozenBaselineVersion']);
+  const full = {
+    era: '2026', transport: 'http', signalForm: 'POST abort', mode: 'fast',
+    wFormula: 'p99 if n>=1000 else 2xp95', frozenBaselineVersion: 'v1',
+  };
+  assert.equal(validateAuditTuple(full).valid, true);
+  const partial = validateAuditTuple({ era: '2026', transport: 'http' });
+  assert.equal(partial.valid, false);
+  assert.deepEqual(partial.missing, ['signalForm', 'mode', 'wFormula', 'frozenBaselineVersion']);
+  assert.throws(() => makeAbortAuditEntry({ era: '2026' }), /missing/);
+  assert.equal(makeAbortAuditEntry({ ...full, tool: 't1' }).signalForm, 'POST abort');
+});
+
+test('D: W formula — frozen p99 at n>=1000, else 2x frozen p95', () => {
+  assert.equal(computeW({ nMode: 1000, frozenP99: 800, frozenP95: 400 }), 800);
+  assert.equal(computeW({ nMode: 999, frozenP99: 800, frozenP95: 400 }), 800);
+  assert.equal(computeW({ nMode: 10, frozenP99: 800, frozenP95: 400 }), 800);
+  assert.equal(computeW({ nMode: 10, frozenP99: 900, frozenP95: 300 }), 600);
+  assert.throws(() => computeW({ nMode: 10, frozenP99: 0, frozenP95: 300 }), /positive/);
+});
+
+test('D: truncated observation is inconclusive and W is never shortened', () => {
+  const res = classifyCancelObservation(stdioObs({ levelTimeoutRemainingMs: 500, wMs: 1000 }));
+  assert.equal(res.classification, 'truncated-inconclusive');
+  assert.equal(res.wMs, 1000); // W kept whole, not shortened to 500
+  assert.equal(res.countsAsSilence, false);
+});
+
+test('D: progress after cancel breaks silence, does not extend W, is not a disproof', () => {
+  const res = classifyCancelObservation(stdioObs({ eventsAfterCancel: [{ type: 'progress' }] }));
+  assert.equal(res.classification, 'race-inconclusive');
+  assert.equal(res.wMs, 1000);
+  assert.equal(res.wExtended, false);
+  assert.equal(res.isDisproof, false);
+});
+
+test('D: three silences prove; one silence does not', () => {
+  const set = new AbortProofSet({ tool: 't1', mode: 'fast', transport: 'stdio', era: '2025' });
+  set.add(stdioObs());
+  assert.equal(set.status(), 'DECLARED');
+  set.add(stdioObs());
+  set.add(stdioObs());
+  assert.equal(set.status(), 'PROVEN-negatively');
+});
+
+test('D: late response demotes a counted silence; set must regain three', () => {
+  const set = new AbortProofSet({ tool: 't1', mode: 'fast', transport: 'stdio', era: '2025' });
+  const ids = [set.add(stdioObs()), set.add(stdioObs()), set.add(stdioObs())];
+  assert.equal(set.status(), 'PROVEN-negatively');
+  const amended = set.amend(ids[0], stdioObs({
+    eventsAfterCancel: [{ type: 'late-response', afterW: true }],
+  }));
+  assert.equal(amended.classification, 'demoted');
+  assert.equal(set.status(), 'DECLARED');
+  set.add(stdioObs());
+  assert.equal(set.status(), 'PROVEN-negatively');
+});
+
+test('D: late responses on >=2 observations revert to DECLARED and require a fresh set', () => {
+  const set = new AbortProofSet({ tool: 't1', mode: 'fast', transport: 'stdio', era: '2025' });
+  set.add(stdioObs({ eventsAfterCancel: [{ type: 'late-response', afterW: true }] }));
+  set.add(stdioObs({ eventsAfterCancel: [{ type: 'late-response', afterW: true }] }));
+  set.add(stdioObs());
+  assert.equal(set.status(), 'DECLARED');
+  assert.equal(set.requiresFreshSet(), true);
+  const fresh = set.freshSet();
+  assert.equal(fresh.status(), 'DECLARED');
+  assert.equal(fresh.counts().total, 0);
+});
+
+test('D: positive disproof is sticky and distinct from a bare late response', () => {
+  const bare = classifyCancelObservation(stdioObs({
+    eventsAfterCancel: [{ type: 'late-response', afterW: true }],
+  }));
+  assert.equal(bare.isDisproof, false);
+  const set = new AbortProofSet({ tool: 't1', mode: 'fast', transport: 'stdio', era: '2025' });
+  set.add(stdioObs());
+  set.add(stdioObs());
+  set.add(stdioObs());
+  assert.equal(set.status(), 'PROVEN-negatively');
+  set.add(stdioObs({ eventsAfterCancel: [{ type: 'side-effect', toolReadOnly: true }] }));
+  assert.equal(set.status(), 'DISPROVEN');
+  set.add(stdioObs());
+  assert.equal(set.status(), 'DISPROVEN'); // sticky: silences do not clear it
+  assert.throws(() => set.freshSet(), /sticky/);
+  // Attributable post-cancel work message is also a disproof.
+  assert.equal(classifyCancelObservation(stdioObs({
+    eventsAfterCancel: [{ type: 'post-cancel-work-message', attributable: true }],
+  })).classification, 'positive-disproof');
+  // Unattributed post-cancel message breaks silence but is not a disproof.
+  const unattributed = classifyCancelObservation(stdioObs({
+    eventsAfterCancel: [{ type: 'post-cancel-work-message', attributable: false }],
+  }));
+  assert.equal(unattributed.classification, 'race-inconclusive');
+  assert.equal(unattributed.isDisproof, false);
+});
+
+test('D: proof set rejects an observation from a different tool/mode/transport/era', () => {
+  const set = new AbortProofSet({ tool: 't1', mode: 'fast', transport: 'stdio', era: '2025' });
+  assert.throws(() => set.add(stdioObs({ era: '2026' })), /does not match/);
+  assert.throws(() => set.add(stdioObs({ transport: 'http' })), /does not match/);
+});
+
+test('E: 2026 HTTP read-only gets client-abandonment, never server-stopped from silence', () => {
+  assert.equal(claimServerStoppedFromMessageSilence().valid, false);
+  const ro = evaluateHttpAbort({ toolReadOnly: true, clientAbortedPost: true });
+  assert.equal(ro.claim, 'PROVEN-client-abandonment');
+  assert.equal(ro.serverStoppedClaimed, false);
+  assert.match(ro.residualRisk, /server load/);
+  const wr = evaluateHttpAbort({ toolReadOnly: false, clientAbortedPost: true });
+  assert.equal(wr.claim, 'not-applicable');
+  assert.match(wr.reason, /never-hedge-commits/);
+  assert.deepEqual(isProtocolObservation('server-logs'), {
+    isProtocol: false, reason: 'operator-side evidence, not a client-side protocol observation',
+  });
+  assert.equal(isProtocolObservation('side-effect-absence').isProtocol, true);
+});
+
+test('F: 2026 HTTP signal form is single-valued POST abort (no SSE/JSON split)', () => {
+  for (const label of ['stream-close', 'JSON abort', 'SSE stream-close', 'notification']) {
+    const norm = normalizeSignalForm({ era: '2026', transport: 'http', signalForm: label });
+    assert.equal(norm.signalForm, 'POST abort');
+  }
+  assert.equal(normalizeSignalForm({ era: '2026', transport: 'http', signalForm: 'POST abort' }).relabeledFrom, null);
+  assert.equal(normalizeSignalForm({ era: '2026', transport: 'http', signalForm: 'stream-close' }).relabeledFrom, 'stream-close');
+  // Post-response subscription teardown keeps stream-close (that stream existed).
+  assert.equal(normalizeSignalForm({
+    era: '2026', transport: 'http', signalForm: 'stream-close', purpose: 'subscription-teardown',
+  }).signalForm, 'stream-close');
+  // Stdio keeps notification.
+  assert.equal(normalizeSignalForm({ era: '2025', transport: 'stdio', signalForm: 'notification' }).signalForm, 'notification');
+});
+
+test('G: JSON obligation is plausible-but-unscoped, never a verbatim spec rule', () => {
+  assert.equal(JSON_SERVER_OBLIGATION.action, 'abort in-flight POST');
+  assert.equal(JSON_SERVER_OBLIGATION.verbatimJsonRule, false);
+  assert.match(JSON_SERVER_OBLIGATION.obligation, /plausible-but-unscoped/);
+  assert.equal(JSON_SERVER_OBLIGATION.timing, 'NOT-GUARANTEED');
+  assert.equal(JSON_SERVER_OBLIGATION.limits.length, 3);
+  assert.match(JSON_SERVER_OBLIGATION.csharpStatelessTokenNote, /mechanism evidence only/);
+});
+
+test('H: TS v2 mechanism is exchange-wide, runtime-conditioned, typedoc-provenanced', () => {
+  assert.equal(TS_V2_MECHANISM.transport, 'PerRequestHTTPServerTransport');
+  assert.match(TS_V2_MECHANISM.scope, /response-form-independent/);
+  assert.match(TS_V2_MECHANISM.condition, /runtime provides an abort signal/);
+  assert.match(TS_V2_MECHANISM.provenance, /source lines were NOT read/);
+  assert.match(TS_V2_MECHANISM.provenance, /source wins/);
+  assert.match(TS_V2_MECHANISM.legacyOutOfScope, /StreamableHTTPServerTransport/);
+  assert.match(TS_V2_MECHANISM.connectionClosedRejection, /not a forced kill/);
+  assert.equal(TS_V2_MECHANISM.httpServerStoppedQuestion, 'CLOSED for plain tools/call');
+  assert.match(TS_V2_MECHANISM.taskBoundary, /NOT ruled on/);
+});
+
+test('J: Node row splits by mount — never a blanket Node yes; Hono unverified', () => {
+  assert.equal(runtimeSignalStatus({ runtime: 'Workers' }).status, 'signal-native');
+  assert.equal(runtimeSignalStatus({ runtime: 'Deno' }).status, 'signal-native');
+  assert.equal(runtimeSignalStatus({ runtime: 'Bun' }).status, 'signal-native');
+  assert.match(runtimeSignalStatus({ runtime: 'Node', mount: 'toNodeHandler-plain' }).status, /synthesized/);
+  assert.match(runtimeSignalStatus({ runtime: 'Node', mount: 'toNodeHandler-Express' }).status, /synthesized/);
+  assert.match(runtimeSignalStatus({ runtime: 'Node', mount: 'toNodeHandler-Fastify' }).status, /synthesized/);
+  assert.equal(runtimeSignalStatus({ runtime: 'Node', mount: 'Hono' }).status, 'runtime-dependent, UNVERIFIED');
+  assert.equal(runtimeSignalStatus({ runtime: 'Node' }).status, 'unresolved');
+  assert.equal(nodeSignalPresent({ path: 'toNodeHandler' }), true);
+  assert.equal(nodeSignalPresent({ path: 'toWebRequest', signalOption: true }), true);
+  assert.equal(nodeSignalPresent({ path: 'toWebRequest', signalOption: false }), false);
+  assert.equal(nodeSignalPresent({ path: 'toWebRequest' }), false);
+  assert.equal(nodeSignalPresent({ path: 'Hono' }), 'unverified');
+  assert.match(NODE_HANDLER_EDGES.trigger, /res 'close' ONLY/);
+  assert.equal(NODE_HANDLER_EDGES.halfOpenSocketAborts, false);
+  assert.equal(NODE_HANDLER_EDGES.closeAfterFullStreamAborts, false);
+  assert.match(NODE_HANDLER_EDGES.nodeSubGap, /CLOSED/);
+});
+
+test('K: gate 3 is class-appropriate; other gates unchanged by reference only', () => {
+  assert.deepEqual(gate3Abortable({ transport: 'stdio', proof: 'PROVEN-negatively' }),
+    { abortable: true, proofClass: 'stdio >= 3-silence set' });
+  assert.equal(gate3Abortable({ transport: 'stdio', proof: 'DECLARED' }).abortable, false);
+  assert.deepEqual(gate3Abortable({ transport: 'http', era: '2026', toolReadOnly: true, proof: 'PROVEN-client-abandonment' }).abortable, true);
+  assert.equal(gate3Abortable({ transport: 'http', era: '2026', toolReadOnly: true, proof: 'PROVEN-server-stopped' }).abortable, false);
+  assert.equal(gate3Abortable({ transport: 'http', era: '2026', toolReadOnly: false, proof: 'PROVEN-negatively' }).abortable, false);
+  assert.equal(gate3Abortable({ transport: 'http', era: '2025', proof: 'PROVEN-negatively' }).abortable, true);
+});
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const fail = (payload) => ({ valid: false, severity: 'error', message: 'blocked' });

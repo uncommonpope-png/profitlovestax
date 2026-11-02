@@ -50,6 +50,11 @@
  * What this module is NOT: a cross-SDK conformance claim. No C# or Go
  * implementation was run here. The runtime cross-SDK conformance test
  * (per (consumer, server) pair, through the actual chain) is still owed.
+ *
+ * EXTENSION (Batches 181, 184, 186, 188): the cancellation / abort-audit
+ * section at the end of this file. It classifies abort observations and
+ * decides what proof they carry; it starts no server and measures no
+ * latency. Round-1 chain behaviour is untouched.
  */
 
 const CODES = {
@@ -713,6 +718,437 @@ function normalizeValidation(result) {
   };
 }
 
+/* =====================================================================
+ * Cancellation / abort-audit rules (Batches 181, 184, 186, 188).
+ *
+ * This section is a RECORD + CLASSIFIER for abort observations, not a
+ * live abort mechanism: it starts no server, opens no socket, and
+ * measures no latency. Observations are data handed in; the functions
+ * below normalize them, classify them, and decide what proof (if any)
+ * they carry. Anything the batches left unverified stays unverified
+ * here — it is labelled, never filled in.
+ *
+ * Grep note (Batch 184 item F): round 1's code contained NO SSE-vs-JSON
+ * signal-form split to remove (verified by grep: no signal-form field
+ * existed at all). The unified single-valued field below is new, not a
+ * repair of a split.
+ * =================================================================== */
+
+// --- A. Cancellation triple, verified against spec text (Batch 181) ---
+// PRECISION, enforced by the shape of this constant: the cancellation
+// page itself says SHOULD-not-send-a-response, NOT MUST. The MUST comes
+// from the base notification rule and from the transport page's
+// "MUST NOT send any further messages". Never quote the cancellation
+// page as saying MUST-not-respond; quote the transport page for that.
+const CANCELLATION_TRIPLE = Object.freeze({
+  serverStopProcessing: 'SHOULD',
+  serverFreeResources: 'SHOULD',
+  // Cancellation page wording (2026-07-28, Behavior Requirements).
+  serverNotSendResponse: 'SHOULD (cancellation page)',
+  // The MUST lives here, not on the cancellation page.
+  mustNotRespondSource: 'transport page: MUST NOT send any further messages; plus base notification rule: MUST NOT send a response',
+  mayIgnoreCases: Object.freeze(['request unknown', 'processing already completed', 'request cannot be cancelled']),
+  clientLateResponse: 'SHOULD ignore',
+  raceClause: 'cancellation may arrive after processing completed or after a response was sent; both parties MUST handle races gracefully',
+});
+
+// The cancellation page does NOT say MUST-not-respond. Any caller that
+// needs the MUST cites the transport page (see CANCELLATION_TRIPLE).
+function cancellationPageSaysMustNotRespond() {
+  return false;
+}
+
+// --- B. Stateless revision reconciliation (Batch 181) ---
+// Server-sent notifications/cancelled is narrowed to subscription
+// teardown ONLY on 2026. On 2025 it was fire-and-forget (no ack
+// required). Either way, absence of a server cancelled message is NEVER
+// a failed abort — especially never for a tool call.
+function serverCancelledExpected({ era, purpose }) {
+  if (era === '2026') return purpose === 'subscription-teardown';
+  return false; // 2025: fire-and-forget, no acknowledgement required.
+}
+
+function serverCancelledAbsenceVerdict() {
+  return 'not-a-failure';
+}
+
+// Session channels are GONE on 2026: closing a session, a standalone
+// GET stream, or DELETE cancels nothing. A modern-only server answers
+// GET/DELETE with 405 and ignores Mcp-Session-Id entirely. Cancellation
+// is per-request only; "session closed, therefore all requests
+// cancelled" is invalid on 2026.
+function sessionCloseCancels({ era }) {
+  return era !== '2026';
+}
+
+function modernOnlyLegacyResponse(method) {
+  if (method === 'GET' || method === 'DELETE') return 405;
+  return null;
+}
+
+function sessionClosedImpliesAllCancelled({ era }) {
+  return era !== '2026';
+}
+
+// The 2025 non-cancellability rule for initialize is moot on 2026:
+// initialize no longer exists (per-request _meta carries version /
+// capabilities instead). It was not repealed by the cancellation page;
+// it died with initialize itself.
+const INITIALIZE_NON_CANCELLABILITY_2026 = 'moot (initialize no longer exists)';
+
+// Stdio cancellation is UNCHANGED in mechanism (notification, no
+// per-request stream), so stdio proof observations are era-independent
+// and may pool across eras. HTTP observations must NOT pool across eras.
+function canPoolObservations(a, b) {
+  if (!a || !b) return false;
+  if (a.tool !== b.tool || a.mode !== b.mode || a.transport !== b.transport) return false;
+  if (a.transport === 'stdio') return true;
+  return a.era === b.era;
+}
+
+function proofSetKey(obs) {
+  return [obs.tool, obs.mode, obs.transport, obs.era].join('|');
+}
+
+// --- C. Audit tuple (Batch 181) ---
+// Every audit entry must carry all six fields or the proof is not
+// comparable across observations.
+const AUDIT_TUPLE_FIELDS = Object.freeze([
+  'era', 'transport', 'signalForm', 'mode', 'wFormula', 'frozenBaselineVersion',
+]);
+
+function validateAuditTuple(entry) {
+  const missing = AUDIT_TUPLE_FIELDS.filter((f) => entry === null || entry === undefined
+    || entry[f] === undefined || entry[f] === null || entry[f] === '');
+  return { valid: missing.length === 0, missing };
+}
+
+// Builds a validated abort-audit entry. Throws on an incomplete tuple
+// rather than recording an incomparable observation.
+function makeAbortAuditEntry(entry) {
+  const check = validateAuditTuple(entry);
+  if (!check.valid) {
+    throw new Error(`Incomplete abort-audit tuple; missing: ${check.missing.join(', ')}`);
+  }
+  return {
+    era: entry.era,
+    transport: entry.transport,
+    signalForm: normalizeSignalForm(entry).signalForm,
+    mode: entry.mode,
+    wFormula: entry.wFormula,
+    frozenBaselineVersion: entry.frozenBaselineVersion,
+    tool: entry.tool || null,
+    purpose: entry.purpose || 'tool-call',
+  };
+}
+
+// --- F. Signal-form field, UNIFIED (Batch 184) ---
+// For 2026 HTTP observations the signal form is single-valued
+// "POST abort": the response form is unknowable at cancel time (the
+// client sends one POST accepting both JSON and SSE; the server chooses
+// per request), so splitting it invents data. A pre-response cancel has
+// no eventual form. The one exception: a post-response SSE close that
+// tears down an existing subscription stream keeps "stream-close" —
+// that stream did exist. The original label is preserved in
+// relabeledFrom so a mislabel is auditable, not silently rewritten.
+function normalizeSignalForm({ era, transport, signalForm, purpose }) {
+  if (era === '2026' && transport === 'http' && purpose !== 'subscription-teardown') {
+    const relabeledFrom = signalForm && signalForm !== 'POST abort' ? signalForm : null;
+    return { signalForm: 'POST abort', relabeledFrom };
+  }
+  if (purpose === 'subscription-teardown' && signalForm === 'stream-close') {
+    return { signalForm: 'stream-close', relabeledFrom: null };
+  }
+  return { signalForm: signalForm || null, relabeledFrom: null };
+}
+
+// --- D. Stdio W rule + proof set (Batch 181) ---
+// W_tool(mode) = frozen p99(mode) when n_mode >= 1000, else
+// 2 x frozen p95(mode), measured from cancel dispatch.
+function computeW({ nMode, frozenP99, frozenP95 }) {
+  if (!Number.isFinite(nMode) || !Number.isFinite(frozenP99) || !Number.isFinite(frozenP95)) {
+    throw new Error('computeW requires finite nMode, frozenP99, frozenP95');
+  }
+  if (frozenP99 <= 0 || frozenP95 <= 0) throw new Error('computeW requires positive frozen baselines');
+  return nMode >= 1000 ? frozenP99 : 2 * frozenP95;
+}
+
+// Classifies one cancel observation window. Precedence (documented, so
+// a combined window classifies one way only):
+//   positive-disproof > truncated > progress-race > late-response-demoted > silence.
+// - TRUNCATED: level timeout remaining at cancel < W. The observation is
+//   inconclusive; W is NEVER shortened to fit inside the budget.
+// - PROGRESS after cancel breaks silence for that window (race /
+//   inconclusive, not a counted silence, not a disproof on its own) and
+//   does NOT extend W (maximum timeout regardless of progress).
+// - LATE RESPONSE after W but before the level timeout does NOT
+//   retroactively disprove the abort, but DEMOTES that observation
+//   (removed from the counted proof set).
+// - POSITIVE DISPROOF (separate, sticky): a side effect after cancel on
+//   a tool claimed read-only, or a message attributable to work that
+//   started after cancel. Attribution separates disproof from race; a
+//   bare late response never carries it.
+// obs: { levelTimeoutRemainingMs, wMs, eventsAfterCancel: [
+//   { type: 'progress' } | { type: 'late-response', afterW: true }
+//   | { type: 'side-effect', toolReadOnly: true }
+//   | { type: 'post-cancel-work-message', attributable: true } ] }
+function classifyCancelObservation(obs) {
+  const wMs = obs.wMs;
+  const events = obs.eventsAfterCancel || [];
+  const disproof = events.some((e) => (e.type === 'side-effect' && e.toolReadOnly === true)
+    || (e.type === 'post-cancel-work-message' && e.attributable === true));
+  if (disproof) {
+    return { classification: 'positive-disproof', wMs, countsAsSilence: false, isDisproof: true, wExtended: false };
+  }
+  if (obs.levelTimeoutRemainingMs < wMs) {
+    return { classification: 'truncated-inconclusive', wMs, countsAsSilence: false, isDisproof: false, wExtended: false };
+  }
+  if (events.some((e) => e.type === 'progress')
+    || events.some((e) => e.type === 'late-response' && e.afterW !== true)
+    || events.some((e) => e.type === 'post-cancel-work-message' && e.attributable !== true)) {
+    // An unattributed post-cancel message breaks silence but is not a
+    // disproof: attribution is what separates disproof from race.
+    return { classification: 'race-inconclusive', wMs, countsAsSilence: false, isDisproof: false, wExtended: false };
+  }
+  if (events.some((e) => e.type === 'late-response' && e.afterW === true)) {
+    return { classification: 'demoted', wMs, countsAsSilence: false, isDisproof: false, wExtended: false };
+  }
+  return { classification: 'silence', wMs, countsAsSilence: true, isDisproof: false, wExtended: false };
+}
+
+// PROOF THRESHOLD: PROVEN-negatively requires >= 3 silent windows
+// (three independent cancels, same tool + mode + transport + era).
+// PATTERN RULE: late responses on >= 2 observations within a proof set
+// revert the tool to DECLARED and require a fresh proof set.
+// A demoted observation removes a previously counted silence: the set
+// must regain three silences (modelled by amendObservation).
+class AbortProofSet {
+  constructor({ tool, mode, transport, era }) {
+    this.key = { tool, mode, transport, era };
+    this.observations = new Map();
+    this.nextId = 1;
+    this.disproved = false;
+  }
+
+  add(rawObs) {
+    if (proofSetKey(rawObs) !== proofSetKey(this.key)) {
+      throw new Error('Observation does not match this proof set (tool + mode + transport + era)');
+    }
+    const id = this.nextId++;
+    this.observations.set(id, { raw: rawObs, result: classifyCancelObservation(rawObs) });
+    if (this.observations.get(id).result.isDisproof) this.disproved = true;
+    return id;
+  }
+
+  // Reclassify a window when a late event lands after it was first
+  // counted (e.g. a late response after W demotes a counted silence).
+  amend(id, rawObs) {
+    if (!this.observations.has(id)) throw new Error(`Unknown observation id: ${id}`);
+    if (proofSetKey(rawObs) !== proofSetKey(this.key)) {
+      throw new Error('Amended observation does not match this proof set (tool + mode + transport + era)');
+    }
+    this.observations.set(id, { raw: rawObs, result: classifyCancelObservation(rawObs) });
+    if (this.observations.get(id).result.isDisproof) this.disproved = true;
+    return this.observations.get(id).result;
+  }
+
+  counts() {
+    let silences = 0;
+    let lateResponses = 0;
+    for (const { result } of this.observations.values()) {
+      if (result.countsAsSilence) silences += 1;
+      // Pattern rule counts late responses AFTER W only (demoted
+      // windows). A response inside W is a race window, not a late one.
+      if (result.classification === 'demoted') lateResponses += 1;
+    }
+    return { silences, lateResponses, total: this.observations.size };
+  }
+
+  status() {
+    if (this.disproved) return 'DISPROVEN';
+    const { silences, lateResponses } = this.counts();
+    if (lateResponses >= 2) return 'DECLARED';
+    if (silences >= 3) return 'PROVEN-negatively';
+    return 'DECLARED';
+  }
+
+  requiresFreshSet() {
+    return !this.disproved && this.counts().lateResponses >= 2;
+  }
+
+  freshSet() {
+    if (this.disproved) throw new Error('Positive disproof is sticky; a fresh set does not clear it');
+    return new AbortProofSet(this.key);
+  }
+}
+
+// --- E. 2026 HTTP replacement proof (Batch 181) ---
+// On 2026 HTTP the observation is "no SIDE EFFECT observed within W",
+// NOT "no message": after a stream close the server has no stream on
+// which to send a late response, and MUST NOT send further messages, so
+// message silence is transport-guaranteed, not server-behavior evidence.
+// Server-side stopping on HTTP must NOT be claimed from message silence.
+function claimServerStoppedFromMessageSilence() {
+  return {
+    valid: false,
+    reason: 'message silence after a 2026 HTTP disconnect is transport-guaranteed (server MUST NOT send further messages), not server-behavior evidence; counting it as proof of stopping is circular',
+  };
+}
+
+function evaluateHttpAbort({ toolReadOnly, clientAbortedPost }) {
+  if (!clientAbortedPost) {
+    return { claim: 'no-abort-observed', serverStoppedClaimed: false, residualRisk: null };
+  }
+  if (toolReadOnly === true) {
+    return {
+      claim: 'PROVEN-client-abandonment',
+      serverStoppedClaimed: false,
+      residualRisk: 'server load, not client correctness (read-only + client ignores late results per spec)',
+    };
+  }
+  return {
+    claim: 'not-applicable',
+    serverStoppedClaimed: false,
+    reason: 'rescue is already barred by never-hedge-commits, so no HTTP write tool ever needs a protocol-abort proof for rescue',
+  };
+}
+
+// Operator-side evidence is real for the operator but is NOT a protocol
+// observation and must not be recorded as one.
+function isProtocolObservation(evidenceKind) {
+  const operatorOnly = ['server-logs', 'server-metrics', 'subsequent-request-latency', 'resource-contention'];
+  if (operatorOnly.includes(evidenceKind)) {
+    return { isProtocol: false, reason: 'operator-side evidence, not a client-side protocol observation' };
+  }
+  return { isProtocol: true, reason: null };
+}
+
+// --- G. JSON server-obligation (Batch 184) ---
+// Recorded as a plausible-but-unscoped MUST-treat-disconnect reading
+// with its stated limits — explicitly NOT a verbatim spec rule.
+// The C# stateless-token sentence is mechanism evidence only, NOT
+// client-observable proof. Timing remains NOT-GUARANTEED.
+const JSON_SERVER_OBLIGATION = Object.freeze({
+  action: 'abort in-flight POST',
+  actionBasis: 'PROVEN-by-elimination: the only possible client signal (notification excluded by spec on 2026 HTTP; response form unknowable at cancel time)',
+  obligation: 'plausible-but-unscoped MUST-treat-disconnect reading',
+  verbatimJsonRule: false,
+  timing: 'NOT-GUARANTEED',
+  limits: Object.freeze([
+    'the "unambiguous" rationale rests on "each request has its own response stream", which does not exist yet for a pre-response JSON request',
+    'neither spec page read writes "JSON", "single JSON object", or "abort the POST" in a cancellation sentence',
+    'detection timing is framework-dependent and unstated: a server computing a JSON response with no writes in flight may not observe the disconnect until it attempts to write the completed response',
+  ]),
+  csharpStatelessTokenNote: 'mechanism evidence only, NOT client-observable proof; do not quote the C# page as saying 2026 HTTP clients send notifications/cancelled — they do not',
+  handlerNeverChecksSignal: 'still runs to completion (SHOULD-stop-as-soon-as-practical limit)',
+});
+
+// --- H. TS SDK v2 mechanism (Batch 186) ---
+// PerRequestHTTPServerTransport cancels the WHOLE EXCHANGE on client
+// disconnect, response-form-independent, CONDITIONED on the runtime
+// providing an abort signal ("when the runtime provides an abort signal
+// on it"). Legacy sessionful StreamableHTTPServerTransport is OUT OF
+// SCOPE (modern leg only). The transport's connection-closed rejection
+// is about the exchange's promise, not a forced kill of handler code.
+const TS_V2_MECHANISM = Object.freeze({
+  transport: 'PerRequestHTTPServerTransport',
+  scope: 'whole exchange, response-form-independent (responseMode auto/sse/json only shapes terminal framing)',
+  condition: 'when the runtime provides an abort signal on it',
+  provenance: 'typedoc API docs (ts.sdk.modelcontextprotocol.io/v2); perRequestTransport.ts source lines were NOT read in Batch 186 (GitHub fetch failed) — if source later contradicts the docs, source wins',
+  legacyOutOfScope: 'StreamableHTTPServerTransport (sessionful) — modern leg only',
+  connectionClosedRejection: 'about the exchange promise, not a forced kill of handler code',
+  timing: 'NOT-GUARANTEED',
+  httpServerStoppedQuestion: 'CLOSED for plain tools/call',
+  httpServerStoppedReopenCondition: 'a new protocol channel only (a spec sentence or SDK client-side signal)',
+  taskBoundary: 'task-shaped invocations NOT ruled on',
+  provenClaimHttpReadOnly: 'client-abandonment',
+});
+
+// --- J. Node row, RESOLVED (Batch 188) ---
+// toNodeHandler synthesizes a per-request web AbortSignal via res
+// 'close' ONLY (not req close, not aborted, not response finish), with
+// a finished guard (close after full stream does not abort — correct,
+// nothing left to cancel). Plain/Express/Fastify mounts = signal
+// synthesized (same underlying Node req/res objects). Hono =
+// runtime-dependent, UNVERIFIED (Hono does not use toNodeHandler;
+// @hono/node-server unexamined). The Node row must read exactly that
+// split, never a blanket "Node: yes".
+const RUNTIME_SIGNAL_TABLE = Object.freeze([
+  Object.freeze({ runtime: 'Workers', mount: null, status: 'signal-native' }),
+  Object.freeze({ runtime: 'Deno', mount: null, status: 'signal-native' }),
+  Object.freeze({ runtime: 'Bun', mount: null, status: 'signal-native' }),
+  Object.freeze({ runtime: 'Node', mount: 'toNodeHandler-plain', status: 'signal-synthesized (res close only)' }),
+  Object.freeze({ runtime: 'Node', mount: 'toNodeHandler-Express', status: 'signal-synthesized (res close only)' }),
+  Object.freeze({ runtime: 'Node', mount: 'toNodeHandler-Fastify', status: 'signal-synthesized (res close only)' }),
+  Object.freeze({ runtime: 'Node', mount: 'Hono', status: 'runtime-dependent, UNVERIFIED' }),
+  Object.freeze({ runtime: 'legacy-sessionful', mount: null, status: 'out of scope (modern leg only)' }),
+]);
+
+function runtimeSignalStatus({ runtime, mount }) {
+  if (runtime === 'Node' && !mount) {
+    return {
+      status: 'unresolved',
+      reason: 'Node row splits by mount (toNodeHandler plain/Express/Fastify = synthesized; Hono = runtime-dependent, unverified); never a blanket "Node: yes"',
+    };
+  }
+  const row = RUNTIME_SIGNAL_TABLE.find((r) => r.runtime === runtime
+    && (r.mount === null ? mount === null || mount === undefined : r.mount === mount));
+  if (row) return { status: row.status, reason: null };
+  return { status: 'unknown', reason: 'no runtime-condition row recorded for this runtime/mount' };
+}
+
+// Hand-wired toWebRequest audit rule: signal present IFF the request
+// came through toNodeHandler OR an explicit signal option. A direct
+// toWebRequest caller that omits the option gets a signal-less Request;
+// the audit must check the path, not assume.
+function nodeSignalPresent({ path, signalOption }) {
+  if (path === 'toNodeHandler') return true;
+  if (path === 'toWebRequest') return signalOption === true;
+  if (path === 'Hono') return 'unverified';
+  return false;
+}
+
+const NODE_HANDLER_EDGES = Object.freeze({
+  trigger: "res 'close' ONLY (not req close, not aborted, not response finish)",
+  halfOpenSocketAborts: false,
+  halfOpenSocketNote: 'a disconnect that leaves the response object un-closed does not abort',
+  closeAfterFullStreamAborts: false,
+  finishedGuardNote: 'close after full stream does not abort — correct, nothing left to cancel; the signal is a live-exchange signal only',
+  nodeSubGap: 'CLOSED (Batch 188, adapter source); do NOT re-open without a new adapter version',
+  jsonThread: 'CLOSED end to end except spec wording (still unverified)',
+  honoSubQuestion: 'separate, new item (@hono/node-server request construction), not a reopening of the closed Node sub-gap',
+});
+
+// --- K. Gate 3 restated (Batch 181) ---
+// "abortable = PROVEN in the audit, with a class-appropriate proof":
+// for 2026 HTTP read-only tools PROVEN means the client-abandonment
+// qualifier; for stdio tools PROVEN means the >= 3-silence set; for
+// 2025-era HTTP (notification sent, stream/session remains open) the
+// negative message-silence proof survives like stdio. Other gates are
+// unchanged and are NOT re-implemented here (per-mode T_stuck is the
+// other worker's area; referenced only).
+const GATE3_UNCHANGED_COMPANIONS = Object.freeze([
+  'read-only + idempotent', 'zero progress', 'single re-issue', 'budget fit',
+  'separate rescue-rate metric', 'multi-path hedging', 'never-hedge-commits',
+  'level-boundary wait', 'RULE 6', 'breaker', 'drift rules',
+]);
+
+function gate3Abortable({ transport, era, toolReadOnly, proof }) {
+  if (transport === 'stdio') {
+    return { abortable: proof === 'PROVEN-negatively', proofClass: 'stdio >= 3-silence set' };
+  }
+  if (transport === 'http' && era === '2026') {
+    if (toolReadOnly === true) {
+      return { abortable: proof === 'PROVEN-client-abandonment', proofClass: '2026 HTTP read-only client-abandonment qualifier' };
+    }
+    return { abortable: false, proofClass: 'not-applicable (never-hedge-commits bars HTTP write rescue)' };
+  }
+  if (transport === 'http' && era === '2025') {
+    return { abortable: proof === 'PROVEN-negatively', proofClass: '2025 HTTP negative message-silence proof (stream/session remains open)' };
+  }
+  return { abortable: false, proofClass: 'unknown transport/era combination' };
+}
+
 module.exports = {
   InterceptorChain,
   InterceptorError,
@@ -722,4 +1158,33 @@ module.exports = {
   isTimeoutError,
   redactPayload,
   sortMutations,
+  // Cancellation / abort audit (Batches 181, 184, 186, 188).
+  CANCELLATION_TRIPLE,
+  cancellationPageSaysMustNotRespond,
+  serverCancelledExpected,
+  serverCancelledAbsenceVerdict,
+  sessionCloseCancels,
+  modernOnlyLegacyResponse,
+  sessionClosedImpliesAllCancelled,
+  INITIALIZE_NON_CANCELLABILITY_2026,
+  canPoolObservations,
+  proofSetKey,
+  AUDIT_TUPLE_FIELDS,
+  validateAuditTuple,
+  makeAbortAuditEntry,
+  normalizeSignalForm,
+  computeW,
+  classifyCancelObservation,
+  AbortProofSet,
+  claimServerStoppedFromMessageSilence,
+  evaluateHttpAbort,
+  isProtocolObservation,
+  JSON_SERVER_OBLIGATION,
+  TS_V2_MECHANISM,
+  RUNTIME_SIGNAL_TABLE,
+  runtimeSignalStatus,
+  nodeSignalPresent,
+  NODE_HANDLER_EDGES,
+  GATE3_UNCHANGED_COMPANIONS,
+  gate3Abortable,
 };

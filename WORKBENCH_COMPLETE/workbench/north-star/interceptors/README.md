@@ -71,6 +71,140 @@ Other rules enforced in code, not just documented:
   not an MCP-native method — it does not gate a local resident model,
   and this module does not implement it as one.
 
+## Cancellation / abort audit (Batches 181, 184, 186, 188)
+
+A record + classifier for abort observations, appended to
+`interceptors.cjs` without touching round-1 chain behaviour. It starts
+no server and measures no latency: observations are data handed in,
+and the functions normalize them, classify them, and decide what proof
+(if any) they carry.
+
+- **Cancellation triple (181, verified against spec text).** Servers
+  receiving cancellation SHOULD stop processing, free resources, and
+  not send a response; MAY ignore it if the request is unknown,
+  processing already completed, or the request cannot be cancelled;
+  the client SHOULD ignore any late response. PRECISION: the
+  cancellation page itself says SHOULD-not-send-a-response, NOT MUST —
+  the MUST comes from the base notification rule and the transport
+  page's MUST NOT send further messages. Never quote the cancellation
+  page as saying MUST-not-respond; quote the transport page for that.
+- **Stateless revision (181).** Server-sent `notifications/cancelled`
+  is narrowed to subscription teardown ONLY (servers MUST NOT send it
+  for any other purpose) — so "no server cancelled message" for a tool
+  call is never a failed abort, on either era. Session channels are
+  GONE: closing a session, a standalone GET stream, or DELETE no
+  longer cancels anything; modern-only servers answer GET/DELETE with
+  405 and ignore `Mcp-Session-Id` entirely; cancellation is
+  per-request only, and "session closed, therefore all requests
+  cancelled" is invalid on 2026. No initialize to protect (the 2025
+  non-cancellability rule is moot). Stdio cancellation is UNCHANGED
+  in mechanism, so stdio observations are era-independent and may
+  pool across eras; HTTP observations must NOT pool across eras.
+- **Audit tuple (181).** Every audit entry must carry (era,
+  transport, signal form, mode, W formula + frozen baseline version)
+  or the proof is not comparable across observations.
+  `makeAbortAuditEntry` throws on an incomplete tuple rather than
+  recording an incomparable observation.
+- **Stdio W rule (181).** `W_tool(mode)` = frozen p99(mode) when
+  n_mode >= 1000, else 2 × frozen p95(mode), measured from cancel
+  dispatch. CAP: if the level timeout remaining at cancel is less
+  than W, the observation is TRUNCATED and recorded as inconclusive
+  — W is NEVER shortened to fit inside the remaining budget.
+  PROOF THRESHOLD: PROVEN-negatively requires >= 3 silent windows
+  (three independent cancels, same tool + mode + transport + era),
+  not one. PROGRESS after cancel breaks silence for that window
+  (race/inconclusive, not a counted silence, not a disproof on its
+  own) and does NOT extend W. A LATE RESPONSE after W but before
+  the level timeout does NOT retroactively disprove the abort, but
+  DOES demote that observation (removed from the counted proof set;
+  the set must regain three silences). PATTERN RULE: late responses
+  on >= 2 observations within a proof set revert the tool to
+  DECLARED and require a fresh proof set. POSITIVE DISPROOF
+  (separate, sticky): an observed side effect after cancel on a tool
+  claimed read-only, or a message attributable to work that started
+  after cancel — attribution separates disproof from race, and a
+  bare late response never carries it.
+- **2026 HTTP replacement (181).** The window W uses the same
+  duration formula, but the observation is "no SIDE EFFECT observed
+  within W", NOT "no message". For a read-only tool that observation
+  is vacuous, so HTTP read-only abortability is recorded as the
+  distinct qualifier PROVEN-client-abandonment, NOT
+  PROVEN-server-stopped (residual risk is server load, not
+  correctness). For non-read-only HTTP tools the question does not
+  arise: rescue is already barred by never-hedge-commits, so no HTTP
+  write tool ever needs a protocol-abort proof for rescue.
+  Server-side stopping on HTTP must NOT be claimed from message
+  silence (it is transport-guaranteed, hence circular).
+- **Signal form unified (184).** For 2026 HTTP observations the
+  signal form is single-valued "POST abort". Round 1's code contained
+  no SSE-vs-JSON signal-form split (verified by grep), so there was
+  nothing to remove — the unified field is new. The response form is
+  unknowable at cancel time, and splitting it invents data. The one
+  exception: a post-response SSE close tearing down an existing
+  subscription stream keeps "stream-close" (that stream existed).
+  The original label is preserved as `relabeledFrom` so a mislabel
+  stays auditable.
+- **JSON server-obligation (184).** Recorded as a
+  plausible-but-unscoped MUST-treat-disconnect reading with its
+  stated limits — explicitly NOT a verbatim spec rule. The C#
+  stateless-token sentence is mechanism evidence only, NOT
+  client-observable proof; do not quote the C# page as saying 2026
+  HTTP clients send `notifications/cancelled` — they do not. Timing
+  remains NOT-GUARANTEED (a handler that never checks its signal
+  still runs to completion; SHOULD-stop-as-soon-as-practical limit).
+- **TS SDK v2 mechanism (186).** `PerRequestHTTPServerTransport`
+  cancels the WHOLE EXCHANGE on client disconnect,
+  response-form-independent, CONDITIONED on the runtime providing an
+  abort signal ("when the runtime provides an abort signal on it").
+  Runtime-condition table: Workers/Deno/Bun = signal-native; Node =
+  adapter-dependent (resolved by 188). Legacy sessionful
+  `StreamableHTTPServerTransport` is OUT OF SCOPE (modern leg only).
+  The transport's connection-closed rejection is about the
+  exchange's promise, not a forced kill of handler code. The HTTP
+  server-stopped question is CLOSED for plain tools/call: record
+  "client-abandonment" as the proven claim and stop carrying "is
+  there a client-observable channel?" as an open question; re-open
+  only on a new protocol channel (a spec sentence or SDK client-side
+  signal). Boundary: task-shaped invocations are NOT ruled on.
+  Operator-side evidence (server logs/metrics, latency, contention)
+  is real for the operator but is NOT a protocol observation and
+  must not be recorded as one.
+- **JSON case status (186) — provenance, read honestly.** Mechanism
+  SDK-documented (TS v2 per-request transport, runtime-conditioned),
+  spec wording STILL unverified. The `perRequestTransport.ts` source
+  lines were NOT read in that batch (GitHub fetch failed; typedoc
+  docs used instead) — if source later contradicts the docs, source
+  wins. The Node row below, by contrast, IS adapter-source-backed
+  (Batch 188).
+- **Node row resolved (188).** `toNodeHandler` synthesizes a
+  per-request web AbortSignal via res `close` ONLY (not req close,
+  not aborted, not response finish), with a finished guard (close
+  after full stream does not abort — correct, nothing left to
+  cancel). Plain/Express/Fastify mounts = signal synthesized (same
+  underlying Node req/res objects). Hono = runtime-dependent,
+  UNVERIFIED (Hono does not use `toNodeHandler`; `@hono/node-server`
+  unexamined) — the Node row must read exactly that split, never a
+  blanket "Node: yes". Hand-wired `toWebRequest` audit rule: signal
+  present IFF the request came through `toNodeHandler` OR an
+  explicit signal option — a direct `toWebRequest` caller that omits
+  the option gets a signal-less Request, and the audit must check
+  the path, not assume. Half-open socket edge: a disconnect that
+  leaves the response object un-closed does not abort. JSON thread
+  is CLOSED end to end except spec wording (still unverified);
+  timing still NOT-GUARANTEED. Do NOT re-open the Node sub-gap
+  without a new adapter version.
+- **Gate 3 restated (181).** "abortable = PROVEN in the audit, with a
+  class-appropriate proof" — where for 2026 HTTP read-only tools
+  PROVEN means the client-abandonment qualifier, and for stdio tools
+  PROVEN means the >= 3-silence set (2025-era HTTP keeps its
+  negative message-silence proof, since the stream/session remains
+  open). Other gates unchanged: multi-path hedging,
+  never-hedge-commits, level-boundary wait, RULE 6, breaker, drift
+  rules, and the companion gates (read-only + idempotent, zero
+  progress, single re-issue, budget fit, separate rescue-rate
+  metric). Per-mode T_stuck is the plan-executor worker's area and
+  is referenced here only via the gate-3 wording, not duplicated.
+
 ## Rule-to-batch mapping
 
 | Rule | Batches |

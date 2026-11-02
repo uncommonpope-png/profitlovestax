@@ -18,8 +18,9 @@ SEP-2484 conformance — host trust judgments are not protocol-observable
 - `node WORKBENCH_COMPLETE/workbench/north-star/interceptors/interceptors.test.cjs`
 
 Test totals, each re-run by the coordinator from the assembled branch location:
-verifier 47/47, plan-executor 22/22, provenance 19/19, interceptors 21/21 —
-**109 pass, 0 fail.**
+verifier 47/47, plan-executor 36/36, provenance 19/19, interceptors 40/40 —
+**142 pass, 0 fail** (round 1: 109; round 2 adds 33: plan-executor +14,
+interceptors +19).
 
 ## What each piece implements (mapped to batches)
 
@@ -89,6 +90,42 @@ Audit logging of every invocation with PII redaction (by field name),
 resolved mode, failOpen, source; failOpen false on gates. Methods
 `interceptors/list` + `interceptor/invoke` (SEP's mixed spelling);
 `executeChain` is NOT a method and is rejected.
+
+## Round 2 (Batches 179, 181, 184, 186, 188) — deltas only, round-1 code extended not rewritten
+
+### plan-executor/ — Batch 179: per-mode T_stuck + abort-provability audit
+Per-mode T_stuck for dispatch-observable modes only (own frozen p95/p99/
+version per mode; n floors per mode: <100 = no threshold, 100–999 = 2×p95
+only, ≥1000 = max(2×p95, p99)); post-hoc mode labels refused; unobservable-
+mode tools keep one pooled baseline at max(2×pooled p95, pooled p99) with a
+mode-split investigation (never a blind raise) on a rescue-rate trip;
+mode-share shifts >20% are drift signals that never re-freeze a baseline to
+absorb them. Abortable three-state field (UNKNOWN → DECLARED → PROVEN /
+DISPROVEN, disproof sticky) with hard / cooperative / protocol provability
+classes; protocol proof is negative-only and suffices for read-only tools
+alone; gate 3 now reads "abortable = PROVEN, class-appropriate proof".
+
+### interceptors/ — Batches 181, 184, 186, 188: cancellation audit chapter
+Cancellation triple verified against spec text (SHOULD stop/free/not-respond,
+MAY ignore unknown/completed/uncancellable, SHOULD ignore late responses;
+MUST-not-respond quoted only from the transport page). Stateless revision:
+server-sent cancellation is subscription-teardown only; session channels
+gone; per-request cancel only; stdio pools across eras, HTTP does not.
+Audit entries carry (era, transport, signal form, mode, W formula, baseline
+version). Stdio W = frozen p99 (n≥1000) else 2× frozen p95; truncated
+observations stay inconclusive, never shortened; negative proof needs ≥3
+silences; late-after-W demotes without disproving; ≥2 late responses in a
+proof set revert to DECLARED; positive disproof only via attributed side
+effect. 2026 HTTP: observation is "no side effect within W"; read-only =
+PROVEN-client-abandonment, never server-stopped. Signal form unified to
+single-valued "POST abort" (response form unknowable at cancel time). JSON
+server-obligation is plausible-but-unscoped MUST-treat-disconnect, NOT a
+verbatim rule; TS SDK v2 exchange-cancel is mechanism-documented
+(runtime-conditioned, typedoc not source lines); Node row resolved via
+toNodeHandler res-close synthesis (plain/Express/Fastify) with Hono
+runtime-dependent and unverified; hand-wired toWebRequest callers must be
+audited for a missing signal. JSON thread CLOSED except spec wording;
+timing still NOT-GUARANTEED.
 
 ## Out of scope (watch/citation-only — NOT built, correctly)
 Fork PR watch (Degiorgio#3 / upstream #2624 two-step trigger), OATR

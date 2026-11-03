@@ -3993,6 +3993,245 @@ function checkPilotSampledStepCompliance206(pilot) {
   };
 }
 
+/**
+ * Batch 208 — SWE-PRM in full (Gandhi et al., arXiv:2509.02360).
+ * Three decisions, spec/harness only. NO live periodic critic stage,
+ * NO model, NO inference cost. SWE-PRM is a prompted LLM critic, NOT
+ * a trained scalar reward head: every n=5 steps it receives the
+ * problem description plus the most recent k=8 transcript steps and
+ * returns natural-language guidance framed in a 12-category taxonomy,
+ * each category paired with a recovery action (paper §3.2.1, §5.3).
+ * Batch 208 did NOT quote the per-category recovery actions
+ * individually, so this module records the taxonomy + ledger mapping
+ * and does NOT invent recovery-action text per category.
+ *
+ * DECISION 1 — NO live periodic critic stage on the resident tier.
+ * The same-model evidence is negative: SWE-agent-LM-32B as its own
+ * critic scores AT OR BELOW base on every variant (best taxonomy
+ * variant PRMD 38.8%, −1.2 pp; unguided PRMS 19.6%, −20.4 pp, patch
+ * generation collapsing to 67.6%), on a 32B policy 8x the resident
+ * tier. The frontier-critic gain (PRMD 50.6%, +10.6 pp, Claude-
+ * Sonnet-4 critic) is key-dependent and therefore forbidden as a
+ * live dependency (a key only adds, never required). The flag rate
+ * (PRMD marks 7.21 of 7.24 invocations suboptimal, ~99.6%) says the
+ * mechanism is a periodic nudge, not a detector — and the paper
+ * reports no per-window flag accuracy, no false-positive rate, no
+ * within-task decomposition, so +10.6 pp is an outcome gain under a
+ * frontier critic, NEVER a gate AUROC. The 4B same-tier harm
+ * prediction is an extrapolation from 32B, not a 4B measurement.
+ * If a critic stage is ever revisited, its pre-registration MUST
+ * include a same-tier arm AND a flag-accuracy measurement.
+ */
+const SWE_PRM_208 = Object.freeze({
+  source: 'Gandhi, Tsay, Ganhotra, Kate & Rizk (CMU + IBM Research), arXiv:2509.02360, read in full (Batch 208)',
+  artifactName: 'periodic taxonomy-guided critic',
+  forbiddenArtifactNames: ['trained scalar reward head', 'learned step scorer', 'a PRM'],
+  policyModel: 'SWE-agent-LM-32B (fine-tuned Qwen2.5-Coder-32B-Instruct), 8x the resident tier',
+  schedule: Object.freeze({ everyNHops: 5, windowKSteps: 8, maxSteps: 75, temperature: 0 }),
+  frontierCritic: Object.freeze({ critic: 'Claude-Sonnet-4', baseResolution: 0.40, prmdResolution: 0.506, prmdGainPp: 10.6, note: 'Outcome gain under a frontier critic, NOT a gate AUROC — no per-window flag accuracy, no false-positive rate, no within-task decomposition reported' }),
+  sameModelCritic: Object.freeze({ policy: 'SWE-agent-LM-32B as its own critic', baseResolution: 0.40, bestTaxonomyVariant: Object.freeze({ variant: 'PRMD', resolution: 0.388, deltaPp: -1.2 }), unguidedVariant: Object.freeze({ variant: 'PRMS', resolution: 0.196, deltaPp: -20.4, patchGeneration: 0.676 }), verdict: 'Every same-model variant at or below base — PREDICTED TO HARM OR DO NOTHING on the resident tier, not merely unproven' }),
+  flagRate: Object.freeze({ prmdFlagged: 7.21, prmdInvocations: 7.24, prmdFlagRate: 0.996, verdict: 'A detector that fires on essentially every window is not discriminating windows — a prompt, not a gate' }),
+  costNote: 'Paper costs ($25.98/100 PRMD vs $2.77 base, July 2025 Together/Anthropic cloud rates) are CLOUD prices, never north-star local-machine costs — quoting them as local costs throws',
+});
+
+/**
+ * The 12-category taxonomy (Batch 208, paper §3.2.1), in three
+ * families, with the ledger mapping Batch 208 Decision 2 assigns.
+ * Two categories are NEW ledger event types (never named as their
+ * own class before: step repetition was only implicit in Batch 11
+ * prefix status; termination unawareness is a stop-detection failure,
+ * not a wrong-action failure). Four categories have NO explicit
+ * Batch 208 mapping — they are recorded as NEEDING the Batch 208
+ * Q9 taxonomy-to-ledger mapping audit, never silently mapped.
+ * Per-category recovery actions are NOT recorded here: Batch 208
+ * quotes the pairing (one recovery action per category) but not the
+ * individual action texts — inventing them would be fabrication.
+ */
+const SWE_PRM_TAXONOMY_208 = Object.freeze([
+  Object.freeze({ category: 'task-specification violation', family: 'Specification errors', ledgerMapping: 'Batch 17 provenance (a value or action untraceable to the request)', isNewEventType: false }),
+  Object.freeze({ category: 'role-specification violation', family: 'Specification errors', ledgerMapping: 'Batch 17 provenance (a value or action untraceable to the request)', isNewEventType: false }),
+  Object.freeze({ category: 'step repetition', family: 'Specification errors', ledgerMapping: 'NEW ledger event type: re-executing a completed action (the loop signature)', isNewEventType: true }),
+  Object.freeze({ category: 'termination unawareness', family: 'Specification errors', ledgerMapping: 'NEW ledger event type: an action after the completion predicate fired (stop-detection failure)', isNewEventType: true }),
+  Object.freeze({ category: 'problem misidentification', family: 'Reasoning errors', ledgerMapping: 'UNMAPPED — needs the Batch 208 Q9 taxonomy-to-ledger mapping audit', isNewEventType: false }),
+  Object.freeze({ category: 'tool-selection error', family: 'Reasoning errors', ledgerMapping: 'Batch 3 Select', isNewEventType: false }),
+  Object.freeze({ category: 'hallucination', family: 'Reasoning errors', ledgerMapping: 'Batch 17 untraceable values', isNewEventType: false }),
+  Object.freeze({ category: 'information-processing failure', family: 'Reasoning errors', ledgerMapping: 'UNMAPPED — needs the Batch 208 Q9 taxonomy-to-ledger mapping audit', isNewEventType: false }),
+  Object.freeze({ category: 'task derailment', family: 'Coordination errors', ledgerMapping: 'UNMAPPED — needs the Batch 208 Q9 taxonomy-to-ledger mapping audit (macro drift)', isNewEventType: false }),
+  Object.freeze({ category: 'goal deviation', family: 'Coordination errors', ledgerMapping: 'UNMAPPED — needs the Batch 208 Q9 taxonomy-to-ledger mapping audit (micro drift)', isNewEventType: false }),
+  Object.freeze({ category: 'context-handling failure', family: 'Coordination errors', ledgerMapping: 'Batch 11 prefix/observation status', isNewEventType: false }),
+  Object.freeze({ category: 'verification failure', family: 'Coordination errors', ledgerMapping: 'Batch 4 validator-suite skips', isNewEventType: false }),
+]);
+
+function taxonomyCategory208(name) {
+  const row = SWE_PRM_TAXONOMY_208.find((r) => r.category === name);
+  if (!row) throw new Error(`taxonomyCategory208: unknown SWE-PRM category "${name}" — the taxonomy has exactly 12 categories (Batch 208, paper §3.2.1)`);
+  return { ...row, needsMappingAudit: row.ledgerMapping.startsWith('UNMAPPED') };
+}
+
+function newLedgerEventTypes208() {
+  return SWE_PRM_TAXONOMY_208.filter((r) => r.isNewEventType).map((r) => r.category);
+}
+
+/**
+ * DECISION 1, enforced. A live timeline is exactly the five Batch
+ * 201 stages (Batch 206 pinned this); any live periodic-critic
+ * stage — under any name ("taxonomy critic every 5 hops",
+ * "periodic critic", "stage-5 critic") — throws with the
+ * same-model evidence. A critic stage is revisited ONLY through a
+ * pre-registration carrying a same-tier arm AND a flag-accuracy
+ * measurement; anything else throws here.
+ */
+function assertNoLivePeriodicCriticStage208(timeline) {
+  const given = Array.isArray(timeline) ? timeline : detectorTimeline();
+  const expected = detectorTimeline();
+  if (given.length !== 5 || JSON.stringify(given) !== JSON.stringify(expected)) {
+    const criticLike = given.find((s) => /critic|periodic/i.test(String(s)));
+    if (criticLike) {
+      throw new Error(`assertNoLivePeriodicCriticStage208: REFUSED — no live periodic critic stage on the resident tier (Batch 208 Decision 1). Same-model critic evidence is negative (best taxonomy variant −1.2 pp, unguided −20.4 pp, 32B policy); frontier-critic gains are key-dependent and forbidden as a live dependency; the ~99.6% flag rate makes it a prompt, not a gate. Found live stage "${criticLike}"`);
+    }
+    throw new Error(`assertNoLivePeriodicCriticStage208: REFUSED — Batch 208 adds no live stage and removes none. Expected the five Batch 201 stages in order: ${expected.join(' → ')}; got: ${given.join(' → ')}`);
+  }
+  return { liveCriticStage: false, stages: expected, decision: 'Batch 208 Decision 1: no live periodic critic stage on the resident tier' };
+}
+
+function assertCriticRevisitPreregistration208(prereg) {
+  if (!prereg || typeof prereg !== 'object') throw new Error('assertCriticRevisitPreregistration208: a critic-stage revisit needs a pre-registration object');
+  if (!prereg.sameTierArm) throw new Error('assertCriticRevisitPreregistration208: REFUSED — a critic-stage revisit MUST include a same-tier arm (Batch 208 Decision 1). The only same-model data point is negative (32B, −1.2 pp best taxonomy variant); a 4B claim without a same-tier arm is unregistered');
+  if (!prereg.flagAccuracyMeasurement) throw new Error('assertCriticRevisitPreregistration208: REFUSED — a critic-stage revisit MUST include a flag-accuracy measurement (Batch 208 Decision 1). A critic that fires ~99.6% of the time is a prompt, not a gate, until its flag accuracy is measured');
+  return { revisitPreregistered: true, sameTierArm: true, flagAccuracyMeasurement: true };
+}
+
+/**
+ * Citation discipline (Batch 208). The artifact name, the outcome
+ * gain, and the costs each have exactly one honest quoting form.
+ */
+function assertCriticName208(description) {
+  const text = String(description || '');
+  for (const forbidden of SWE_PRM_208.forbiddenArtifactNames) {
+    if (text.toLowerCase().includes(forbidden.toLowerCase())) {
+      throw new Error(`assertCriticName208: REFUSED — SWE-PRM is a prompted LLM critic, NOT "${forbidden}" (Batch 208). Quote it as "periodic taxonomy-guided critic" or the design will be misread as a cheap scalar head`);
+    }
+  }
+  return { artifactName: SWE_PRM_208.artifactName };
+}
+
+function assertSwePrmOutcomeQuote208(quote) {
+  if (!quote || typeof quote !== 'object') throw new Error('assertSwePrmOutcomeQuote208: quote must be an object');
+  if (/auroc|detector|detection accuracy/i.test(String(quote.as || ''))) {
+    throw new Error('assertSwePrmOutcomeQuote208: REFUSED — the +10.6 pp PRMD figure is an outcome gain under a frontier critic, NEVER a gate AUROC (Batch 208). The paper reports no per-window flag accuracy, no false-positive rate, no within-task decomposition');
+  }
+  if (quote.costsAsLocal) {
+    throw new Error('assertSwePrmOutcomeQuote208: REFUSED — paper costs are July 2025 Together/Anthropic CLOUD prices, never north-star local-machine costs (Batch 208)');
+  }
+  if (quote.gainPp !== undefined && quote.gainPp !== SWE_PRM_208.frontierCritic.prmdGainPp) {
+    throw new Error(`assertSwePrmOutcomeQuote208: PRMD frontier-critic gain is +10.6 pp on SWE-bench Verified (500 instances), not ${quote.gainPp} (Batch 208)`);
+  }
+  return { quotedAs: 'outcome gain under a frontier critic (Claude-Sonnet-4 critic, SWE-agent-LM-32B policy, SWE-bench Verified)', gainPp: SWE_PRM_208.frontierCritic.prmdGainPp };
+}
+
+/**
+ * DECISION 2 — ledger labels. labelTrajectoryWindow208 takes a
+ * completed-trajectory window (already logged, never live) and a
+ * taxonomy category, and returns a label record. The label is a
+ * ledger entry + a per-category diagnostic input for the growth-
+ * proof set (share of trajectories touching each category, per
+ * routine, alongside Batch 16's multiplicity diagnostic). It is
+ * NOT a gate decision and NOT training data on its own.
+ */
+function labelTrajectoryWindow208(window) {
+  if (!window || typeof window !== 'object') throw new Error('labelTrajectoryWindow208: window must be an object');
+  const row = taxonomyCategory208(window.category);
+  if (!Array.isArray(window.steps) || window.steps.length === 0) throw new Error('labelTrajectoryWindow208: a labeled window needs logged steps (the offline pass runs over completed trajectories, never live hops)');
+  return { label: row.category, family: row.family, ledgerMapping: row.ledgerMapping, isNewEventType: row.isNewEventType, steps: window.steps.length, usage: 'ledger entry + growth-proof per-category diagnostic only — not a gate decision, not training data by itself' };
+}
+
+/**
+ * A category that never fires on personal routines is a DEAD label
+ * and must be dropped, not kept for symmetry with SWE-bench
+ * (Batch 208 Decision 2). firedOnPersonalRoutines: boolean.
+ */
+function deadLabelCheck208(check) {
+  if (!check || typeof check !== 'object') throw new Error('deadLabelCheck208: check must be an object');
+  taxonomyCategory208(check.category);
+  if (check.firedOnPersonalRoutines === false) {
+    return { category: check.category, verdict: 'DROP — dead label: never fired on personal routines; do not keep for symmetry with SWE-bench (Batch 208 Decision 2)' };
+  }
+  return { category: check.category, verdict: 'KEEP — fired on personal routines' };
+}
+
+/**
+ * DECISION 3 — offline critic placement + promotion rule. The
+ * offline pass runs during the sleep job over LOGGED completed
+ * trajectories, same cadence as the paper (8-step window, every 5
+ * hops), category + recovery action per window, producing labeled
+ * correction data for the QLoRA adapter (Batch 2) and the category
+ * diagnostic. Non-destructive ONLY: guidance is appended to
+ * reasoning and freely ignorable, never an abort, discard, or
+ * forced action (Batch 13 Decision 2, Batch 16) — the
+ * action-prescriptive variant PRMDR shortens runs but LOSES
+ * accuracy (44.8% vs PRMD 50.6%), so prescription is refused.
+ * Near-always flags are harmless offline ONLY because flags become
+ * training labels verified against outcomes — so a label is usable
+ * for training ONLY when outcome-corroborated (the flagged window
+ * actually preceded failure); otherwise it stays diagnostic.
+ */
+function assertOfflineCriticNonDestructive208(intervention) {
+  const kind = String((intervention && intervention.kind) || '');
+  if (/abort|discard|block|forced-action|prescribe/i.test(kind)) {
+    throw new Error(`assertOfflineCriticNonDestructive208: REFUSED — offline critic guidance is appended and ignorable, never "${kind}" (Batch 208 Decision 3; Batch 13 Decision 2; Batch 16). PRMDR's explicit next-action prescription shortens runs but loses accuracy (44.8% vs PRMD 50.6%)`);
+  }
+  return { nonDestructive: true, shape: 'guidance appended to reasoning, freely ignorable' };
+}
+
+function offlineCriticLabel208(label) {
+  if (!label || typeof label !== 'object') throw new Error('offlineCriticLabel208: label must be an object');
+  const row = taxonomyCategory208(label.category);
+  if (label.outcomeCorroborated === true) {
+    return { category: row.category, usableForTraining: true, note: 'Flag verified against outcomes (the flagged window actually preceded failure) — eligible as QLoRA correction data, subject to the promotion rule' };
+  }
+  return { category: row.category, usableForTraining: false, note: 'Diagnostic only — uncorroborated flags never become training data (Batch 208 Decision 3 calibration pass)' };
+}
+
+function offlineCriticPromotion208(result) {
+  if (!result || typeof result !== 'object') throw new Error('offlineCriticPromotion208: result must be an object');
+  if (!result.withinRoutines) throw new Error('offlineCriticPromotion208: REFUSED — the promotion comparison runs WITHIN routines (Batch 208 Decision 3, by analogy with Batch 15\'s learned-weights bar). A pooled cross-routine win does not promote');
+  if (typeof result.criticTrainedScore !== 'number' || typeof result.personTrainedScore !== 'number') throw new Error('offlineCriticPromotion208: criticTrainedScore and personTrainedScore are required numbers');
+  if (result.criticTrainedScore > result.personTrainedScore) {
+    return { promoted: true, verdict: 'Critic-labeled corrections beat person-correction labels alone, within routines — the offline critic pass earns its place as training data (Batch 208 Decision 3)' };
+  }
+  return { promoted: false, verdict: 'DIAGNOSTIC ONLY — critic-labeled corrections did not beat person-correction labels alone within routines; the critic pass stays a diagnostic (Batch 208 Decision 3)' };
+}
+
+/**
+ * Composite offline-critic spec check (Batch 208): cadence, window,
+ * non-destructive shape, calibration, promotion rule — all as a
+ * SPEC. spec: { cadence: { everyNHops, windowKSteps },
+ * intervention, promotionResult? }. executed is always false: no
+ * critic was run, no taxonomy label was applied to a personal
+ * trajectory, and the 4B same-tier harm prediction is an
+ * extrapolation from 32B, not a 4B measurement.
+ */
+function checkOfflineCriticSpec208(spec) {
+  if (!spec || typeof spec !== 'object') throw new Error('checkOfflineCriticSpec208: spec must be an object');
+  const cadence = spec.cadence || {};
+  if (cadence.everyNHops !== SWE_PRM_208.schedule.everyNHops || cadence.windowKSteps !== SWE_PRM_208.schedule.windowKSteps) {
+    throw new Error(`checkOfflineCriticSpec208: the offline pass uses the paper cadence — every ${SWE_PRM_208.schedule.everyNHops} hops, ${SWE_PRM_208.schedule.windowKSteps}-step window (Batch 208 Decision 3). Got every ${cadence.everyNHops} hops, ${cadence.windowKSteps}-step window`);
+  }
+  const shape = assertOfflineCriticNonDestructive208(spec.intervention || { kind: 'append-guidance' });
+  const labels = (spec.labels || []).map((l) => offlineCriticLabel208(l));
+  const promotion = spec.promotionResult ? offlineCriticPromotion208(spec.promotionResult) : { promoted: false, verdict: 'UNDECIDED — promotion test (Batch 208 Q10) not yet run; the pass is diagnostic only until it passes' };
+  return {
+    batch: 208,
+    verdict: 'SPEC OK',
+    cadence: { everyNHops: 5, windowKSteps: 8 },
+    shape,
+    labels,
+    promotion,
+    executed: false,
+    note: 'Spec only — no critic was run, no label was applied to a personal trajectory. SCORE (weak-self-verifier failure) is still unread in full; the Q9 mapping audit and Q10 promotion test design are owed, not done here',
+  };
+}
+
 module.exports = {
   percentile,
   median,
@@ -4143,4 +4382,19 @@ module.exports = {
   assertPilotReportLabels,
   assertTierOrderUnchanged206,
   checkPilotSampledStepCompliance206,
+  // Batch 208: SWE-PRM taxonomy as ledger labels + offline critic spec (spec, unexecuted).
+  SWE_PRM_208,
+  SWE_PRM_TAXONOMY_208,
+  taxonomyCategory208,
+  newLedgerEventTypes208,
+  assertNoLivePeriodicCriticStage208,
+  assertCriticRevisitPreregistration208,
+  assertCriticName208,
+  assertSwePrmOutcomeQuote208,
+  labelTrajectoryWindow208,
+  deadLabelCheck208,
+  assertOfflineCriticNonDestructive208,
+  offlineCriticLabel208,
+  offlineCriticPromotion208,
+  checkOfflineCriticSpec208,
 };

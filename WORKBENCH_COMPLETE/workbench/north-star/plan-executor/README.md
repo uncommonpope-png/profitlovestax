@@ -3,7 +3,7 @@
 Node.js, CommonJS, zero dependencies. Runs with plain `node`.
 
 ```sh
-node plan-executor.test.cjs   # 130 tests, exit 0 on pass
+node plan-executor.test.cjs   # 145 tests, exit 0 on pass
 ```
 
 ## What it implements
@@ -85,6 +85,10 @@ executor }`. `prefix` is the list of completed levels only.
 | Sampled-step compliance check of the Batch 197 pilot: PASS on all four rules — Rule 1 with its verb scope (decisions ON generated candidates; pre-generation suggestions like Batch 3 Plan–Retrieve–Select top-1 are not gate decisions), Rule 2 PASS VACUOUSLY recorded as "no sampled pool exists" (one call per arm, greedy/temperature 0, fresh context per arm), Rule 3 absolute abort bars (valid@1 down > 2, ExecRate down > 3, multi-turn final-state ≤ 0 with single-hop positive) with McNemar as a measurement not a cull, Rule 4 reported quantities on complete calls with the logprob margin kept separate as a gate input | 206 | `PILOT_COMPLIANCE_206`, `classifyPilotStep()`, `pilotRule2VacuousPass()`, `assertPilotAbsoluteBars()`, `mcnemarMeasurement()`, `assertPilotReportLabels()`, `checkPilotSampledStepCompliance206()` |
 | Pilot pre-registration AMENDMENT (before any task runs): A-rec runs as ADVISE-ALL — hint on every task, no logprob-margin gate on hint delivery; any margin-gated hint variant is REFUSED inside the pilot. Logprob-margin hint gating is PARKED as a separate post-pilot arm (gated-vs-advise-all comparison, if wanted). Rationale: Chen's gated variant (hint only below the per-model MEDIAN name margin; gated 0.579, worse than advise-all 0.590) is a RELATIVE threshold (fails Rule 3's fraction-regardless-of-quality test) and its margin is computed on the selector's name output before arguments are written (Rule 1 ambiguity); advise-all removes both in one stroke. The margin stays logged in the Batch 4 audit row, labeled "gate input, pre-generation" if reported alongside AST deltas, never "confidence in the call" | 206 | `PILOT_AMENDMENT_206`, `assertAdviseAllArec()`, `advisoryArmSpec()` gated-variant refusal, `postPilotGatedComparisonArm()`, `assertPostPilotArmNotInPilot()`, `checkRelativeThresholdGate()`, `assertNoMedianMarginGateInPilot()` |
 | Carried cautions, enforced: the Healy-gate ban is what keeps Rule 2 vacuous — any future pilot revision adding ANY sampled arm (Healy sampling arms, Slim-SC dedup arm) re-applies Rule 2 in full (within Batch 16 Class 1 equivalence clusters only, one representative per cluster; "prune duplicates" without the cluster definition attached is NOT compliance). No change to the disputed-hop tier order: this check adds no stage and removes none | 206 | `assertFuturePilotSampledArm()`, `assertHealyNotPilotArm()` in the composite, `assertTierOrderUnchanged206()` |
+| NO live periodic critic stage on the resident tier: SWE-PRM (Gandhi et al., arXiv:2509.02360) is a prompted LLM critic every 5 steps over the last 8 transcript steps, NOT a trained scalar reward head — same-model critic scores at or below base on every variant (best taxonomy variant −1.2 pp, unguided −20.4 pp, 32B policy 8× the resident tier); frontier-critic gain (+10.6 pp) is key-dependent and forbidden as a live dependency; ~99.6% flag rate makes it a prompt, not a gate. A revisit needs a same-tier arm AND a flag-accuracy measurement | 208 | `assertNoLivePeriodicCriticStage208()`, `assertCriticRevisitPreregistration208()`, `SWE_PRM_208` |
+| SWE-PRM taxonomy STOLEN as ledger labels, not as a model: 12 categories in three families (Specification / Reasoning / Coordination), mapped to existing ledger fields where Batch 208 maps them; TWO new ledger event types (step repetition = re-executing a completed action; termination unawareness = acting after the completion predicate fired); four categories UNMAPPED pending the Q9 audit, never silently mapped; per-category recovery actions NOT recorded (Batch 208 quotes the pairing, not the individual texts). A category that never fires on personal routines is a dead label and drops | 208 | `SWE_PRM_TAXONOMY_208`, `taxonomyCategory208()`, `newLedgerEventTypes208()`, `labelTrajectoryWindow208()`, `deadLabelCheck208()` |
+| Offline critic placement + promotion rule: the taxonomy-guided pass runs in the sleep job over LOGGED completed trajectories (same cadence: 8-step window, every 5 hops), guidance appended and ignorable only — abort, discard, and prescription all refused (PRMDR prescription shortens runs but loses accuracy, 44.8% vs PRMD 50.6%). Labels become training data ONLY when outcome-corroborated; critic-labeled corrections earn their place ONLY by beating person-correction labels alone WITHIN routines, otherwise the pass stays diagnostic only | 208 | `checkOfflineCriticSpec208()`, `assertOfflineCriticNonDestructive208()`, `offlineCriticLabel208()`, `offlineCriticPromotion208()` |
+| Citation discipline for SWE-PRM: the artifact is quoted as "periodic taxonomy-guided critic" only; +10.6 pp is an outcome gain under a frontier critic, never a gate AUROC (no per-window flag accuracy, no false-positive rate, no within-task decomposition reported); paper costs are July 2025 cloud prices, never local-machine costs | 208 | `assertCriticName208()`, `assertSwePrmOutcomeQuote208()` |
 
 ### Signal convention
 
@@ -164,6 +168,17 @@ otherwise, and the Batch 16 three-class split is untouched here.
   reading (upward re-freeze as a recorded sleep-job decision, never
   automatic) is not enforced by this function; callers that want it
   should gate upward re-freezes on a recorded decision.
+- **Round-11 taxonomy labels + offline critic spec are a spec, NOT executed (Batch 208).**
+  No critic was run, no taxonomy label was applied to a personal
+  trajectory, and the 4B same-tier harm prediction is an extrapolation
+  from 32B same-model results, not a 4B measurement — the 4B tier
+  could be worse (weaker self-critique) or more legible, and no 4B
+  critic data exists in this paper to decide. Whether the ~99.6% flag
+  rate is a prompt artifact or a true base rate is unmeasured and
+  matters for the offline calibration pass. SCORE (weak-self-verifier
+  failure) is still unread in full; the Q9 taxonomy-to-ledger mapping
+  audit and the Q10 promotion test design are owed, not done here.
+  The Batch 205 fork-base wording flag was NOT resolved or cited here.
 - **Round-10 compliance check + amendment is a spec, NOT executed (Batch 206).**
   No task was run, no hint was tested, no AST number exists here for
   personal tasks — the four-rule PASS and the advise-all amendment are

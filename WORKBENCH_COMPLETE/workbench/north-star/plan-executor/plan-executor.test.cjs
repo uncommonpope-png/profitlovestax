@@ -139,6 +139,20 @@ const {
   assertPilotReportLabels,
   assertTierOrderUnchanged206,
   checkPilotSampledStepCompliance206,
+  SWE_PRM_208,
+  SWE_PRM_TAXONOMY_208,
+  taxonomyCategory208,
+  newLedgerEventTypes208,
+  assertNoLivePeriodicCriticStage208,
+  assertCriticRevisitPreregistration208,
+  assertCriticName208,
+  assertSwePrmOutcomeQuote208,
+  labelTrajectoryWindow208,
+  deadLabelCheck208,
+  assertOfflineCriticNonDestructive208,
+  offlineCriticLabel208,
+  offlineCriticPromotion208,
+  checkOfflineCriticSpec208,
 } = require('./plan-executor.cjs');
 
 const read = (id, dependsOn, run) => ({ id, dependsOn, kind: 'read', readOnly: true, run: run || (async () => `${id}-done`) });
@@ -1901,4 +1915,137 @@ test('Batch 206: round 10 composes with rounds 5–9 without weakening them; the
   assert.equal(PILOT_AMENDMENT_206.status, 'PRE-REGISTRATION amendment — recorded BEFORE any task runs; no task run, no hint tested');
   assert.equal(PILOT_COMPLIANCE_206.executed, false);
   assert.equal(checkPilotSampledStepCompliance206(amendedPilot206()).executed, false);
+});
+
+// ------------------------------------------------------------ Batch 208
+
+test('Batch 208 decision 1: no live periodic critic stage — any live critic stage throws with the same-model evidence', () => {
+  const timeline = detectorTimeline();
+  assert.equal(assertNoLivePeriodicCriticStage208(timeline).liveCriticStage, false);
+  assert.equal(assertNoLivePeriodicCriticStage208().stages.length, 5);
+  assert.throws(() => assertNoLivePeriodicCriticStage208([...timeline, 'periodic-critic']), /no live periodic critic stage/);
+  assert.throws(() => assertNoLivePeriodicCriticStage208([...timeline, 'taxonomy critic every 5 hops']), /−1\.2 pp/);
+  assert.throws(() => assertNoLivePeriodicCriticStage208(timeline.slice(1)), /adds no live stage and removes none/);
+});
+
+test('Batch 208 decision 1: same-model evidence recorded — negative, on a 32B policy 8x the resident tier', () => {
+  assert.equal(SWE_PRM_208.sameModelCritic.bestTaxonomyVariant.deltaPp, -1.2);
+  assert.equal(SWE_PRM_208.sameModelCritic.unguidedVariant.deltaPp, -20.4);
+  assert.equal(SWE_PRM_208.sameModelCritic.unguidedVariant.patchGeneration, 0.676);
+  assert.match(SWE_PRM_208.sameModelCritic.verdict, /PREDICTED TO HARM OR DO NOTHING/);
+  assert.equal(SWE_PRM_208.flagRate.prmdFlagRate, 0.996);
+  assert.match(SWE_PRM_208.flagRate.verdict, /a prompt, not a gate/);
+});
+
+test('Batch 208 decision 1: a critic revisit needs a same-tier arm AND a flag-accuracy measurement', () => {
+  assert.equal(assertCriticRevisitPreregistration208({ sameTierArm: true, flagAccuracyMeasurement: true }).revisitPreregistered, true);
+  assert.throws(() => assertCriticRevisitPreregistration208({ flagAccuracyMeasurement: true }), /same-tier arm/);
+  assert.throws(() => assertCriticRevisitPreregistration208({ sameTierArm: true }), /flag-accuracy measurement/);
+});
+
+test('Batch 208 citation discipline: the artifact is a prompted critic, never a scalar head', () => {
+  assert.equal(assertCriticName208('periodic taxonomy-guided critic').artifactName, 'periodic taxonomy-guided critic');
+  assert.throws(() => assertCriticName208('a trained scalar reward head'), /NOT "trained scalar reward head"/);
+  assert.throws(() => assertCriticName208('a learned step scorer'), /misread as a cheap scalar head/);
+});
+
+test('Batch 208 citation discipline: +10.6 pp is an outcome gain under a frontier critic, never a gate AUROC; costs are cloud prices, never local', () => {
+  const ok = assertSwePrmOutcomeQuote208({ gainPp: 10.6 });
+  assert.equal(ok.gainPp, 10.6);
+  assert.match(ok.quotedAs, /outcome gain under a frontier critic/);
+  assert.throws(() => assertSwePrmOutcomeQuote208({ gainPp: 10.6, as: 'gate AUROC' }), /NEVER a gate AUROC/);
+  assert.throws(() => assertSwePrmOutcomeQuote208({ gainPp: 10.6, costsAsLocal: true }), /CLOUD prices/);
+  assert.throws(() => assertSwePrmOutcomeQuote208({ gainPp: 11.9 }), /\+10\.6 pp/);
+});
+
+test('Batch 208 decision 2: taxonomy has exactly 12 categories in three families', () => {
+  assert.equal(SWE_PRM_TAXONOMY_208.length, 12);
+  const families = [...new Set(SWE_PRM_TAXONOMY_208.map((r) => r.family))].sort();
+  assert.deepEqual(families, ['Coordination errors', 'Reasoning errors', 'Specification errors']);
+  assert.equal(SWE_PRM_TAXONOMY_208.filter((r) => r.family === 'Specification errors').length, 4);
+  assert.equal(SWE_PRM_TAXONOMY_208.filter((r) => r.family === 'Reasoning errors').length, 4);
+  assert.equal(SWE_PRM_TAXONOMY_208.filter((r) => r.family === 'Coordination errors').length, 4);
+});
+
+test('Batch 208 decision 2: exactly two NEW ledger event types — step repetition and termination unawareness', () => {
+  assert.deepEqual(newLedgerEventTypes208(), ['step repetition', 'termination unawareness']);
+  assert.match(taxonomyCategory208('step repetition').ledgerMapping, /NEW ledger event type: re-executing a completed action/);
+  assert.match(taxonomyCategory208('termination unawareness').ledgerMapping, /stop-detection failure/);
+  assert.equal(taxonomyCategory208('step repetition').isNewEventType, true);
+  assert.throws(() => taxonomyCategory208('looping forever'), /exactly 12 categories/);
+});
+
+test('Batch 208 decision 2: known ledger mappings land where Batch 208 says', () => {
+  assert.match(taxonomyCategory208('tool-selection error').ledgerMapping, /Batch 3 Select/);
+  assert.match(taxonomyCategory208('hallucination').ledgerMapping, /Batch 17 untraceable values/);
+  assert.match(taxonomyCategory208('verification failure').ledgerMapping, /Batch 4 validator-suite skips/);
+  assert.match(taxonomyCategory208('context-handling failure').ledgerMapping, /Batch 11 prefix\/observation status/);
+  assert.match(taxonomyCategory208('task-specification violation').ledgerMapping, /Batch 17 provenance/);
+});
+
+test('Batch 208 decision 2: unmapped categories are flagged for the Q9 audit, never silently mapped', () => {
+  for (const name of ['problem misidentification', 'information-processing failure', 'task derailment', 'goal deviation']) {
+    const row = taxonomyCategory208(name);
+    assert.equal(row.needsMappingAudit, true);
+    assert.match(row.ledgerMapping, /UNMAPPED/);
+  }
+  assert.equal(taxonomyCategory208('tool-selection error').needsMappingAudit, false);
+});
+
+test('Batch 208 decision 2: a label is a ledger entry + diagnostic, not a gate decision; a dead label drops', () => {
+  const labeled = labelTrajectoryWindow208({ category: 'step repetition', steps: ['a', 'b', 'a'] });
+  assert.equal(labeled.label, 'step repetition');
+  assert.equal(labeled.isNewEventType, true);
+  assert.match(labeled.usage, /not a gate decision/);
+  assert.throws(() => labelTrajectoryWindow208({ category: 'step repetition', steps: [] }), /logged steps/);
+  assert.match(deadLabelCheck208({ category: 'goal deviation', firedOnPersonalRoutines: false }).verdict, /^DROP — dead label/);
+  assert.match(deadLabelCheck208({ category: 'goal deviation', firedOnPersonalRoutines: true }).verdict, /^KEEP/);
+});
+
+test('Batch 208 decision 3: offline guidance is appended and ignorable — abort, discard, and prescription all throw', () => {
+  assert.equal(assertOfflineCriticNonDestructive208({ kind: 'append-guidance' }).nonDestructive, true);
+  assert.throws(() => assertOfflineCriticNonDestructive208({ kind: 'abort' }), /never "abort"/);
+  assert.throws(() => assertOfflineCriticNonDestructive208({ kind: 'discard' }), /never "discard"/);
+  assert.throws(() => assertOfflineCriticNonDestructive208({ kind: 'prescribe-next-action' }), /never "prescribe/);
+});
+
+test('Batch 208 decision 3: training labels need outcome corroboration — uncorroborated flags stay diagnostic', () => {
+  assert.equal(offlineCriticLabel208({ category: 'verification failure', outcomeCorroborated: true }).usableForTraining, true);
+  assert.equal(offlineCriticLabel208({ category: 'verification failure', outcomeCorroborated: false }).usableForTraining, false);
+  assert.equal(offlineCriticLabel208({ category: 'verification failure' }).usableForTraining, false);
+});
+
+test('Batch 208 decision 3: promotion rule — critic labels earn training only by beating person labels within routines', () => {
+  const promoted = offlineCriticPromotion208({ criticTrainedScore: 0.62, personTrainedScore: 0.58, withinRoutines: true });
+  assert.equal(promoted.promoted, true);
+  const diagnostic = offlineCriticPromotion208({ criticTrainedScore: 0.55, personTrainedScore: 0.58, withinRoutines: true });
+  assert.equal(diagnostic.promoted, false);
+  assert.match(diagnostic.verdict, /DIAGNOSTIC ONLY/);
+  assert.throws(() => offlineCriticPromotion208({ criticTrainedScore: 0.9, personTrainedScore: 0.1, withinRoutines: false }), /WITHIN routines/);
+});
+
+test('Batch 208 composite: the offline spec passes at the paper cadence; a wrong cadence or a live stage fails it', () => {
+  const spec = checkOfflineCriticSpec208({
+    cadence: { everyNHops: 5, windowKSteps: 8 },
+    intervention: { kind: 'append-guidance' },
+    labels: [{ category: 'task derailment', outcomeCorroborated: true }],
+  });
+  assert.equal(spec.verdict, 'SPEC OK');
+  assert.equal(spec.executed, false);
+  assert.equal(spec.labels[0].usableForTraining, true);
+  assert.match(spec.promotion.verdict, /UNDECIDED/);
+  assert.throws(() => checkOfflineCriticSpec208({ cadence: { everyNHops: 1, windowKSteps: 8 }, intervention: { kind: 'append-guidance' } }), /every 5 hops, 8-step window/);
+  assert.throws(() => checkOfflineCriticSpec208({ cadence: { everyNHops: 5, windowKSteps: 8 }, intervention: { kind: 'abort' } }), /never "abort"/);
+});
+
+test('Batch 208: round 11 composes with rounds 5–10 without weakening them; the spec is unexecuted', () => {
+  // Round 10 guards still bite.
+  assert.throws(() => checkPilotSampledStepCompliance206({ design: { callsPerArm: 1, temperature: 0, freshContextPerArm: true }, aRecDelivery: { mode: 'margin-gated', hintOnEveryTask: false }, arms: [], abortBars: { validAt1Down: 0.02, execRateDown: 0.03, multiTurn: true }, report: { metrics: [] } }), /REFUSED inside the pilot/);
+  // Round 9 live-gate closure still bites.
+  assert.throws(() => assertLiveToolGate({ live: true, hopKind: 'tool', samples: 8 }), /stays CLOSED/);
+  // Round 8 Healy confirmation tier still bites.
+  assert.throws(() => healyGatePolicy('auto-block'), /auto-block is REFUSED/);
+  // Round 11's own status: spec, unexecuted.
+  assert.equal(SWE_PRM_208.source.includes('arXiv:2509.02360'), true);
+  assert.equal(checkOfflineCriticSpec208({ cadence: { everyNHops: 5, windowKSteps: 8 }, intervention: { kind: 'append-guidance' } }).executed, false);
 });

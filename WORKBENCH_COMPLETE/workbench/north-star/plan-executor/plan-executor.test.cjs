@@ -61,6 +61,30 @@ const {
   assertMultiTurnOrder,
   assertMultiTurnGate,
   multiTurnVerdict,
+  CHEN_ORACLE_LEVER,
+  WU_STEERING,
+  ASA_QUARANTINE,
+  leverGate,
+  assertSwitchRateQuote,
+  firstTokenSeparable,
+  assertSteeringPair,
+  toolVectorArtifact,
+  assertToolVectorBase,
+  assertSteeredCallVerified,
+  wuLoopClaim,
+  WU_GAP,
+  assertGapThreshold,
+  assertGapUse,
+  gapDetectorStatus,
+  gapReading,
+  BATCH_194_RESIDUAL_FRAMING,
+  DISPUTED_HOP_TIERS_199,
+  canonicalTierOrder,
+  assertTierOrder,
+  CAPTURE_CONVERGENCE,
+  captureElementBound,
+  captureCopies,
+  assertCapturePath,
 } = require('./plan-executor.cjs');
 
 const read = (id, dependsOn, run) => ({ id, dependsOn, kind: 'read', readOnly: true, run: run || (async () => `${id}-done`) });
@@ -1135,4 +1159,133 @@ test('Batch 197: harness composes with round-5 advisory-only Select without weak
   assert.ok(hint.includes('otherwise choose freely'));
   const advised = selectAdvisory([{ id: 'c1' }, { id: 'c2' }], 'search');
   assert.equal(advised.deletesNoCandidate, true);
+});
+
+// ------------------------------------------------------------ Batch 199: Wu + Wang disentanglement
+
+test('Batch 199: three residual levers are distinct — Chen oracle is gold-pointed, Wu is gold-free, ASA is trigger-axis', () => {
+  assert.equal(CHEN_ORACLE_LEVER.deployable, false);
+  assert.equal(CHEN_ORACLE_LEVER.recovery, 0.909);
+  assert.equal(WU_STEERING.alpha.fifteenToolLists, 0.7);
+  assert.equal(WU_STEERING.alpha.fiveToolList, 1.0);
+  assert.equal(ASA_QUARANTINE.axis, 'trigger-only (whether the model enters tool mode at all), never which tool');
+  assert.equal(ASA_QUARANTINE.status.includes('WITHDRAWN'), true);
+});
+
+test('Batch 199: Chen oracle gate refuses any deployable use and any citation as a deployable rate', () => {
+  assert.equal(leverGate('chen-oracle-residual', { kind: 'oracle-upper-bound' }).deployable, false);
+  assert.throws(() => leverGate('chen-oracle-residual', { kind: 'oracle-upper-bound', deployable: true }), /oracle-only/);
+  assert.throws(() => leverGate('chen-oracle-residual', { kind: 'oracle-upper-bound', citedAsDeployableRate: true }), /oracle-only/);
+  assert.throws(() => leverGate('chen-oracle-residual', { kind: 'deployed-tier' }), /oracle-only/);
+});
+
+test('Batch 199: prefix-rule score is never quoted as a switch rate; full-name is 56–78%', () => {
+  assert.throws(() => assertSwitchRateQuote({ metric: 'prefix-rule', quotedAs: 'switch-rate' }), /NOT a switch rate/);
+  const full = assertSwitchRateQuote({ metric: 'full-name' });
+  assert.deepEqual(full.range, [0.56, 0.78]);
+  assert.equal(full.firstTokenBound.maxSwitchable, 165);
+});
+
+test('Batch 199: first-token bound — tools sharing a first token cannot be separated at the last layer', () => {
+  assert.equal(firstTokenSeparable('get_weather', 'get_news').separable, false);
+  assert.equal(firstTokenSeparable('send_email', 'calendar_add').separable, true); // distinct first tokens are separable; send_email/send_message share 'send' AND are near-synonyms (see below)
+  assert.equal(WU_STEERING.firstTokenBound.pairs, 210);
+});
+
+test('Batch 199: near-synonym exclusion — parallel vectors refuse steering, advisory hint is the fallback', () => {
+  assert.throws(() => assertSteeringPair({ toolA: 'send_email', toolB: 'send_message', vectorsNearlyParallel: true }), /must not be tried/);
+  assert.throws(() => assertSteeringPair({ toolA: 'send_email', toolB: 'send_message' }), /pre-check verdict/);
+  const ok = assertSteeringPair({ toolA: 'send_email', toolB: 'calendar_add', vectorsNearlyParallel: false });
+  assert.equal(ok.fallback, 'advisory-hint');
+  assert.equal(WU_STEERING.nearSynonyms.sendEmailVsSendMessage, 0);
+});
+
+test('Batch 199: Wu steering is lab-only behind the advisory pilot, never ahead of it', () => {
+  assert.throws(() => leverGate('wu-gold-free-steering', { arm: 'deployed' }), /LAB-ONLY/);
+  assert.throws(() => leverGate('wu-gold-free-steering', { arm: 'lab', pilotPassed: false }), /BEHIND the advisory pilot/);
+  assert.equal(leverGate('wu-gold-free-steering', { arm: 'lab', pilotPassed: true }).arm, 'lab');
+});
+
+test('Batch 199: steered calls must pass schema verifier + argument checks; steering never credited with argument repair', () => {
+  assert.throws(() => assertSteeredCallVerified({ schemaValid: true, argumentChecksPassed: true, claimedArgumentRepair: true }), /never credited with argument repair/);
+  assert.throws(() => assertSteeredCallVerified({ schemaValid: true, argumentChecksPassed: false }), /schema verifier \+ argument checks/);
+  assert.equal(assertSteeredCallVerified({ schemaValid: true, argumentChecksPassed: true }).verified, true);
+  assert.equal(WU_STEERING.argumentSteering.tokyoToParisChanged, '0/30');
+});
+
+test('Batch 199: tool vectors are base-specific — a base swap orphans them, cross-family transfer is 0%', () => {
+  const art = toolVectorArtifact('base-A');
+  assert.equal(art.crossFamilyTransfer, 0);
+  assert.deepEqual(art.rebuildCostExamplesPerTool, [2, 3]);
+  assert.equal(assertToolVectorBase(art, 'base-A').baseOk, true);
+  assert.throws(() => assertToolVectorBase(art, 'base-B'), /orphans tool vectors/);
+});
+
+test('Batch 199: Wu loop claims need the M2 final-state rule; injection inside a loop is untested and refused', () => {
+  assert.throws(() => wuLoopClaim({ multiTurnInjection: true }), /UNTESTED/);
+  assert.throws(() => wuLoopClaim({ basis: 'single-hop-switch-rate' }), /M2 final-state rule/);
+  const fail = wuLoopClaim({ turn1Delta: 0.05, finalStateDelta: -0.02 });
+  assert.equal(fail.verdict, 'FAIL');
+  assert.equal(fail.basis, 'readout-override-only');
+});
+
+test('Batch 199: ASA numbers are quarantined — never evidence for a gate, threshold, or build decision', () => {
+  assert.equal(ASA_QUARANTINE.numbersLabel, 'withdrawn-paper claims, disputed by the authors themselves');
+  assert.throws(() => leverGate('wang-asa', { evidenceFor: 'gate' }), /QUARANTINED/);
+  assert.throws(() => leverGate('wang-asa', { evidenceFor: 'threshold' }), /QUARANTINED/);
+  assert.throws(() => leverGate('wang-asa', { evidenceFor: 'build-decision' }), /QUARANTINED/);
+  assert.equal(leverGate('wang-asa', { kind: 'design-pattern' }).kind, 'design-pattern');
+  assert.equal(leverGate('wang-asa', { kind: 'quarantined-claim' }).label, ASA_QUARANTINE.numbersLabel);
+});
+
+test('Batch 199: Wu gap is a detector candidate, not a selector and not shipped; no threshold is set', () => {
+  assert.throws(() => assertGapThreshold(0.5), /NO gap threshold/);
+  assert.equal(assertGapThreshold(null).mode, 'ranking-only');
+  assert.throws(() => assertGapUse('selector'), /DETECTOR candidate, not a selector/);
+  assert.throws(() => assertGapUse('shipped'), /CANDIDATE, not shipped/);
+  assert.equal(WU_GAP.aurocBfcl.gemma3_12B, 0.78);
+  assert.equal(WU_GAP.aurocBfcl.qwen3_4B, 0.61);
+  const status = gapDetectorStatus({});
+  assert.equal(status.status, 'candidate');
+  assert.equal(status.missing.length, 3);
+});
+
+test('Batch 199: gap flags uncertainty, not wrongness — a large gap is confident, possibly confidently wrong', () => {
+  assert.equal(gapReading(0).reading, 'maximally-uncertain');
+  assert.ok(gapReading(0.9).note.includes('confidently wrong'));
+  assert.throws(() => gapReading(-1), /non-negative/);
+});
+
+test('Batch 199: canonical tier order, cheapest first — Batch 194 residual framing is RETIRED', () => {
+  assert.deepEqual(canonicalTierOrder(), ['advisory-hint', 'wu-cosine-gap-detector-candidate', 'wu-steering-lab', 'chen-s2-attention']);
+  assert.equal(BATCH_194_RESIDUAL_FRAMING.status, 'RETIRED (Batch 199)');
+  assert.equal(assertTierOrder(canonicalTierOrder()).orderOk, true);
+  assert.throws(() => assertTierOrder(['wu-steering-lab', 'advisory-hint', 'wu-cosine-gap-detector-candidate', 'chen-s2-attention']), /canonical disputed-hop order/);
+  assert.equal(DISPUTED_HOP_TIERS_199[1].tier, 'wu-cosine-gap-detector-candidate');
+});
+
+test('Batch 199: capture convergence — one-layer bound 6,553 vs five-layer 1,310; HTTP path refused', () => {
+  assert.equal(captureElementBound(1).elementBound, 6553);
+  assert.equal(captureElementBound(5).elementBound, 1310);
+  assert.equal(captureElementBound(3).known, false);
+  assert.throws(() => assertCapturePath('http-server'), /HTTP server path/);
+  assert.equal(assertCapturePath('in-process').path, 'in-process');
+  assert.throws(() => assertCapturePath('in-process', { needsWriteHook: true }), /write hook at prefill/);
+  assert.equal(assertCapturePath('in-process', { needsWriteHook: true, writeHookAtPrefill: true }).writeHookAtPrefill, true);
+});
+
+test('Batch 199: probe/gap capture sharing — one copy if layers coincide, budget doubles otherwise', () => {
+  assert.deepEqual(captureCopies({ probeLayer: 18, gapLayer: 18 }), { copies: 1, shared: true, note: 'SEP-TBG probe and Wu gap share one capture (layers coincide)' });
+  assert.equal(captureCopies({ probeLayer: 18, gapLayer: 23 }).copies, 2);
+  assert.throws(() => captureCopies({ probeLayer: 18 }), /both required/);
+  assert.ok(CAPTURE_CONVERGENCE.copyRule.includes('full-tensor copy'));
+});
+
+test('Batch 199: round 7 composes with rounds 5–6 without weakening them', () => {
+  // Round 5 advisory-only Select still refuses forced prefixes.
+  assert.throws(() => selectAdvisory([{ id: 'c1' }], 'search', { forcedPrefix: 'search' }), /advisory-only/);
+  // Round 6 pilot ordering still gates M1/M2.
+  assert.throws(() => assertMultiTurnOrder({ phase: 'M2', pilotPassed: true, m1Passed: false }), /M1 to pass first/);
+  // Round 7 steering lab arm still sits behind that pilot.
+  assert.throws(() => leverGate('wu-gold-free-steering', { arm: 'lab', pilotPassed: false }), /BEHIND the advisory pilot/);
 });

@@ -2602,6 +2602,339 @@ function multiTurnVerdict(deltas = {}) {
   return { verdict: 'pass-pending', scope: 'loop-use', reason: null };
 }
 
+// ------------------- Batch 199: Wu + Wang activation-space leads (SPEC, UNEXECUTED)
+//
+// Batch 197/198's queue item conflated THREE different residual levers.
+// This section disentangles them and RETIRES Batch 194's framing of "a
+// residual-steering lever tied 90.9% with the attention lever" as the
+// cheaper alternative to S2-eager. The 90.9% belongs to Chen's OWN
+// oracle lever (Lever A), not to any deployable method; Wu's gold-free
+// steering (Lever B) is much weaker and fails exactly on confusables;
+// Wang's ASA (Lever C) is a trigger-axis mechanism, not a selector,
+// and is WITHDRAWN, so its numbers are quarantined. No tool vector was
+// built, no steering was run, no cosine gap was computed in Batch 199
+// — every figure below is the paper's on its benchmarks, NOT on the
+// north-star tool pool or the bundled base. This section is a spec plus
+// guard code, not results. Rounds 1–6 stand untouched.
+
+/** Chen oracle residual lever (Lever A): GOLD-POINTED, oracle-only upper bound. */
+const CHEN_ORACLE_LEVER = {
+  lever: 'chen-oracle-residual',
+  recovery: 0.909,
+  damage: 0.019,
+  jaccardWithAttentionLever: 0.865,
+  deployable: false,
+  reading: 'oracle-only upper bound on what a gold-free deployment could recover — it steers toward the KNOWN gold tool, so it says nothing about any gold-free residual method\'s rate',
+};
+
+/** Wu gold-free residual steering (Lever B): the deployable residual lever, weaker. */
+const WU_STEERING = {
+  lever: 'wu-gold-free-steering',
+  source: 'Wu et al. 2026, arXiv:2605.07990v3',
+  method: 'one tool vector per tool = mean last-prompt-token residual hidden state over n=2–3 example requests; steering direction d(a→b) = h̄_b − h̄_a, unnormalized, added once at the last prompt token: h ← h + α·d',
+  alpha: { fifteenToolLists: 0.7, fiveToolList: 1.0 },
+  fullNameSwitchSynthetic15: { range: [0.56, 0.78], pairs: 210, models: 'eight 4B+ instruction-tuned models' },
+  prefixRuleScore: { range: [0.81, 1.0], note: 'PREFIX-rule score (§3.3), NOT a full-name switch rate — never quote it as one' },
+  firstTokenBound: { pairs: 210, maxSwitchable: 165, note: 'last-layer steering changes only the first output token\'s scores; tools sharing a first token cannot be separated at the last layer' },
+  nearSynonyms: { sendEmailVsSendMessage: 0, similarSportsApis: 0, note: 'vectors nearly parallel — steering expected to fail, must not be tried' },
+  realApis: {
+    tauBenchAirline: { gemma4B: 0.57, qwen4B: 0.77, llama8B: 0.60 },
+    tauBenchRetail: { gemma4B: 0.10, qwen4B: 0.50, llama8B: 0.57 },
+    toolBench: { gemma4B: 0.37, qwen4B: 0.30, llama8B: 0.27 },
+    note: 'domain-bound: on ToolBench, steering between APIs of one domain succeeds on NONE of the sampled pairs; the direction carries the DOMAIN, not the API',
+  },
+  scaleDecay: { atK15: [0.63, 0.75], atK150: [0.20, 0.25], note: 'prefix-rule stays near 100% to K=150; full-name decays as the pool grows unless tools are renamed to unique first tokens' },
+  argumentSteering: { tokyoToParisChanged: '0/30', formatSteering: '0/10', note: 'argument steering FAILS; a steered call can also INVENT argument values — never credit steering with argument repair' },
+  crossFamilyTransfer: 0,
+  toolVectorRebuildCostExamplesPerTool: [2, 3],
+  multiTurn: { readoutOverrideDeltaRange: [-0.30, 0.05], significant: false, fisherP: '>= 0.10 (N=20)', injectionInsideLoop: 'untested' },
+  status: 'LAB-ONLY arm, never ahead of the advisory pilot',
+};
+
+/** Wang ASA (Lever C): QUARANTINED trigger-axis mechanism, not a selector. */
+const ASA_QUARANTINE = {
+  lever: 'wang-asa',
+  source: 'Wang et al., arXiv:2602.04935 (v1 Feb 4 2026, v4 Aug 28 2026)',
+  status: 'WITHDRAWN by the author over disputed results; no PDF for the withdrawn version',
+  axis: 'trigger-only (whether the model enters tool mode at all), never which tool',
+  mechanism: 'single-shot mid-layer injection at prefill, ternary probe-guided gate (+1 / −1 / 0), ~20KB assets, no weight updates',
+  numbersLabel: 'withdrawn-paper claims, disputed by the authors themselves',
+  rule: 'ASA numbers (including Lazy Agent AUCs ~0.999 and F1/FPR gains) are recorded ONLY under the quarantine label, never as evidence for a gate, threshold, or build decision. The mechanism remains citable as a design pattern only.',
+  quarantineLiftsOnlyFor: 'a reposted version\'s own numbers, after personal replication — never retroactively for v1/v4',
+};
+
+const RESIDUAL_LEVERS = {
+  'chen-oracle-residual': CHEN_ORACLE_LEVER,
+  'wu-gold-free-steering': WU_STEERING,
+  'wang-asa': ASA_QUARANTINE,
+};
+
+/**
+ * Lever gate: each lever has its own gate, and the gates are not
+ * interchangeable. Chen oracle refuses ANY deployable use and ANY
+ * citation as a deployable rate. Wu steering admits only a lab arm
+ * behind the advisory pilot. ASA admits only a design-pattern citation
+ * or a quarantined claim — never evidence for a gate/threshold/build.
+ */
+function leverGate(lever, use = {}) {
+  if (lever === 'chen-oracle-residual') {
+    if (use.kind === 'oracle-upper-bound' && use.deployable !== true && use.citedAsDeployableRate !== true) {
+      return { lever, allowed: true, kind: 'oracle-upper-bound', deployable: false };
+    }
+    throw new Error('leverGate: Chen oracle residual lever (90.9% recovery / 1.9% damage) is GOLD-POINTED and oracle-only — it refuses any deployable use and refuses citing it as a deployable rate (Batch 199)');
+  }
+  if (lever === 'wu-gold-free-steering') {
+    if (use.arm !== 'lab') throw new Error('leverGate: Wu steering is a LAB-ONLY arm — never a deployed tier (Batch 199)');
+    if (use.pilotPassed !== true) throw new Error('leverGate: Wu steering lab arm runs only BEHIND the advisory pilot — pilot must pass its Batch 197 abort rules first (Batch 199)');
+    return { lever, allowed: true, arm: 'lab', behindPilot: true };
+  }
+  if (lever === 'wang-asa') {
+    if (use.kind === 'design-pattern') return { lever, allowed: true, kind: 'design-pattern', numbersQuarantined: true };
+    if (use.kind === 'quarantined-claim') return { lever, allowed: true, kind: 'quarantined-claim', label: ASA_QUARANTINE.numbersLabel };
+    if (use.evidenceFor === 'gate' || use.evidenceFor === 'threshold' || use.evidenceFor === 'build-decision') {
+      throw new Error(`leverGate: ASA numbers are QUARANTINED (withdrawn paper, disputed by the authors) — never evidence for a ${use.evidenceFor} (Batch 199)`);
+    }
+    throw new Error('leverGate: ASA admits only a design-pattern citation or a quarantined claim — no trigger gate may be built on quarantined numbers (Batch 199)');
+  }
+  throw new Error(`leverGate: unknown residual lever "${lever}" (chen-oracle-residual, wu-gold-free-steering, wang-asa)`);
+}
+
+/**
+ * Switch-rate quote guard: the 83–100% (paper §3.3: 81–100% for 4B+)
+ * figure is the PREFIX-rule score, not full-name switching. Quoting
+ * it as a switch rate throws; full-name quoting returns the honest
+ * 56–78% synthetic range with its bounds.
+ */
+function assertSwitchRateQuote(quote = {}) {
+  if (quote.metric === 'prefix-rule' && quote.quotedAs === 'switch-rate') {
+    throw new Error('assertSwitchRateQuote: the 83–100% prefix-rule score is NOT a switch rate — the full-name switch rate is 56–78% on synthetic 15-tool lists (Batch 199)');
+  }
+  if (quote.metric === 'full-name') {
+    return { metric: 'full-name', range: WU_STEERING.fullNameSwitchSynthetic15.range, pairs: 210, firstTokenBound: WU_STEERING.firstTokenBound };
+  }
+  throw new Error(`assertSwitchRateQuote: unknown metric "${quote.metric}" (prefix-rule, full-name)`);
+}
+
+function firstTokenOf(tool) {
+  if (typeof tool !== 'string' || tool.length === 0) throw new Error('firstTokenOf: tool must be a non-empty string');
+  return tool.split('_')[0];
+}
+
+/**
+ * First-token separability at the last layer: tools sharing a first
+ * token (get_weather/get_news) cannot be separated by last-layer
+ * steering. At most 165/210 pairs are switchable.
+ */
+function firstTokenSeparable(toolA, toolB) {
+  const a = firstTokenOf(toolA);
+  const b = firstTokenOf(toolB);
+  if (a === b) return { separable: false, sharedFirstToken: a, note: 'tools sharing a first token cannot be separated at the last layer (Batch 199 first-token bound)' };
+  return { separable: true, firstTokens: [a, b] };
+}
+
+/**
+ * Near-synonym exclusion: if the disputed pair's tool vectors are
+ * nearly parallel, steering must NOT be tried — the advisory hint,
+ * which does not depend on vector geometry, is the fallback. No
+ * parallelism threshold is set here (Batch 199 leaves it an open
+ * question); the caller supplies the pre-check verdict, never a
+ * guessed constant.
+ */
+function assertSteeringPair(pair = {}) {
+  if (pair.vectorsNearlyParallel === true) {
+    throw new Error('assertSteeringPair: near-synonym pair (vectors nearly parallel) — steering must not be tried; advisory hint is the fallback (Batch 199)');
+  }
+  if (typeof pair.vectorsNearlyParallel !== 'boolean') {
+    throw new Error('assertSteeringPair: a vector-parallelism pre-check verdict (boolean) is required before any steering attempt — no threshold is set, so the verdict must be supplied, not assumed (Batch 199)');
+  }
+  const sep = firstTokenSeparable(pair.toolA, pair.toolB);
+  return { pairOk: true, fallback: 'advisory-hint', firstTokenSeparable: sep.separable, firstTokenNote: sep.note || null };
+}
+
+/**
+ * Tool vectors are BASE-SPECIFIC artifacts (joining adapter + probe +
+ * thresholds + capture config in the Batch 8/9 versioning tuple):
+ * cross-family transfer is 0%, a base swap orphans them, rebuilding
+ * costs 2–3 example requests per tool (cheap to rebuild, not portable).
+ */
+function toolVectorArtifact(base) {
+  if (typeof base !== 'string' || base.length === 0) throw new Error('toolVectorArtifact: base must be a non-empty string');
+  return { artifact: 'tool-vectors', baseSpecific: true, base, crossFamilyTransfer: 0, rebuildCostExamplesPerTool: [2, 3] };
+}
+
+function assertToolVectorBase(artifact, currentBase) {
+  if (!artifact || artifact.baseSpecific !== true) throw new Error('assertToolVectorBase: tool vectors are base-specific artifacts — an artifact without a base cannot be trusted (Batch 199)');
+  if (artifact.base !== currentBase) {
+    throw new Error(`assertToolVectorBase: base swap orphans tool vectors (artifact base "${artifact.base}" != current base "${currentBase}") — rebuild at 2–3 example requests per tool, do not reuse (Batch 199)`);
+  }
+  return { baseOk: true, base: currentBase };
+}
+
+/**
+ * Steered-call execution guard: steering never bypasses the Batch 4
+ * verifier. A steered call needs schema validity AND argument checks
+ * before execution; steering is never credited with argument repair
+ * (argument steering fails 30/30), and steering can invent argument
+ * values the verifier must catch.
+ */
+function assertSteeredCallVerified(call = {}) {
+  if (call.claimedArgumentRepair === true) {
+    throw new Error('assertSteeredCallVerified: steering is never credited with argument repair — argument steering FAILS 30/30 (Batch 199)');
+  }
+  if (call.schemaValid !== true || call.argumentChecksPassed !== true) {
+    throw new Error('assertSteeredCallVerified: a steered call must pass the Batch 4 schema verifier + argument checks before execution — steering can invent argument values (Batch 199)');
+  }
+  return { verified: true, note: 'steering fixed WHICH tool at most; arguments were verified independently' };
+}
+
+/**
+ * Wu loop claims must pass Batch 197's M2 final-state rule, not the
+ * single-hop switch rate. Vector injection inside a loop is untested
+ * in the literature — only a readout override was run (N=20, n.s.,
+ * −30 to +5) — so an injection-based loop claim is refused outright.
+ */
+function wuLoopClaim(claim = {}) {
+  if (claim.multiTurnInjection === true) {
+    throw new Error('wuLoopClaim: vector injection inside a loop is UNTESTED (only readout-override was run) — no loop claim may assume it (Batch 199)');
+  }
+  if (claim.basis === 'single-hop-switch-rate') {
+    throw new Error('wuLoopClaim: a loop claim cannot rest on the single-hop switch rate — it must pass Batch 197\'s M2 final-state rule (Batch 199)');
+  }
+  if (typeof claim.turn1Delta !== 'number' || typeof claim.finalStateDelta !== 'number') {
+    throw new Error('wuLoopClaim: a Wu loop claim must carry turn1Delta and finalStateDelta for the M2 final-state rule (Batch 199)');
+  }
+  const verdict = multiTurnVerdict({ turn1Delta: claim.turn1Delta, finalStateDelta: claim.finalStateDelta });
+  return { basis: 'readout-override-only', overrideRange: WU_STEERING.multiTurn.multiTurn, verdict: verdict.verdict, note: 'multi-turn override result is n.s. (Fisher p>=0.10, N=20) — it neither proves benefit nor harm' };
+}
+
+// ------------------- Batch 199: Wu cosine-gap detector (CANDIDATE, NOT SHIPPED)
+const WU_GAP = {
+  detector: 'wu-cosine-gap',
+  source: 'Wu et al. 2026, arXiv:2605.07990v3 §5',
+  method: 'cosine GAP between the two closest tool vectors at the last prompt token — a PRE-generation read, so it can fire BEFORE a call is written',
+  cost: '<0.1 ms over the prompt pass (vs >2x the prompt pass for full-name margin scoring of every candidate name)',
+  aurocBfcl: { gemma3_4B: 0.76, gemma3_12B: 0.78, qwen3_4B: 0.61, llama3_1_8B: 0.78 },
+  beatsFirstTokenMarginOn: '3/4 models',
+  vsFullNameMargin: 'roughly tied, at far lower cost',
+  threshold: null,
+  thresholdNote: 'NO threshold is set (ranking only; only 13–61 errors per model)',
+  status: 'CANDIDATE, not shipped',
+  reading: 'gap flags UNCERTAINTY, not wrongness — a confident wrong call has a LARGE gap; the gap is silent on confident errors (like UProp\'s EU, Batch 14)',
+};
+
+/**
+ * Gap threshold guard: Wu sets no threshold, so any claimed threshold
+ * is refused. Ranking only until a threshold rule is validated.
+ */
+function assertGapThreshold(threshold) {
+  if (threshold !== null && threshold !== undefined) {
+    throw new Error('assertGapThreshold: Wu sets NO gap threshold (ranking only, 13–61 errors per model) — a claimed threshold is refused until validated (Batch 199)');
+  }
+  return { thresholdSet: false, mode: 'ranking-only' };
+}
+
+function assertGapUse(use) {
+  if (use === 'selector') throw new Error('assertGapUse: the Wu gap is a DETECTOR candidate, not a selector — it ranks hops by uncertainty, it does not pick a tool (Batch 199)');
+  if (use === 'shipped') throw new Error('assertGapUse: the Wu gap is a CANDIDATE, not shipped — it needs a threshold, within-routine validation, and comparison against the Batch 5 logprob-margin gate first (Batch 199)');
+  if (use !== 'detector-candidate') throw new Error(`assertGapUse: unknown gap use "${use}" (detector-candidate only)`);
+  return { use: 'detector-candidate', shipped: false };
+}
+
+/**
+ * Gap promotion checklist: pooled BFCL AUROC is NOT a within-routine
+ * score (Batch 13), and the cost argument favors the gap over
+ * full-name scoring, NOT over the free logprob margin. Until both
+ * validations exist, the gap stays a candidate.
+ */
+function gapDetectorStatus(checks = {}) {
+  const missing = [];
+  if (checks.withinRoutineValidated !== true) missing.push('within-routine validation (Batch 13: pooled BFCL AUROC is not a within-routine score)');
+  if (checks.comparedToLogprobMargin !== true) missing.push('comparison against the Batch 5 logprob-margin gate');
+  if (checks.thresholdValidated !== true) missing.push('a validated threshold rule (gap percentile? per-model median? per-routine?)');
+  return { status: missing.length ? 'candidate' : 'promotion-ready', shipped: false, missing, aurocBfcl: WU_GAP.aurocBfcl };
+}
+
+/**
+ * Gap reading: small gap = uncertain between near vectors (flag it);
+ * large gap = confident — possibly CONFIDENTLY WRONG, never read as
+ * "correct". The gap is silent on confident errors.
+ */
+function gapReading(gap) {
+  if (typeof gap !== 'number' || gap < 0) throw new Error('gapReading: gap must be a non-negative number (cosine gap between the two closest tool vectors)');
+  if (gap === 0) return { reading: 'maximally-uncertain', flag: true, note: 'gap flags uncertainty, not wrongness' };
+  return { reading: 'confident-or-uncertain-by-rank-only', flag: null, note: 'a LARGE gap means confident, possibly confidently wrong — never read a large gap as "correct"; the gap is silent on confident errors (Batch 199)' };
+}
+
+// ------------------- Batch 199: disputed-hop tier order (CANONICAL, cheapest first)
+const BATCH_194_RESIDUAL_FRAMING = {
+  framing: '"a residual-steering lever tied 90.9% with the attention lever" as the cheaper alternative to S2-eager',
+  status: 'RETIRED (Batch 199)',
+  reason: 'the 90.9% is Chen\'s gold-pointed oracle lever, not a deployable rate; Wu gold-free steering is 56–78% and fails on near-synonyms; ASA is a withdrawn trigger-axis mechanism, not a selector',
+};
+
+const DISPUTED_HOP_TIERS_199 = [
+  { order: 1, tier: 'advisory-hint', basis: 'Batch 197 Plan-top1 advisory hint first — no inference-layer change, testable by the pilot before any steering work' },
+  { order: 2, tier: 'wu-cosine-gap-detector-candidate', basis: 'pre-generation detector candidate (not a selector, not shipped) — one last-token hidden-state read, <0.1 ms over the prompt pass' },
+  { order: 3, tier: 'wu-steering-lab', basis: 'LATER lab arm only, behind the advisory pilot, with near-synonym exclusion + M1/M2 final-state rule' },
+  { order: 4, tier: 'chen-s2-attention', basis: 'single-hop candidate with eager-attention requirement, multi-turn unproven — Wu does not replace it (different failure places)' },
+];
+
+function canonicalTierOrder() {
+  return DISPUTED_HOP_TIERS_199.map((t) => t.tier);
+}
+
+/**
+ * Tier-order guard: the canonical order is cheapest first and is the
+ * ONLY order. Steering ahead of the advisory pilot, the gap as a
+ * selector/shipped tier, or the retired Batch 194 framing all throw.
+ * Batch 3's Select stage stays advisory-only at AST level (Chen −19.1
+ * hard-forcing untouched — Wu steering is also a hard intervention on
+ * the name, so a steered call still passes the verifier, never bypasses it).
+ */
+function assertTierOrder(tiers) {
+  const canonical = canonicalTierOrder();
+  if (!Array.isArray(tiers) || tiers.length !== canonical.length || !tiers.every((t, i) => t === canonical[i])) {
+    throw new Error(`assertTierOrder: canonical disputed-hop order is ${canonical.join(' → ')} (cheapest first, Batch 199); Batch 194's "residual lever as cheaper alternative" framing is RETIRED`);
+  }
+  return { orderOk: true, tiers: canonical, retiredFraming: BATCH_194_RESIDUAL_FRAMING.status };
+}
+
+// ------------------- Batch 199: infrastructure convergence (Batch 7/8 capture)
+const CAPTURE_CONVERGENCE = {
+  gapNeeds: 'Batch 7/8 in-process capture (last-token residual at one layer)',
+  steeringNeeds: 'the same in-process path PLUS a write hook at prefill',
+  httpServerPath: 'REFUSED — neither the gap nor steering works over the HTTP server path (Batch 7 fork, unchanged)',
+  elementBoundByLayers: { 1: 6553, 5: 1310 },
+  copyRule: 'still a full-tensor copy per Batch 8 (no row picker); still fail-soft to G-NLL + verifier on over-bound prompts',
+  sharedCaptureNote: 'SEP-TBG probe and Wu gap can share one capture IF probe layer and gap layer coincide; otherwise each layer is a separate full-tensor copy and the budget doubles — a prototype detail, not a premature merge',
+};
+
+function captureElementBound(layers) {
+  if (Object.prototype.hasOwnProperty.call(CAPTURE_CONVERGENCE.elementBoundByLayers, layers)) {
+    return { layers, elementBound: CAPTURE_CONVERGENCE.elementBoundByLayers[layers], known: true };
+  }
+  return { layers, elementBound: null, known: false, note: 'only the 1-layer (~6,553) and 5-layer (1,310) bounds are verified — no bound is claimed for other layer counts (Batch 199)' };
+}
+
+function captureCopies({ probeLayer, gapLayer } = {}) {
+  if (probeLayer === undefined || gapLayer === undefined) {
+    throw new Error('captureCopies: probeLayer and gapLayer are both required — sharing is decided by whether the layers coincide (Batch 199)');
+  }
+  if (probeLayer === gapLayer) return { copies: 1, shared: true, note: 'SEP-TBG probe and Wu gap share one capture (layers coincide)' };
+  return { copies: 2, shared: false, note: 'each layer is a separate full-tensor copy and the budget doubles — a prototype detail, not a premature merge (Batch 199)' };
+}
+
+function assertCapturePath(path, opts = {}) {
+  if (path === 'http-server') {
+    throw new Error('assertCapturePath: Wu gap and Wu steering do NOT work over the HTTP server path — in-process capture is required (Batch 7 fork, Batch 199)');
+  }
+  if (path !== 'in-process') throw new Error(`assertCapturePath: unknown capture path "${path}" (in-process only)`);
+  if (opts.needsWriteHook === true && opts.writeHookAtPrefill !== true) {
+    throw new Error('assertCapturePath: Wu steering needs the in-process path PLUS a write hook at prefill — capture alone is not enough (Batch 199)');
+  }
+  return { path: 'in-process', writeHookAtPrefill: opts.needsWriteHook === true };
+}
+
 module.exports = {
   percentile,
   median,
@@ -2668,4 +3001,31 @@ module.exports = {
   selectorServingPath,
   chooseDisputedHopTier,
   wrongToolBudgetAllows,
+  // Batch 199: Wu + Wang disentanglement, tier re-order, capture convergence (spec, unexecuted).
+  CHEN_ORACLE_LEVER,
+  WU_STEERING,
+  ASA_QUARANTINE,
+  RESIDUAL_LEVERS,
+  leverGate,
+  assertSwitchRateQuote,
+  firstTokenOf,
+  firstTokenSeparable,
+  assertSteeringPair,
+  toolVectorArtifact,
+  assertToolVectorBase,
+  assertSteeredCallVerified,
+  wuLoopClaim,
+  WU_GAP,
+  assertGapThreshold,
+  assertGapUse,
+  gapDetectorStatus,
+  gapReading,
+  BATCH_194_RESIDUAL_FRAMING,
+  DISPUTED_HOP_TIERS_199,
+  canonicalTierOrder,
+  assertTierOrder,
+  CAPTURE_CONVERGENCE,
+  captureElementBound,
+  captureCopies,
+  assertCapturePath,
 };

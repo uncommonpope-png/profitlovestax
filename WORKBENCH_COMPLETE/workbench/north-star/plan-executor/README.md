@@ -63,6 +63,11 @@ executor }`. `prefix` is the list of completed levels only.
 | Multi-turn survival: M1 embedded single-hop, M2 full episodes with final-state verdict; M1/M2 only after the pilot passes; Chen last-token-margin gate BANNED in multi-turn; turn-1 positive + final-state ≤ 0 = FAIL for loop use | 197 §7 | `assertMultiTurnOrder()`, `assertMultiTurnGate()`, `multiTurnVerdict()` |
 | Abort rules: advise-all AST below free with valid@1 down > 2 or ExecRate down > 3 stops the hint; A-gold helps but A-rec does not stops to re-examine the RECOMMENDATION | 197 §8 | `abortCheck()`, `assertPilotPassed()` |
 | Hint wording fixed and verbatim (Chen publishes none): one system-prompt line, arguments never included; a result without its verbatim hint string is not reproducible | 197 §3 | `ADVISORY_HINT_TEMPLATE`, `advisoryHintText()`, `assertVerbatimHint()` |
+| Lever disentanglement: Chen oracle residual (90.9% / 1.9%, Jaccard 0.865) is GOLD-POINTED, oracle-only, never deployable; Wu gold-free steering (56–78% full-name, 0% near-synonyms) is a LAB-ONLY arm behind the pilot; Wang ASA is a trigger-axis mechanism, WITHDRAWN, numbers quarantined | 199 (Wu arXiv:2605.07990v3; Wang arXiv:2602.04935) | `RESIDUAL_LEVERS`, `leverGate()`, `CHEN_ORACLE_LEVER`, `WU_STEERING`, `ASA_QUARANTINE` |
+| Wu steering guards: prefix-rule 81–100% is never a switch rate; first-token bound (≤165/210 switchable); near-synonym exclusion (parallel vectors → advisory hint fallback); steered calls pass Batch 4 verifier + argument checks, never credited with argument repair (30/30 fail); tool vectors are base-specific (cross-family 0%, rebuild 2–3 examples/tool); loop claims pass Batch 197 M2 final-state rule, injection inside a loop refused as untested | 199 | `assertSwitchRateQuote()`, `firstTokenSeparable()`, `assertSteeringPair()`, `assertSteeredCallVerified()`, `toolVectorArtifact()`, `assertToolVectorBase()`, `wuLoopClaim()` |
+| Disputed-hop tier order, canonical, cheapest first: (1) advisory hint, (2) Wu cosine-gap DETECTOR candidate, (3) Wu steering lab arm, (4) Chen S2 attention — Batch 194's "residual lever as cheaper alternative" framing RETIRED; Batch 3 Select stays advisory-only (Chen −19.1 untouched) | 199 | `DISPUTED_HOP_TIERS_199`, `canonicalTierOrder()`, `assertTierOrder()`, `BATCH_194_RESIDUAL_FRAMING` |
+| Wu cosine gap as pre-generation detector candidate, not selector, not shipped: one last-token read, <0.1 ms over the prompt pass, BFCL AUROC 0.61–0.78, NO threshold set (ranking only, 13–61 errors/model); needs within-routine validation (Batch 13) + comparison vs Batch 5 logprob-margin gate; flags uncertainty, not wrongness; silent on confident errors | 199 | `WU_GAP`, `assertGapThreshold()`, `assertGapUse()`, `gapDetectorStatus()`, `gapReading()` |
+| Infrastructure convergence: gap needs Batch 7/8 in-process capture (one layer); steering needs the same PLUS a prefill write hook; neither works over HTTP; one-layer element bound ~6,553 (vs 1,310 for 5 layers), still a full-tensor copy, fail-soft to G-NLL + verifier; SEP-TBG probe and Wu gap share one capture only if layers coincide, else the budget doubles | 199 | `CAPTURE_CONVERGENCE`, `captureElementBound()`, `captureCopies()`, `assertCapturePath()` |
 
 ### Signal convention
 
@@ -142,6 +147,21 @@ otherwise, and the Batch 16 three-class split is untouched here.
   reading (upward re-freeze as a recorded sleep-job decision, never
   automatic) is not enforced by this function; callers that want it
   should gate upward re-freezes on a recorded decision.
+- **Round-7 disentanglement is a spec, NOT executed (Batch 199).**
+  No tool vector was built, no steering was run, no cosine gap was
+  computed — every Wu/ASA figure is the paper's on its benchmarks
+  (synthetic 15-tool, τ-bench, ToolBench, BFCL, MTU-Bench), not on the
+  north-star tool pool or the bundled base. The near-synonym exclusion
+  takes a caller-supplied parallelism verdict because Batch 199 sets no
+  parallelism threshold (an open question, not a guessed constant), and
+  the capture bound is claimed only for 1 and 5 layers (6,553 / 1,310).
+  ASA's withdrawal reason is quoted from arXiv comments via a search
+  result, not from a v4 PDF (unavailable for the withdrawn version);
+  ASA numbers here carry the quarantine label only. Wu's gap threshold,
+  within-routine AUROC, and multi-turn injection behavior are all
+  unmeasured; the multi-turn override result (N=20, n.s.) neither proves
+  benefit nor harm. Whether the Wu gap and SEP-TBG probe share a capture
+  layer is a prototype question, not answered here.
 - **Round-6 harness is pre-registered, NOT executed (Batch 197).**
   No task was run, no hint was tested, no AST number exists here for
   personal tasks — the three-arm design, tier ceilings, pairing

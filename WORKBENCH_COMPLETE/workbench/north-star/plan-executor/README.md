@@ -3,7 +3,7 @@
 Node.js, CommonJS, zero dependencies. Runs with plain `node`.
 
 ```sh
-node plan-executor.test.cjs   # 115 tests, exit 0 on pass
+node plan-executor.test.cjs   # 130 tests, exit 0 on pass
 ```
 
 ## What it implements
@@ -82,6 +82,9 @@ executor }`. `prefix` is the list of completed levels only.
 | SR's other two independent disqualifications for the live tool gate: destructive pruning (a killed candidate is gone; partial scores computed before late arguments are written) and no uncertainty output (SR returns one winner, feeds no F_t/TPS). Slim-SC transfer limits: at most ~45% off a still-fatal 3–5× cost; embedder unnecessary for tool calls (normalized-AST distance strictly better and free); thought segmentation does not map to tool hops (no warm-up period, no long redundant chains in 30-token tool calls); models 14B/32B reasoning on STEM, not 4B tool loop | 204 (Sun §4–§6, Hong §2–§6) | `SR_DISQUALIFICATIONS_204`, `SLIM_SC_TRANSFER_204` |
 | Four-rule constraint set for ANY future sampled step (offline bootstrap, disputed-hop tier, Healy-gate sampling arms), each as an enforced guard: (a) WARM-UP/DELAY — no pruning, scoring, or rejection before the decision-bearing tokens exist; for tool hops never prune/score before arguments are written; a partial score on a function name alone is not a gate input. (b) WITHIN-CLUSTER PRUNING ONLY — prune redundant members within an equivalence cluster (Batch 16 Class 1), one representative per cluster; a mode-selecting prune (ModeX, Batch 18) throws. (c) ABSOLUTE THRESHOLDS, NOT QUANTILES — SR's kill-the-bottom-α rule rejected as a gate shape; needs a τu/τv-family bar (Batch 5) or an equivalence test (Batch 16). (d) SELECTION ≠ UNCERTAINTY — a sampled step that prunes its own sample cannot report that sample's spread; pruned-pool agreement is never a confidence signal (F_t/TPS/multiplicity) | 204 | `SAMPLED_STEP_RULES_204`, `assertWarmUpDelay()`, `assertGateInputNotPartialScore()`, `assertWithinClusterPrune()`, `withinClusterPrune()`, `assertAbsoluteThreshold()`, `assertConfidenceNotFromPrunedPool()`, `assertSampledStep()` |
 | Parked free-chat test shape, NOTE ONLY (not a live path): SR-logprob vs single greedy on free-chat hops, latency + person-accepted quality, NOT perplexity alone (PPL is the objective, so a PPL win is circular). Never on tool hops | 204 | `PARKED_FREE_CHAT_SR_TEST_204`, `assertParkedFreeChatSrTest()` |
+| Sampled-step compliance check of the Batch 197 pilot: PASS on all four rules — Rule 1 with its verb scope (decisions ON generated candidates; pre-generation suggestions like Batch 3 Plan–Retrieve–Select top-1 are not gate decisions), Rule 2 PASS VACUOUSLY recorded as "no sampled pool exists" (one call per arm, greedy/temperature 0, fresh context per arm), Rule 3 absolute abort bars (valid@1 down > 2, ExecRate down > 3, multi-turn final-state ≤ 0 with single-hop positive) with McNemar as a measurement not a cull, Rule 4 reported quantities on complete calls with the logprob margin kept separate as a gate input | 206 | `PILOT_COMPLIANCE_206`, `classifyPilotStep()`, `pilotRule2VacuousPass()`, `assertPilotAbsoluteBars()`, `mcnemarMeasurement()`, `assertPilotReportLabels()`, `checkPilotSampledStepCompliance206()` |
+| Pilot pre-registration AMENDMENT (before any task runs): A-rec runs as ADVISE-ALL — hint on every task, no logprob-margin gate on hint delivery; any margin-gated hint variant is REFUSED inside the pilot. Logprob-margin hint gating is PARKED as a separate post-pilot arm (gated-vs-advise-all comparison, if wanted). Rationale: Chen's gated variant (hint only below the per-model MEDIAN name margin; gated 0.579, worse than advise-all 0.590) is a RELATIVE threshold (fails Rule 3's fraction-regardless-of-quality test) and its margin is computed on the selector's name output before arguments are written (Rule 1 ambiguity); advise-all removes both in one stroke. The margin stays logged in the Batch 4 audit row, labeled "gate input, pre-generation" if reported alongside AST deltas, never "confidence in the call" | 206 | `PILOT_AMENDMENT_206`, `assertAdviseAllArec()`, `advisoryArmSpec()` gated-variant refusal, `postPilotGatedComparisonArm()`, `assertPostPilotArmNotInPilot()`, `checkRelativeThresholdGate()`, `assertNoMedianMarginGateInPilot()` |
+| Carried cautions, enforced: the Healy-gate ban is what keeps Rule 2 vacuous — any future pilot revision adding ANY sampled arm (Healy sampling arms, Slim-SC dedup arm) re-applies Rule 2 in full (within Batch 16 Class 1 equivalence clusters only, one representative per cluster; "prune duplicates" without the cluster definition attached is NOT compliance). No change to the disputed-hop tier order: this check adds no stage and removes none | 206 | `assertFuturePilotSampledArm()`, `assertHealyNotPilotArm()` in the composite, `assertTierOrderUnchanged206()` |
 
 ### Signal convention
 
@@ -161,6 +164,16 @@ otherwise, and the Batch 16 three-class split is untouched here.
   reading (upward re-freeze as a recorded sleep-job decision, never
   automatic) is not enforced by this function; callers that want it
   should gate upward re-freezes on a recorded decision.
+- **Round-10 compliance check + amendment is a spec, NOT executed (Batch 206).**
+  No task was run, no hint was tested, no AST number exists here for
+  personal tasks — the four-rule PASS and the advise-all amendment are
+  a pre-registration change, not a result. Whether advise-all actually
+  beats gated on the resident 4B base is itself an empirical question
+  the amended pilot does NOT answer (its A-rec arm has no gated arm to
+  compare against); a gated-vs-advise-all comparison, if wanted, is a
+  post-pilot arm. The Batch 205 fork-base wording flag was NOT resolved
+  or cited here. The disputed-hop tier order is unchanged by this
+  check (five stages, none added, none removed).
 - **Round-9 gate-spec pruning rules are a spec, NOT executed (Batch 204).**
   No SR or Slim-SC run was executed, no paper code was cloned or run —
   every SR/Slim-SC figure is the paper's on its models/tasks (SR:

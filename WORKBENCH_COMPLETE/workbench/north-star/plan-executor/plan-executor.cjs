@@ -2334,6 +2334,13 @@ function advisoryArmSpec(arm, opts = {}) {
     throw new Error(`advisoryArmSpec: unknown arm "${arm}" — arms are free, advisory-rec, advisory-gold (Batch 197 §2)`);
   }
   if (arm === 'free') return { arm, hint: null };
+  // Batch 206 amendment: a margin-gated hint variant is REFUSED inside
+  // the pilot — A-rec is advise-all by construction. A gated arm is
+  // built only as the separate post-pilot comparison (see
+  // postPilotGatedComparisonArm), never as a pilot advisory-rec spec.
+  if (arm === 'advisory-rec' && (opts.hintDeliveryGate !== undefined && opts.hintDeliveryGate !== null || opts.hintGate !== undefined && opts.hintGate !== null || opts.gated === true || opts.medianGate === true)) {
+    throw new Error('advisoryArmSpec: REFUSED — a margin-gated hint variant is REFUSED inside the pilot (Batch 206 amendment: A-rec runs as ADVISE-ALL, hint on every task, no logprob-margin gate on hint delivery). Logprob-margin hint gating is PARKED as a post-pilot arm (postPilotGatedComparisonArm), not a pilot arm');
+  }
   assertRecommendationSource(opts.recommendationSource, opts);
   assertVerbatimHint(opts.hintString, opts.hintedTool);
   if (opts.mergedIntoPilot === true && opts.wordingSensitivity === true) {
@@ -3557,6 +3564,435 @@ function assertParkedFreeChatSrTest(scope) {
   return { parked: true, shape: PARKED_FREE_CHAT_SR_TEST_204.comparison, measures: PARKED_FREE_CHAT_SR_TEST_204.measures };
 }
 
+// ------------------- Batch 206: sampled-step compliance check of the
+// Batch 197 advisory-hint pilot + pilot pre-registration amendment
+// (SPEC, UNEXECUTED). Batch 206 is a design-compliance audit, not a
+// result: no task was run, no hint was tested, no AST number exists
+// here for personal tasks. It answers Batch 204's question 8 — the
+// Batch 197 pilot ALREADY obeys Batch 204's four sampled-step rules
+// — and records ONE pre-execution amendment (A-rec = advise-all)
+// that must be part of the pilot's pre-registration BEFORE any task
+// runs. A gate changed after seeing pilot results would be a
+// post-hoc change, and the pilot's whole value is its pre-registered
+// ceilings (Batch 197 §4). Rounds 1–9 stand untouched: round 6's test
+// design and round 9's four rules are the objects under audit, not
+// objects this section rewrites.
+
+/**
+ * The Batch 206 verdicts, rule by rule. The wording matters and is
+ * part of the verdict: Rule 2 passes VACUOUSLY and must be recorded
+ * as "no sampled pool exists," never as "pruning was done correctly"
+ * (a design that never samples cannot have pruned correctly or
+ * incorrectly). Rule 1 is quoted with its VERB SCOPE: it governs
+ * pruning, scoring, or rejection decisions ON a generated candidate,
+ * NOT pre-generation suggestions — a retrieval/selection step that
+ * PRODUCES a suggestion (Batch 3 Plan–Retrieve–Select top-1,
+ * computed from the prompt + history before generation) is not a
+ * gate decision on a candidate, and reading Rule 1 the other way
+ * would forbid every pre-generation suggestion including the whole
+ * advisory tier. That reading is rejected here.
+ */
+const PILOT_COMPLIANCE_206 = {
+  batch: 206,
+  questionAnswered: 'Batch 204 question 8: does the Batch 197 pilot already obey the four sampled-step rules?',
+  verdict: 'PASS with one pre-execution clarification (the advise-all amendment below)',
+  executed: false,
+  rules: {
+    rule1Delay: {
+      verdict: 'PASS',
+      verbScope: 'pruning, scoring, or rejection decision ON a generated candidate',
+      notGoverned: 'pre-generation suggestions — a retrieval/selection step that PRODUCES a suggestion (Batch 3 Plan–Retrieve–Select top-1) is not a gate decision on a candidate',
+      pilotFacts: 'No pruning, scoring, or rejection decision on any partial candidate at any point; only scoring is post-generation per-call AST on the complete generated call (name AND all ground-truth arguments, order-independent, Batch 197 §5) plus final-state scoring in M2; the only pre-generation input is the advisory hint, which names a tool only and NEVER includes arguments (Batch 197 §3), so it decides nothing and rejects nothing',
+    },
+    rule2WithinClusterOnly: {
+      verdict: 'PASS VACUOUSLY',
+      recordedAs: 'no sampled pool exists',
+      neverRecordedAs: 'pruning was done correctly',
+      pilotFacts: 'No sampled candidate pool and no pruning step anywhere: one call per arm, greedy/temperature 0, fresh context per arm (Batch 197 §2/§6); no modal cluster to select, no redundant member to prune, no Slim-SC-style dedup to misapply — ModeX mode-collapse cannot occur in a design that never samples. Same for M1 (embedded single-hop, fixed replayed turns 1–2) and M2 (full episodes, per-turn AST + final state): neither samples, prunes, or selects among candidate calls',
+    },
+    rule3AbsoluteThresholds: {
+      verdict: 'PASS',
+      pilotFacts: 'Abort/falsifier rules are absolute bars, not relative culls: stop if advise-all AST falls below free AST with valid@1 down > 2 points or ExecRate down > 3 points (Batch 197 §8, adopting Batch 4 rollback triggers literally); stop the multi-turn arm if final-state delta ≤ 0 while single-hop delta is positive (§7/§8). McNemar discordant-pair analysis (§4/§5) is a MEASUREMENT, not a cull — it kills no candidate and keeps no top fraction',
+    },
+    rule4SelectionNotUncertainty: {
+      verdict: 'PASS',
+      pilotFacts: 'No confidence derived from any sample\'s spread, because there is no sample: reported quantities are AST, name accuracy, argument accuracy conditional on correct name, valid@1, ExecRate, hint-follow rate, hint-override rate (Batch 197 §5) — all measured on complete generated calls against frozen gold, none an agreement statistic. The Batch 4 audit row keeps the logprob margin SEPARATE as a gate input, never re-reported as post-hoc confidence',
+    },
+  },
+  tierOrderUnchanged: 'No change to the disputed-hop tier order (Batch 201/205): advisory hint stage 0 first, Wu gap pre-generation stage 1, logprob margin during generation stage 2, Healy post-generation pre-execution confirmation-tier stage 3, Batch 4 schema verifier mandatory after every stage stage 4. This check adds no stage and removes none; it only certifies that the stage-0 test itself obeys the sampled-step constraints written for later stages',
+};
+
+/**
+ * THE amendment (Batch 206, pre-registration, before any task runs):
+ * A-rec runs as ADVISE-ALL in the pilot — hint on every task, no
+ * logprob-margin gate on hint delivery. Logprob-margin hint gating
+ * is PARKED as a post-pilot arm: a gated-vs-advise-all comparison,
+ * if wanted, is a post-pilot arm, NOT a pilot arm.
+ *
+ * Rationale, recorded (both ambiguities removed in one stroke):
+ * Batch 197 §0 says the primary recommendation is Plan–Retrieve–
+ * Select top-1 "gated by Batch 5's logprob margin," but the pilot
+ * arms (§2) never pre-register whether A-rec is advise-all or
+ * gated-advisory, and an undocumented gate would leave the pilot's
+ * delivery rule unreproducible (Batch 197's own verbatim-wording
+ * rule, applied to gating). Chen's gated variant (hint only below
+ * the per-model MEDIAN name margin; Batch 197's own re-verification:
+ * gated 0.579, WORSE than advise-all 0.590) is a RELATIVE threshold
+ * — it fails Rule 3's test (it kills/keeps a fraction regardless of
+ * absolute quality) even though it is a delivery rule, not a pruning
+ * rule — and its margin is computed on the selector's name output
+ * before arguments are written (the Rule 1 ambiguity). The advise-all
+ * amendment removes both ambiguities; it costs nothing (advise-all
+ * beat gated in Chen, and §8 abort rules already cover harm).
+ * The logprob margin stays logged in the Batch 4 audit row as a
+ * router/gate input, labeled "gate input, pre-generation" if ever
+ * reported alongside AST deltas — never "confidence in the call."
+ *
+ * Also recorded: whether advise-all actually beats gated on the
+ * resident 4B base is itself an empirical question the pilot's
+ * A-rec arm does NOT answer after this amendment (it has no gated
+ * arm to compare against) — that comparison is post-pilot work.
+ */
+const PILOT_AMENDMENT_206 = {
+  batch: 206,
+  status: 'PRE-REGISTRATION amendment — recorded BEFORE any task runs; no task run, no hint tested',
+  aRecDelivery: 'advise-all',
+  hintOnEveryTask: true,
+  hintDeliveryGate: null,
+  parked: 'logprob-margin hint gating — POST-PILOT arm only (a gated-vs-advise-all comparison, if wanted, is a post-pilot arm, not a pilot arm)',
+  chenGatedVariant: {
+    rule: 'hint only below the per-model MEDIAN name margin',
+    gatedAst: 0.579,
+    adviseAllAst: 0.590,
+    verdict: 'gated WORSE than advise-all (Batch 197 re-verification); a RELATIVE threshold — fails Rule 3\'s test — and its margin is computed on the selector\'s name output before arguments are written (Rule 1 ambiguity)',
+  },
+  marginKeeps: 'logged in the Batch 4 audit row as a router/gate input',
+  marginLabel: 'gate input, pre-generation',
+  marginNeverLabel: 'confidence in the call',
+};
+
+/** Label for the logprob margin whenever it is reported alongside AST deltas. */
+const AUDIT_ROW_MARGIN_LABEL_206 = 'gate input, pre-generation';
+
+/** Quantities the pilot may report (Batch 197 §5 + ExecRate from §8). */
+const PILOT_REPORTED_METRICS_206 = [
+  'ast', 'nameAccuracy', 'argsConditionalAccuracy', 'valid@1', 'execRate',
+  'hintFollowRate', 'hintOverrideRate',
+];
+
+/**
+ * Guard — the amendment, enforced. delivery: { mode, hintOnEveryTask,
+ * hintGate?, gated?, medianGate? }. Only advise-all passes inside
+ * the pilot: mode 'advise-all' with a hint on every task and no gate.
+ * Every margin-gated spelling throws: a gated variant is REFUSED
+ * inside the pilot and PARKED as a post-pilot arm — it is not
+ * repaired into advise-all, because silently dropping a gate would
+ * hide the delivery rule the pre-registration must state.
+ */
+function assertAdviseAllArec(delivery) {
+  if (!delivery || typeof delivery !== 'object') throw new Error('assertAdviseAllArec: delivery must be an object { mode, hintOnEveryTask }');
+  const gatedSpellings = ['gated', 'margin-gated', 'logprob-margin-gated', 'median-gated', 'median-margin-gated', 'gated-advisory'];
+  if (gatedSpellings.includes(delivery.mode) || delivery.gated === true || delivery.medianGate === true || delivery.hintGate !== undefined && delivery.hintGate !== null) {
+    throw new Error('assertAdviseAllArec: REFUSED — a margin-gated hint variant is REFUSED inside the pilot (Batch 206 amendment: A-rec runs as ADVISE-ALL — hint on every task, no logprob-margin gate on hint delivery). Logprob-margin hint gating is PARKED as a post-pilot arm: a gated-vs-advise-all comparison, if wanted, is a post-pilot arm, not a pilot arm');
+  }
+  if (delivery.mode !== 'advise-all' || delivery.hintOnEveryTask !== true) {
+    throw new Error(`assertAdviseAllArec: pilot A-rec must be ADVISE-ALL (hint on every task, no hint-delivery gate) — got mode="${delivery.mode}" hintOnEveryTask=${delivery.hintOnEveryTask} (Batch 206 amendment)`);
+  }
+  return { aRec: 'advise-all', hintOnEveryTask: true, hintDeliveryGate: null };
+}
+
+/**
+ * The parked post-pilot arm, as a SEPARATE object — never a pilot
+ * arm. A gated-vs-advise-all comparison, if wanted, is built from
+ * this spec after the pilot, not by adding a gate to A-rec.
+ */
+function postPilotGatedComparisonArm() {
+  return {
+    arm: 'gated-vs-advise-all-comparison',
+    status: 'POST-PILOT ONLY — never a pilot arm',
+    comparison: 'logprob-margin-gated hint delivery vs advise-all hint delivery',
+    inPilot: false,
+    note: 'Whether advise-all actually beats gated on the resident 4B base is an empirical question the amended pilot does NOT answer (its A-rec arm has no gated arm to compare against) — this post-pilot arm is where it would be answered',
+  };
+}
+
+/** Guard: a post-pilot arm presented as a pilot arm throws. */
+function assertPostPilotArmNotInPilot(arms) {
+  if (!Array.isArray(arms)) throw new Error('assertPostPilotArmNotInPilot: arms must be an array');
+  if (arms.some((a) => a === 'gated-vs-advise-all-comparison' || (a && a.arm === 'gated-vs-advise-all-comparison') || (a && a.status === 'POST-PILOT ONLY'))) {
+    throw new Error('assertPostPilotArmNotInPilot: REFUSED — the gated-vs-advise-all comparison is a POST-PILOT arm (Batch 206 amendment), not a pilot arm. The pilot\'s A-rec arm is advise-all by construction');
+  }
+  return { pilotArmsOk: true };
+}
+
+/**
+ * Rule 1 verb-scope classifier (Batch 206). step: { kind, ... }.
+ * kind 'suggestion' = a retrieval/selection step that PRODUCES a
+ * suggestion (Batch 3 Plan–Retrieve–Select top-1, computed from the
+ * prompt + history before generation): NOT governed by Rule 1 — it
+ * is not a gate decision ON a generated candidate, and it passes
+ * here with that classification recorded. kind
+ * 'candidate-decision' = a pruning, scoring, or rejection decision
+ * ON a generated candidate: governed, and delegated to
+ * assertWarmUpDelay — a decision before arguments are written still
+ * throws, exactly as in round 9. This classifier does NOT weaken
+ * assertWarmUpDelay; it only stops Rule 1 being misread as banning
+ * pre-generation suggestions. Unknown kinds throw rather than
+ * silently passing as either side.
+ */
+function classifyPilotStep(step) {
+  if (!step || typeof step !== 'object') throw new Error('classifyPilotStep: step must be an object { kind }');
+  if (step.kind === 'suggestion') {
+    return { governedByRule1: false, kind: 'suggestion', reason: 'A retrieval/selection step that PRODUCES a suggestion (Batch 3 Plan–Retrieve–Select top-1, from prompt + history before generation) is not a gate decision ON a generated candidate (Batch 206 verb-scope clarification). Conflating "the hint is chosen before arguments exist" with "a candidate is scored before its arguments exist" would forbid every pre-generation suggestion, including the whole advisory tier — that reading is rejected' };
+  }
+  if (step.kind === 'candidate-decision') {
+    const checked = assertWarmUpDelay({ action: step.action, argsWritten: step.argsWritten });
+    return { governedByRule1: true, kind: 'candidate-decision', delayOk: checked.delayOk };
+  }
+  throw new Error(`classifyPilotStep: unknown step kind "${step.kind}" — "suggestion" (produces a suggestion, not governed) or "candidate-decision" (governed by Rule 1 via assertWarmUpDelay) (Batch 206)`);
+}
+
+/**
+ * Guard: an advisory hint names a tool ONLY, never arguments
+ * (Batch 197 §3, carried into the Rule 1 pass). delivery: { tool,
+ * args? }. A hint carrying arguments throws: including them would
+ * smuggle teacher-forcing back in, and an argument-carrying hint
+ * would be a partial score on a call masquerading as advice.
+ */
+function assertAdvisoryHintToolOnly(delivery) {
+  if (!delivery || typeof delivery !== 'object') throw new Error('assertAdvisoryHintToolOnly: delivery must be an object { tool }');
+  if (delivery.args !== undefined) {
+    throw new Error('assertAdvisoryHintToolOnly: REFUSED — an advisory hint names a tool only and NEVER includes arguments (Batch 197 §3). Including arguments would smuggle teacher-forcing back in');
+  }
+  if (typeof delivery.tool !== 'string' || delivery.tool.length === 0) {
+    throw new Error('assertAdvisoryHintToolOnly: delivery must name a tool (non-empty string)');
+  }
+  return { toolOnly: true, hint: advisoryHintText(delivery.tool) };
+}
+
+/**
+ * Rule 2 vacuous pass (Batch 206). design: { callsPerArm,
+ * greedy, temperature, freshContextPerArm, sampledPool, pruningStep }.
+ * Passes ONLY for the as-designed pilot: one call per arm,
+ * greedy/temperature 0, fresh context per arm, no sampled pool, no
+ * pruning step. The return records the vacuity honestly:
+ * recordedAs 'no sampled pool exists' — never 'pruning was done
+ * correctly'. If a sampled pool or pruning step IS present, the
+ * vacuity is lost and this throws: Rule 2 re-applies in full, and
+ * the arm must be policed by assertFuturePilotSampledArm instead.
+ */
+function pilotRule2VacuousPass(design) {
+  if (!design || typeof design !== 'object') throw new Error('pilotRule2VacuousPass: design must be an object');
+  if (design.sampledPool === true || design.pruningStep === true) {
+    throw new Error('pilotRule2VacuousPass: REFUSED — a sampled pool or pruning step is present, so Rule 2\'s vacuous pass does NOT apply (Batch 206). Rule 2 re-applies in full: the arm must prune within Batch 16 Class 1 equivalence clusters only, keeping one representative per cluster (see assertFuturePilotSampledArm)');
+  }
+  if (design.callsPerArm !== 1) {
+    throw new Error(`pilotRule2VacuousPass: the pilot has one call per arm — callsPerArm=${design.callsPerArm} is not the Batch 197 pilot design (Batch 206)`);
+  }
+  if (!(design.greedy === true || design.temperature === 0)) {
+    throw new Error('pilotRule2VacuousPass: the pilot is greedy/temperature 0 — a sampled design is not the Batch 197 pilot design (Batch 206)');
+  }
+  if (design.freshContextPerArm !== true) {
+    throw new Error('pilotRule2VacuousPass: the pilot runs each arm in a fresh context (Batch 197 §6) — without it the Rule 2 vacuity claim is not the pilot\'s claim (Batch 206)');
+  }
+  return {
+    verdict: 'PASS VACUOUSLY',
+    recordedAs: 'no sampled pool exists',
+    neverRecordedAs: 'pruning was done correctly',
+    reason: 'One call per arm, greedy/temperature 0, fresh context per arm, no sampled pool, no pruning step — there is no modal cluster to select, no redundant member to prune, and ModeX mode-collapse cannot occur in a design that never samples (Batch 206)',
+  };
+}
+
+/**
+ * Carried caution, enforced (Batch 206): the ban on merging a Healy
+ * gate arm into the pilot is what keeps Rule 2 vacuous. If ANY
+ * future pilot revision adds a sampled arm (Healy sampling arms, a
+ * Slim-SC dedup arm), Rule 2 re-applies in full. arm: { sampled,
+ * pruneShape, clusterDefinition, keepsOnePerCluster, pruneDescription? }.
+ * A non-sampled arm passes. A sampled arm passes ONLY with
+ * pruneShape 'within-cluster', a Batch 16 Class 1 cluster
+ * definition, and one representative kept per cluster. A "prune
+ * duplicates" description WITHOUT the cluster definition attached
+ * throws — it must never be read as Rule 2 compliance on its own.
+ */
+function assertFuturePilotSampledArm(arm) {
+  if (!arm || typeof arm !== 'object') throw new Error('assertFuturePilotSampledArm: arm must be an object');
+  if (arm.sampled !== true) return { sampled: false, rule2: 'vacuous — no sampled pool in this arm' };
+  const def = typeof arm.clusterDefinition === 'string' ? arm.clusterDefinition.toLowerCase() : '';
+  const hasClusterDef = def.includes('batch 16') && def.includes('class 1');
+  if (!hasClusterDef) {
+    throw new Error('assertFuturePilotSampledArm: REFUSED — a future sampled arm\'s "prune duplicates" is NOT Rule 2 compliance without the cluster definition attached (Batch 206). The arm must prune within Batch 16 Class 1 equivalence clusters only; a prune description with no cluster definition does not satisfy Rule 2');
+  }
+  if (arm.pruneShape !== 'within-cluster') {
+    throw new Error(`assertFuturePilotSampledArm: REFUSED — a future sampled arm must prune WITHIN clusters (pruneShape "within-cluster"), not "${arm.pruneShape}" (Batch 204 rule (b), re-applied by Batch 206)`);
+  }
+  if (arm.keepsOnePerCluster !== true) {
+    throw new Error('assertFuturePilotSampledArm: REFUSED — within-cluster pruning keeps one representative per cluster (Batch 204 rule (b), re-applied by Batch 206)');
+  }
+  return { sampled: true, rule2: 're-applied in full', pruneShape: 'within-cluster', clusterDefinition: arm.clusterDefinition };
+}
+
+/**
+ * Rule 3 test for a delivery/threshold gate (Batch 206): does the
+ * rule kill or keep a FRACTION regardless of absolute quality? A
+ * median-margin gate ("hint only below the per-model median") fails
+ * that test even though it is a delivery rule, not a pruning rule —
+ * which is why the advise-all amendment is the clean fix rather
+ * than a definitional dodge. Returns the failure verdict (it does
+ * not throw: the verdict is the evidence); the pilot guard below
+ * throws when such a gate is placed in the pilot.
+ */
+function checkRelativeThresholdGate(gate) {
+  if (!gate || typeof gate !== 'object') throw new Error('checkRelativeThresholdGate: gate must be an object');
+  const relative = gate.shape === 'median-margin' || gate.shape === 'relative' || gate.belowPerModelMedian === true || gate.relativeToMedian === true;
+  if (!relative) return { failsRule3: false, shape: gate.shape || null };
+  return {
+    failsRule3: true,
+    shape: gate.shape || 'median-margin',
+    reason: 'RELATIVE threshold: it kills/keeps a fraction regardless of absolute quality (below the per-model median) — fails Rule 3\'s test even though it is a delivery rule, not a pruning rule (Batch 206). Chen\'s gated variant: gated 0.579, WORSE than advise-all 0.590',
+  };
+}
+
+/** Guard: a median-margin (or any relative-threshold) gate in the pilot throws. */
+function assertNoMedianMarginGateInPilot(gate) {
+  if (!gate || typeof gate !== 'object') return { gateOk: true, gate: null };
+  const check = checkRelativeThresholdGate(gate);
+  if (check.failsRule3) {
+    throw new Error(`assertNoMedianMarginGateInPilot: REFUSED — a median-margin / relative-threshold gate is REFUSED in the pilot (Batch 206 amendment). ${check.reason}. Run A-rec as ADVISE-ALL; a gated-vs-advise-all comparison is a post-pilot arm`);
+  }
+  return { gateOk: true, shape: gate.shape || null };
+}
+
+/**
+ * Rule 3 pilot bars, checked against the pilot's own abort rules
+ * (Batch 206). bars: { validAt1Down, execRateDown, multiTurn }.
+ * The bars are ABSOLUTE: valid@1 down > 2 points, ExecRate down >
+ * 3 points (Batch 197 §8, Batch 4 rollback triggers literally),
+ * multi-turn stop when final-state delta ≤ 0 while single-hop
+ * delta is positive. A quantile-shaped bar throws via
+ * assertAbsoluteThreshold; a missing bar throws here as
+ * underspecified — an absolute rule that names no bar is not a bar.
+ */
+function assertPilotAbsoluteBars(bars) {
+  if (!bars || typeof bars !== 'object') throw new Error('assertPilotAbsoluteBars: bars must be an object { validAt1Down, execRateDown, multiTurn }');
+  if (bars.thresholdRule !== undefined) assertAbsoluteThreshold(bars.thresholdRule);
+  if (bars.validAt1Down !== 0.02 || bars.execRateDown !== 0.03) {
+    throw new Error(`assertPilotAbsoluteBars: pilot abort bars are ABSOLUTE — valid@1 down > 2 points (0.02) and ExecRate down > 3 points (0.03) (Batch 197 §8, Batch 4 rollback triggers literally). Got validAt1Down=${bars.validAt1Down} execRateDown=${bars.execRateDown} (Batch 206)`);
+  }
+  const mt = bars.multiTurn || {};
+  if (!(mt.finalStateDeltaLeqZeroStops === true && mt.requiresSingleHopPositive === true)) {
+    throw new Error('assertPilotAbsoluteBars: multi-turn abort bar required — stop if final-state delta ≤ 0 while single-hop delta is positive (Batch 197 §7/§8, Batch 206)');
+  }
+  return { barsOk: true, shape: 'absolute', validAt1Down: 0.02, execRateDown: 0.03 };
+}
+
+/**
+ * McNemar is a MEASUREMENT, not a cull (Batch 206, Rule 3). Takes
+ * discordant counts and returns the report with the cull fields
+ * explicitly zero: it kills no candidate and keeps no top fraction.
+ */
+function mcnemarMeasurement(b, c) {
+  const report = mcnemarReport(b, c);
+  return { ...report, cull: false, killsCandidates: 0, keepsTopFraction: false, kind: 'measurement, not a cull' };
+}
+
+/**
+ * Rule 4 reporting discipline (Batch 206). report: { metrics: [],
+ * logprobMarginLabel? }. Every reported metric must be one of the
+ * pilot's measured quantities (AST, name accuracy, argument
+ * accuracy conditional on correct name, valid@1, ExecRate,
+ * hint-follow/override rates — all on complete generated calls
+ * against frozen gold, none an agreement statistic). If the logprob
+ * margin is reported alongside AST deltas, its label MUST be
+ * "gate input, pre-generation" — "confidence in the call" (or any
+ * confidence spelling) throws: a logged gate input must never be
+ * re-reported as post-hoc confidence in the selected call.
+ */
+function assertPilotReportLabels(report) {
+  if (!report || typeof report !== 'object') throw new Error('assertPilotReportLabels: report must be an object { metrics }');
+  const metrics = report.metrics || [];
+  const unknown = metrics.filter((m) => !PILOT_REPORTED_METRICS_206.includes(m));
+  if (unknown.length) {
+    throw new Error(`assertPilotReportLabels: unknown pilot metric(s) "${unknown.join(', ')}" — the pilot reports only ${PILOT_REPORTED_METRICS_206.join(', ')} (Batch 197 §5, Batch 206 rule 4). No sample-spread quantity (agreement, multiplicity, F_t, TPS) may be reported as a pilot result`);
+  }
+  const forbiddenSignals = ['confidence in the call', 'confidence', 'post-hoc confidence'];
+  if (typeof report.logprobMarginLabel === 'string' && forbiddenSignals.some((s) => report.logprobMarginLabel.toLowerCase().includes(s))) {
+    throw new Error(`assertPilotReportLabels: REFUSED — the logprob margin must never be reported as "${report.logprobMarginLabel}" (Batch 206 rule 4). A logged gate input must never be re-reported as post-hoc confidence in the selected call; label it "gate input, pre-generation"`);
+  }
+  if (report.logprobMarginLabel !== undefined && report.logprobMarginLabel !== null && report.logprobMarginLabel !== AUDIT_ROW_MARGIN_LABEL_206) {
+    throw new Error(`assertPilotReportLabels: if the logprob margin is reported alongside AST deltas, label it "${AUDIT_ROW_MARGIN_LABEL_206}" in the same table (Batch 206 rule 4) — got "${report.logprobMarginLabel}"`);
+  }
+  return { reportOk: true, metrics, logprobMarginLabel: report.logprobMarginLabel || null };
+}
+
+/**
+ * Disputed-hop tier order, unchanged by Batch 206. The compliance
+ * check adds no stage and removes none: the canonical timeline is
+ * still exactly the five Batch 201 stages, in order. A timeline of
+ * any other length or order throws — a future revision that adds a
+ * stage must do so as its own batch's change, not smuggled in
+ * under this compliance check.
+ */
+function assertTierOrderUnchanged206(timeline) {
+  const expected = detectorTimeline();
+  const given = Array.isArray(timeline) ? timeline : detectorTimeline();
+  if (given.length !== 5 || JSON.stringify(given) !== JSON.stringify(expected)) {
+    throw new Error(`assertTierOrderUnchanged206: REFUSED — Batch 206 adds no stage and removes none. Expected the five Batch 201 stages in order: ${expected.join(' → ')}; got: ${given.join(' → ')}`);
+  }
+  return { tierOrderUnchanged: true, stages: expected };
+}
+
+/**
+ * Composite compliance check (Batch 206): the whole pilot
+ * pre-registration, as amended, against all four rules. pilot:
+ * { design, aRecDelivery, arms, abortBars, report, timeline,
+ *   medianGate?, suggestionSteps?, candidateDecisions? }.
+ * Each rule is checked by its own guard, in rule order; the first
+ * violation throws. Passing constrains the DESIGN only — it does
+ * not execute anything, and it does not authorize execution beyond
+ * the pilot's own order (pilot first, M1/M2 only after the pilot
+ * passes its abort rules, Batch 197 §7). executed is always false.
+ */
+function checkPilotSampledStepCompliance206(pilot) {
+  if (!pilot || typeof pilot !== 'object') throw new Error('checkPilotSampledStepCompliance206: pilot must be an object');
+  // Amendment first: A-rec is advise-all by construction.
+  const aRec = assertAdviseAllArec(pilot.aRecDelivery);
+  if (pilot.medianGate !== undefined && pilot.medianGate !== null) assertNoMedianMarginGateInPilot(pilot.medianGate);
+  assertPostPilotArmNotInPilot(pilot.arms || []);
+  // The Healy-gate ban is what keeps Rule 2 vacuous: merging a Healy
+  // gate arm into the pilot is refused here, not just elsewhere.
+  assertHealyNotPilotArm(pilot.arms || []);
+  // Rule 1: verb scope — suggestions are not candidate decisions;
+  // candidate decisions still go through the delay guard.
+  const suggestionSteps = (pilot.suggestionSteps || []).map((s) => classifyPilotStep({ kind: 'suggestion', ...s }));
+  const candidateDecisions = (pilot.candidateDecisions || []).map((s) => classifyPilotStep({ kind: 'candidate-decision', ...s }));
+  if (pilot.hintDelivery !== undefined) assertAdvisoryHintToolOnly(pilot.hintDelivery);
+  // Rule 2: vacuous pass, honestly worded; a sampled arm re-applies Rule 2 in full.
+  const rule2 = pilotRule2VacuousPass(pilot.design);
+  for (const arm of (pilot.futureArms || [])) assertFuturePilotSampledArm(arm);
+  // Rule 3: absolute bars; McNemar is a measurement (checked by the caller via mcnemarMeasurement).
+  const rule3 = assertPilotAbsoluteBars(pilot.abortBars);
+  // Rule 4: reported quantities + margin label discipline.
+  const rule4 = assertPilotReportLabels(pilot.report);
+  // Tier order unchanged: no stage added, none removed.
+  const tiers = assertTierOrderUnchanged206(pilot.timeline);
+  return {
+    batch: 206,
+    verdict: 'PASS',
+    amendmentApplied: true,
+    aRec,
+    rules: {
+      rule1: { verdict: 'PASS', verbScope: PILOT_COMPLIANCE_206.rules.rule1Delay.verbScope, suggestionSteps: suggestionSteps.length, candidateDecisions: candidateDecisions.length },
+      rule2,
+      rule3,
+      rule4,
+    },
+    tiers,
+    executed: false,
+    note: 'Pre-registration amendment only — no task was run, no hint was tested, no AST number exists for personal tasks. Execution order stands: pilot first (100 tasks, three arms, frozen gold), M1/M2 only after the pilot passes its abort rules; do not run M2 before the pilot, do not merge wording-sensitivity arms into the pilot, and do NOT merge a Healy gate arm into the pilot',
+  };
+}
+
 module.exports = {
   percentile,
   median,
@@ -3688,4 +4124,23 @@ module.exports = {
   assertSampledStep,
   PARKED_FREE_CHAT_SR_TEST_204,
   assertParkedFreeChatSrTest,
+  // Batch 206: sampled-step compliance check of the Batch 197 pilot + advise-all amendment (spec, unexecuted).
+  PILOT_COMPLIANCE_206,
+  PILOT_AMENDMENT_206,
+  AUDIT_ROW_MARGIN_LABEL_206,
+  PILOT_REPORTED_METRICS_206,
+  assertAdviseAllArec,
+  postPilotGatedComparisonArm,
+  assertPostPilotArmNotInPilot,
+  classifyPilotStep,
+  assertAdvisoryHintToolOnly,
+  pilotRule2VacuousPass,
+  assertFuturePilotSampledArm,
+  checkRelativeThresholdGate,
+  assertNoMedianMarginGateInPilot,
+  assertPilotAbsoluteBars,
+  mcnemarMeasurement,
+  assertPilotReportLabels,
+  assertTierOrderUnchanged206,
+  checkPilotSampledStepCompliance206,
 };

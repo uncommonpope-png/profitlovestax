@@ -121,6 +121,24 @@ const {
   assertSampledStep,
   PARKED_FREE_CHAT_SR_TEST_204,
   assertParkedFreeChatSrTest,
+  PILOT_COMPLIANCE_206,
+  PILOT_AMENDMENT_206,
+  AUDIT_ROW_MARGIN_LABEL_206,
+  PILOT_REPORTED_METRICS_206,
+  assertAdviseAllArec,
+  postPilotGatedComparisonArm,
+  assertPostPilotArmNotInPilot,
+  classifyPilotStep,
+  assertAdvisoryHintToolOnly,
+  pilotRule2VacuousPass,
+  assertFuturePilotSampledArm,
+  checkRelativeThresholdGate,
+  assertNoMedianMarginGateInPilot,
+  assertPilotAbsoluteBars,
+  mcnemarMeasurement,
+  assertPilotReportLabels,
+  assertTierOrderUnchanged206,
+  checkPilotSampledStepCompliance206,
 } = require('./plan-executor.cjs');
 
 const read = (id, dependsOn, run) => ({ id, dependsOn, kind: 'read', readOnly: true, run: run || (async () => `${id}-done`) });
@@ -1675,4 +1693,212 @@ test('Batch 204: round 9 composes with rounds 5–8 without weakening them', () 
   // Round 9's own within-cluster rule agrees with the prefix tier's rule (b): prune within, never across.
   assert.ok(PREFIX_PRUNE_GUARDRAIL.includes('ONLY WITHIN a cluster'));
   assert.equal(assertWithinClusterPrune({ shape: 'within-cluster' }).pruneOk, true);
+});
+
+// ------------------------------------------------------------ Batch 206
+
+// The as-amended pilot pre-registration: A-rec = advise-all, one call
+// per arm, greedy, fresh context per arm, absolute abort bars, the
+// Batch 201 five-stage timeline untouched. No task run, no hint tested.
+const amendedPilot206 = () => ({
+  design: { callsPerArm: 1, greedy: true, temperature: 0, freshContextPerArm: true, sampledPool: false, pruningStep: false },
+  aRecDelivery: { mode: 'advise-all', hintOnEveryTask: true, hintGate: null },
+  arms: ['free', 'advisory-rec', 'advisory-gold'],
+  abortBars: { validAt1Down: 0.02, execRateDown: 0.03, multiTurn: { finalStateDeltaLeqZeroStops: true, requiresSingleHopPositive: true } },
+  report: { metrics: ['ast', 'nameAccuracy', 'argsConditionalAccuracy', 'valid@1', 'execRate', 'hintFollowRate', 'hintOverrideRate'], logprobMarginLabel: 'gate input, pre-generation' },
+  suggestionSteps: [{ source: 'plan-top1' }],
+  candidateDecisions: [{ action: 'score', argsWritten: true }],
+  hintDelivery: { tool: 'search' },
+});
+
+test('Batch 206 rule 1 verb scope: a suggestion is not a gate decision on a candidate; a candidate decision still obeys the delay rule', () => {
+  // Batch 3 Plan–Retrieve–Select top-1 PRODUCES a suggestion — not governed.
+  const suggestion = classifyPilotStep({ kind: 'suggestion', source: 'plan-top1' });
+  assert.equal(suggestion.governedByRule1, false);
+  assert.match(suggestion.reason, /not a gate decision ON a generated candidate/);
+  // A pruning/scoring/rejection decision ON a candidate before arguments are written still throws (round 9 guard untouched).
+  assert.throws(() => classifyPilotStep({ kind: 'candidate-decision', action: 'score', argsWritten: false }), /before the decision-bearing tokens exist/);
+  assert.throws(() => classifyPilotStep({ kind: 'candidate-decision', action: 'prune', argsWritten: false }), /before the decision-bearing tokens exist/);
+  // The same decision after arguments are written passes.
+  assert.equal(classifyPilotStep({ kind: 'candidate-decision', action: 'score', argsWritten: true }).governedByRule1, true);
+  assert.throws(() => classifyPilotStep({ kind: 'mystery' }), /suggestion.*candidate-decision/);
+  // The compliance record quotes Rule 1 with its verb scope.
+  assert.match(PILOT_COMPLIANCE_206.rules.rule1Delay.verbScope, /ON a generated candidate/);
+  assert.equal(PILOT_COMPLIANCE_206.rules.rule1Delay.verdict, 'PASS');
+});
+
+test('Batch 206 rule 1: the advisory hint names a tool only, never arguments', () => {
+  assert.equal(assertAdvisoryHintToolOnly({ tool: 'search' }).toolOnly, true);
+  assert.equal(assertAdvisoryHintToolOnly({ tool: 'search' }).hint, advisoryHintText('search'));
+  assert.throws(() => assertAdvisoryHintToolOnly({ tool: 'search', args: { q: 'x' } }), /NEVER includes arguments/);
+  assert.throws(() => assertAdvisoryHintToolOnly({ tool: '' }), /must name a tool/);
+});
+
+test('Batch 206 rule 2: PASS VACUOUSLY, recorded as "no sampled pool exists" — never as "pruning was done correctly"', () => {
+  const pass = pilotRule2VacuousPass({ callsPerArm: 1, greedy: true, temperature: 0, freshContextPerArm: true, sampledPool: false, pruningStep: false });
+  assert.equal(pass.verdict, 'PASS VACUOUSLY');
+  assert.equal(pass.recordedAs, 'no sampled pool exists');
+  assert.equal(pass.neverRecordedAs, 'pruning was done correctly');
+  assert.equal(PILOT_COMPLIANCE_206.rules.rule2WithinClusterOnly.verdict, 'PASS VACUOUSLY');
+  assert.equal(PILOT_COMPLIANCE_206.rules.rule2WithinClusterOnly.recordedAs, 'no sampled pool exists');
+  // The design facts that make it vacuous are all required, not assumed.
+  assert.throws(() => pilotRule2VacuousPass({ callsPerArm: 8, greedy: true, freshContextPerArm: true }), /one call per arm/);
+  assert.throws(() => pilotRule2VacuousPass({ callsPerArm: 1, greedy: false, temperature: 0.7, freshContextPerArm: true }), /greedy\/temperature 0/);
+  assert.throws(() => pilotRule2VacuousPass({ callsPerArm: 1, greedy: true, freshContextPerArm: false }), /fresh context/);
+});
+
+test('Batch 206 rule 2: vacuity lost the moment a sampled pool or pruning step appears — Rule 2 re-applies in full', () => {
+  assert.throws(() => pilotRule2VacuousPass({ callsPerArm: 1, greedy: true, freshContextPerArm: true, sampledPool: true }), /re-applies in full/);
+  assert.throws(() => pilotRule2VacuousPass({ callsPerArm: 1, greedy: true, freshContextPerArm: true, pruningStep: true }), /re-applies in full/);
+});
+
+test('Batch 206 carried caution: a future sampled arm must prune within Batch 16 Class 1 clusters only — "prune duplicates" alone is not compliance', () => {
+  // Non-sampled arms keep the vacuity.
+  assert.equal(assertFuturePilotSampledArm({ sampled: false }).rule2, 'vacuous — no sampled pool in this arm');
+  // "Prune duplicates" with no cluster definition attached throws.
+  assert.throws(() => assertFuturePilotSampledArm({ sampled: true, pruneShape: 'within-cluster', keepsOnePerCluster: true, pruneDescription: 'prune duplicates' }), /without the cluster definition attached/);
+  // A mode-selecting shape throws even with the definition attached.
+  assert.throws(() => assertFuturePilotSampledArm({ sampled: true, pruneShape: 'mode-select', clusterDefinition: 'Batch 16 Class 1', keepsOnePerCluster: true }), /WITHIN clusters/);
+  // Dropping minority clusters throws.
+  assert.throws(() => assertFuturePilotSampledArm({ sampled: true, pruneShape: 'within-cluster', clusterDefinition: 'Batch 16 Class 1', keepsOnePerCluster: false }), /one representative per cluster/);
+  // The full form passes: within-cluster, Batch 16 Class 1, one per cluster.
+  const ok = assertFuturePilotSampledArm({ sampled: true, pruneShape: 'within-cluster', clusterDefinition: 'Batch 16 Class 1 equivalence clusters', keepsOnePerCluster: true });
+  assert.equal(ok.rule2, 're-applied in full');
+});
+
+test('Batch 206 carried caution: the Healy-gate ban is what keeps Rule 2 vacuous — merging it into the pilot is still refused', () => {
+  assert.throws(() => assertHealyNotPilotArm(['free', 'advisory-rec', 'healy-gate']), /LATER gate arm/);
+  assert.throws(() => checkPilotSampledStepCompliance206({ ...amendedPilot206(), arms: ['free', 'advisory-rec', 'healy-gate'] }), /LATER gate arm/);
+});
+
+test('Batch 206 rule 3: pilot abort bars are absolute — valid@1 > 2 points, ExecRate > 3 points, multi-turn final-state bar', () => {
+  const bars = assertPilotAbsoluteBars({ validAt1Down: 0.02, execRateDown: 0.03, multiTurn: { finalStateDeltaLeqZeroStops: true, requiresSingleHopPositive: true } });
+  assert.equal(bars.shape, 'absolute');
+  assert.throws(() => assertPilotAbsoluteBars({ validAt1Down: 0.05, execRateDown: 0.03, multiTurn: { finalStateDeltaLeqZeroStops: true, requiresSingleHopPositive: true } }), /ABSOLUTE/);
+  assert.throws(() => assertPilotAbsoluteBars({ validAt1Down: 0.02, execRateDown: 0.03, multiTurn: { finalStateDeltaLeqZeroStops: false, requiresSingleHopPositive: true } }), /final-state delta/);
+  // A quantile-shaped threshold rule still throws via round 9's guard.
+  assert.throws(() => assertPilotAbsoluteBars({ validAt1Down: 0.02, execRateDown: 0.03, multiTurn: { finalStateDeltaLeqZeroStops: true, requiresSingleHopPositive: true }, thresholdRule: { shape: 'quantile' } }), /quantile cut is rejected/);
+  // The bars bite exactly as specified: below-free AST with valid@1 down > 2 stops; below both bars does not.
+  assert.equal(abortCheck({ free: { ast: 0.60, schemaValidAt1: 0.95, execRate: 0.90 }, advisoryRec: { ast: 0.58, schemaValidAt1: 0.92, execRate: 0.89 } }).stop, true);
+  assert.equal(abortCheck({ free: { ast: 0.60, schemaValidAt1: 0.90, execRate: 0.90 }, advisoryRec: { ast: 0.58, schemaValidAt1: 0.90, execRate: 0.88 } }).stop, false);
+  // Multi-turn bar: win turn 1, lose the episode = FAIL for loop use.
+  assert.equal(multiTurnVerdict({ turn1Delta: 0.05, finalStateDelta: 0 }).verdict, 'FAIL');
+  assert.equal(PILOT_COMPLIANCE_206.rules.rule3AbsoluteThresholds.verdict, 'PASS');
+});
+
+test('Batch 206 rule 3: McNemar discordant-pair analysis is a measurement, not a cull', () => {
+  const m = mcnemarMeasurement(12, 4);
+  assert.equal(m.b, 12);
+  assert.equal(m.c, 4);
+  assert.equal(m.exact, true); // 16 discordant < 25: exact-binomial
+  assert.equal(m.cull, false);
+  assert.equal(m.killsCandidates, 0);
+  assert.equal(m.keepsTopFraction, false);
+  assert.equal(m.kind, 'measurement, not a cull');
+});
+
+test('Batch 206 rule 3 + amendment rationale: Chen\'s median-margin gate fails the relative-threshold test and is refused in the pilot', () => {
+  const check = checkRelativeThresholdGate({ shape: 'median-margin', belowPerModelMedian: true });
+  assert.equal(check.failsRule3, true);
+  assert.match(check.reason, /regardless of absolute quality/);
+  assert.equal(checkRelativeThresholdGate({ shape: 'absolute', bar: 0.5 }).failsRule3, false);
+  assert.throws(() => assertNoMedianMarginGateInPilot({ shape: 'median-margin' }), /REFUSED in the pilot/);
+  assert.equal(assertNoMedianMarginGateInPilot(null).gateOk, true);
+  // Chen's own re-verification numbers: gated worse than advise-all.
+  assert.equal(PILOT_AMENDMENT_206.chenGatedVariant.gatedAst, 0.579);
+  assert.equal(PILOT_AMENDMENT_206.chenGatedVariant.adviseAllAst, 0.590);
+  assert.ok(PILOT_AMENDMENT_206.chenGatedVariant.gatedAst < PILOT_AMENDMENT_206.chenGatedVariant.adviseAllAst);
+});
+
+test('Batch 206 rule 4: reported quantities are measured on complete calls; the margin is a gate input, never "confidence in the call"', () => {
+  assert.deepEqual(PILOT_REPORTED_METRICS_206, ['ast', 'nameAccuracy', 'argsConditionalAccuracy', 'valid@1', 'execRate', 'hintFollowRate', 'hintOverrideRate']);
+  const ok = assertPilotReportLabels({ metrics: ['ast', 'nameAccuracy', 'argsConditionalAccuracy', 'valid@1', 'execRate', 'hintFollowRate', 'hintOverrideRate'], logprobMarginLabel: 'gate input, pre-generation' });
+  assert.equal(ok.reportOk, true);
+  assert.equal(AUDIT_ROW_MARGIN_LABEL_206, 'gate input, pre-generation');
+  // No sample-spread quantity may be reported as a pilot result.
+  assert.throws(() => assertPilotReportLabels({ metrics: ['ast', 'agreement'] }), /only ast, nameAccuracy/);
+  assert.throws(() => assertPilotReportLabels({ metrics: ['ast', 'multiplicity'] }), /only ast, nameAccuracy/);
+  // The margin re-reported as confidence throws in every spelling.
+  assert.throws(() => assertPilotReportLabels({ metrics: ['ast'], logprobMarginLabel: 'confidence in the call' }), /never be re-reported as post-hoc confidence/);
+  assert.throws(() => assertPilotReportLabels({ metrics: ['ast'], logprobMarginLabel: 'confidence' }), /never be re-reported as post-hoc confidence/);
+  // Any other margin label alongside AST deltas throws — the label is fixed.
+  assert.throws(() => assertPilotReportLabels({ metrics: ['ast'], logprobMarginLabel: 'uncertainty estimate' }), /gate input, pre-generation/);
+  assert.equal(PILOT_COMPLIANCE_206.rules.rule4SelectionNotUncertainty.verdict, 'PASS');
+});
+
+test('Batch 206 amendment: A-rec is advise-all by construction — any margin-gated variant is REFUSED inside the pilot', () => {
+  const ok = assertAdviseAllArec({ mode: 'advise-all', hintOnEveryTask: true, hintGate: null });
+  assert.equal(ok.aRec, 'advise-all');
+  assert.equal(ok.hintDeliveryGate, null);
+  assert.equal(PILOT_AMENDMENT_206.aRecDelivery, 'advise-all');
+  assert.equal(PILOT_AMENDMENT_206.hintOnEveryTask, true);
+  assert.equal(PILOT_AMENDMENT_206.hintDeliveryGate, null);
+  assert.match(PILOT_AMENDMENT_206.parked, /POST-PILOT arm only/);
+  // Every gated spelling throws.
+  assert.throws(() => assertAdviseAllArec({ mode: 'margin-gated', hintOnEveryTask: false }), /REFUSED inside the pilot/);
+  assert.throws(() => assertAdviseAllArec({ mode: 'advise-all', hintOnEveryTask: true, hintGate: 'logprob-margin' }), /REFUSED inside the pilot/);
+  assert.throws(() => assertAdviseAllArec({ mode: 'advise-all', hintOnEveryTask: true, medianGate: true }), /REFUSED inside the pilot/);
+  assert.throws(() => assertAdviseAllArec({ mode: 'advise-all', hintOnEveryTask: false }), /must be ADVISE-ALL/);
+  // The pilot arm spec itself refuses a gated advisory-rec.
+  assert.throws(() => advisoryArmSpec('advisory-rec', { recommendationSource: 'plan-top1', hintString: advisoryHintText('search'), hintedTool: 'search', hintDeliveryGate: 'logprob-margin' }), /REFUSED inside the pilot/);
+  // Ungated advisory-rec specs are unaffected.
+  assert.equal(advisoryArmSpec('advisory-rec', { recommendationSource: 'plan-top1', hintString: advisoryHintText('search'), hintedTool: 'search' }).arm, 'advisory-rec');
+});
+
+test('Batch 206 amendment: the gated-vs-advise-all comparison is a separate POST-PILOT arm, never a pilot arm', () => {
+  const arm = postPilotGatedComparisonArm();
+  assert.equal(arm.arm, 'gated-vs-advise-all-comparison');
+  assert.equal(arm.status, 'POST-PILOT ONLY — never a pilot arm');
+  assert.equal(arm.inPilot, false);
+  assert.throws(() => assertPostPilotArmNotInPilot(['free', 'advisory-rec', 'gated-vs-advise-all-comparison']), /POST-PILOT arm/);
+  assert.throws(() => assertPostPilotArmNotInPilot([arm]), /POST-PILOT arm/);
+  assert.equal(assertPostPilotArmNotInPilot(['free', 'advisory-rec', 'advisory-gold']).pilotArmsOk, true);
+});
+
+test('Batch 206 composite: the as-amended pilot PASSES all four rules; a gated A-rec fails it', () => {
+  const result = checkPilotSampledStepCompliance206(amendedPilot206());
+  assert.equal(result.batch, 206);
+  assert.equal(result.verdict, 'PASS');
+  assert.equal(result.amendmentApplied, true);
+  assert.equal(result.aRec.aRec, 'advise-all');
+  assert.equal(result.rules.rule1.verdict, 'PASS');
+  assert.equal(result.rules.rule2.verdict, 'PASS VACUOUSLY');
+  assert.equal(result.rules.rule2.recordedAs, 'no sampled pool exists');
+  assert.equal(result.rules.rule3.barsOk, true);
+  assert.equal(result.rules.rule4.reportOk, true);
+  assert.equal(result.tiers.tierOrderUnchanged, true);
+  assert.equal(result.executed, false);
+  assert.match(result.note, /no task was run, no hint was tested/);
+  // A gated A-rec fails the composite.
+  assert.throws(() => checkPilotSampledStepCompliance206({ ...amendedPilot206(), aRecDelivery: { mode: 'margin-gated', hintOnEveryTask: false } }), /REFUSED inside the pilot/);
+  // A median gate smuggled alongside advise-all fails the composite.
+  assert.throws(() => checkPilotSampledStepCompliance206({ ...amendedPilot206(), medianGate: { shape: 'median-margin' } }), /REFUSED in the pilot/);
+  // A sampled pool fails the composite (vacuity lost).
+  assert.throws(() => checkPilotSampledStepCompliance206({ ...amendedPilot206(), design: { callsPerArm: 8, greedy: false, temperature: 0.7, freshContextPerArm: true, sampledPool: true } }), /re-applies in full/);
+});
+
+test('Batch 206: tier order unchanged — the check adds no stage and removes none', () => {
+  const timeline = detectorTimeline();
+  assert.deepEqual(timeline, ['advisory-hint', 'wu-cosine-gap-pre-generation', 'logprob-first-token-margin-during-generation', 'healy-post-generation-pre-execution-confirmation', 'batch4-schema-verifier-and-argument-checks']);
+  assert.equal(assertTierOrderUnchanged206().tierOrderUnchanged, true);
+  assert.equal(assertTierOrderUnchanged206(timeline).stages.length, 5);
+  assert.throws(() => assertTierOrderUnchanged206([...timeline, 'new-stage']), /adds no stage and removes none/);
+  assert.throws(() => assertTierOrderUnchanged206(timeline.slice(1)), /adds no stage and removes none/);
+  assert.match(PILOT_COMPLIANCE_206.tierOrderUnchanged, /adds no stage and removes none/);
+});
+
+test('Batch 206: round 10 composes with rounds 5–9 without weakening them; the amendment is pre-registration only', () => {
+  // Round 9 guards still bite.
+  assert.throws(() => assertLiveToolGate({ live: true, hopKind: 'tool', samples: 8 }), /stays CLOSED/);
+  assert.throws(() => assertWithinClusterPrune({ shape: 'mode-select' }), /mode-selecting prune/);
+  assert.throws(() => assertAbsoluteThreshold({ shape: 'quantile' }), /quantile cut is rejected/);
+  assert.throws(() => assertConfidenceNotFromPrunedPool({ poolPruned: true, signal: 'agreement' }), /never be cited as a confidence signal/);
+  // Round 6 pilot order stands: M2 still requires the pilot first.
+  assert.throws(() => assertMultiTurnOrder({ phase: 'M2', pilotPassed: false }), /requires the single-hop pilot/);
+  // Round 5 advisory-only Select still bites.
+  assert.throws(() => selectAdvisory([{ id: 'c1' }], 'search', { forcedPrefix: 'search' }), /advisory-only/);
+  // Round 10's own status: spec, unexecuted — no task run, no hint tested, no AST number.
+  assert.equal(PILOT_AMENDMENT_206.status, 'PRE-REGISTRATION amendment — recorded BEFORE any task runs; no task run, no hint tested');
+  assert.equal(PILOT_COMPLIANCE_206.executed, false);
+  assert.equal(checkPilotSampledStepCompliance206(amendedPilot206()).executed, false);
 });

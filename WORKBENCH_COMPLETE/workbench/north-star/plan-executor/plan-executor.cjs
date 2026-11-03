@@ -4232,6 +4232,452 @@ function checkOfflineCriticSpec208(spec) {
   };
 }
 
+/**
+ * Batch 211 — SCORE in full (Zhang et al., arXiv:2404.17140v2, ACL
+ * 2024). Spec/harness amendments to Batch 208's offline critic.
+ * NO critic was run, NO label was applied to a personal trajectory,
+ * NO promotion test was run — this section is a filter spec, a
+ * calibration-reporting rule, and a three-arm test amendment.
+ *
+ * NAME COLLISION, stated first because the log already holds two
+ * near-identical names: this SCORE (Self-COrrection in REasoning,
+ * Zhang et al., Michigan + LG AI Research) is NOT SCoRe (Lyu et
+ * al., ICML 2026, student-centered distillation with a 72B
+ * teacher, Batches 1–2). They rhyme and agree on one thing (the
+ * verifier/teacher is the bottleneck), but their mechanisms,
+ * teachers, and numbers are different papers. Merging their claims
+ * throws (see assertScoreIdentity211).
+ *
+ * THE REPLICATION (paper Table 6, GSM8K first): Self-Correct :=
+ * (Self-)Verify + Self-Refine, Refine := Critique + Correction,
+ * the two phases DECOUPLED so each is measured separately. The
+ * REFINER is capable — the oracle ceiling is +8.8 to +18.8 pp —
+ * but the VERIFIER strands it: LLaMA-2-13B self-verifier F1 51.1
+ * → final 37.5 (+0.3 over the 37.2 few-shot initial); GPT-4
+ * verifier F1 88.4 → 41.4 (+4.2); oracle F1 100 → 46.0 (+8.8).
+ * Gemma-7B self F1 56.8 → 36.7 (+0.4 over 36.3); GPT-4 F1 89.5 →
+ * 42.5 (+6.2); oracle → 47.4 (+11.1). On CommonsenseQA the
+ * self-verifier is a flat zero (LLaMA F1 47.1 → +0.0; Gemma F1
+ * 42.0 → +0.3) vs GPT-4 +2.7/+7.8 and oracle +16.5/+18.2.
+ * Transfer repeats it (LLaMA CSQA→RiddleSense self −0.1 vs
+ * GPT-4 +9.7). This is the Batches 2/3 teacher pattern a FIFTH
+ * time, and the first time the log can quote verifier F1s
+ * alongside final accuracies. It CONFIRMS Batch 208 Decision 3
+ * (offline placement) and STRENGTHENS Decision 1 (no live
+ * periodic critic stage): the live pipeline's 1.3–1.4x latency is
+ * affordable, but its verifier (F1 ~51–57 self vs ~88–90 GPT-4)
+ * is the bottleneck, and the live resident tier has no strong
+ * verifier to substitute. The live gate stack (Batch 201/206
+ * order) is UNCHANGED.
+ *
+ * THE CALIBRATION PASS (paper §3.1 filtering) — the template
+ * Batch 208 Decision 3 was missing. An offline-critic flag
+ * becomes adapter training data ONLY if it passes BOTH stages,
+ * in personal-task form:
+ *   Stage 1, well-formed label: category (one of the 12 Batch
+ *   208 categories) + window (logged steps) + evidence COPIED
+ *   from the trajectory, matching the Batch 208 ledger fields.
+ *   (Paper form: step/feedback counts match, each step copied
+ *   verbatim, last step's feedback gives the correct answer.
+ *   LLaMA GSM8K: 56,843 raw → 36,337, 63.9%; Gemma GSM8K:
+ *   52,669 → 17,209, 32.7%.)
+ *   Stage 2, outcome-corroborated: the flagged window precedes
+ *   a verified failure, OR applying the flag's recovery action
+ *   to the trajectory yields a verified success — the personal-
+ *   task analogue of SCORE's "revision is correct" test, where
+ *   verification is tool-result/person-acceptance, NOT a gold
+ *   answer. (Paper form: revise the incorrect solution using
+ *   the critique; keep ONLY if the revision is correct. LLaMA
+ *   GSM8K: 36,337 → 14,499, 25.5% of raw; Gemma GSM8K:
+ *   52,669 → 4,623, 8.8% of raw; CommonsenseQA yields higher,
+ *   LLaMA 57.4%, Gemma 31.9% of raw.)
+ * Raw flags, like raw critiques, are mostly noise: SCORE's
+ * yields (8.8–57.4% kept) are the honest prior for what
+ * fraction of offline-critic flags should survive to the
+ * adapter, and a pipeline that keeps ~99.6% of flags (SWE-PRM's
+ * rate) has skipped its filter — see scoreFilterKeepRate211.
+ *
+ * FIRST-ERROR-ONLY (paper Table 3 ablation, GSM8K dev,
+ * LLaMA-13B): critique-for-first-error-step + critique-and-
+ * correction-in-one-pass gives final 40.2 / oracle 49.5,
+ * beating critique-every-step (39.6 / 46.4), separate
+ * critique-then-correction modules (39.4 / 43.6), and neither
+ * (39.9 / 47.0). This converges with Batch 2's SCoRe
+ * first-error correction and Batch 1's SMITH discipline from a
+ * third direction: the trainable correction unit is the FIRST
+ * error, not the whole trajectory. The offline critic labels
+ * the first error window per trajectory, not every flagged
+ * window — which also deflates SWE-PRM's 99.6% per-invocation
+ * rate into a per-trajectory first-flag rate, the ONLY rate
+ * comparable across critics.
+ *
+ * TWO-SIDED CALIBRATION: SCORE's weak verifier UNDER-fires
+ * (LLaMA self fires on only 19.0% of cases vs oracle 62.8%
+ * and GPT-4 63.3%; Gemma 27.9% vs 63.7%) while SWE-PRM's
+ * prompted taxonomy critic OVER-fires (~99.6%). Weak
+ * verification is miscalibrated in BOTH directions, so a
+ * flag-rate number alone cannot diagnose a critic. Every
+ * critic report MUST carry flag rate AND outcome-corroborated
+ * precision (flagged windows that actually precede failure)
+ * AND miss rate (failed trajectories with no flag). A report
+ * carrying flag rate alone is uncalibrated by construction.
+ *
+ * HONEST LIMITS, recorded not waived: SCORE's bootstrap needs
+ * a CORRECT SOLUTION for the same question as a hint at
+ * data-collection time — gold answers. Personal tasks usually
+ * have no gold answer; the north-star substitute (Batch 2's
+ * person-correction + tool-verification as the "correct
+ * solution") is still a PROPOSAL, and SCORE never tests it —
+ * the hint's quality (person-correct vs gold-correct) is
+ * unmeasured. Its models are 7B/13B, not the 4B resident tier;
+ * no 4B weak-verifier F1 exists in this paper. One refinement
+ * iteration only, greedy decoding; multi-iteration self-
+ * correction is future work. The verifier threshold is tuned on
+ * a dev set with gold labels — the personal analogue
+ * (threshold tuned on the person's own outcome-labeled hops,
+ * per Batch 5's re-fit rule) is again a proposal, not a
+ * tested transfer.
+ */
+const SCORE_211 = Object.freeze({
+  source: 'Zhang, Khalifa, Logeswaran, Kim, Lee, Lee & Wang (Michigan + LG AI Research), arXiv:2404.17140v2, read in full (Batch 211)',
+  fullName: 'Self-COrrection in REasoning',
+  notToBeConfusedWith: 'SCoRe (Lyu et al., ICML 2026, student-centered distillation with a 72B teacher, Batches 1–2) — different paper, different mechanism, different numbers',
+  decomposition: 'Self-Correct := (Self-)Verify + Self-Refine; Self-Refine := Critique + Correction; the two phases DECOUPLED so each is measured separately',
+  models: 'LLaMA-2-13B-chat and Gemma-7B-it; tasks GSM8K + CommonsenseQA training, transfer to MATH subset, QASC, RiddleSense; LoRA r=32, lr 2e-5, 3 epochs (LLaMA-Factory); 4xA40 (48 GB) lab hardware',
+  bottleneck: Object.freeze({
+    llamaGsm8k: Object.freeze({ selfF1: 51.1, selfFinal: 37.5, selfGain: 0.3, initial: 37.2, gpt4F1: 88.4, gpt4Final: 41.4, gpt4Gain: 4.2, oracleF1: 100.0, oracleFinal: 46.0, oracleGain: 8.8 }),
+    gemmaGsm8k: Object.freeze({ selfF1: 56.8, selfFinal: 36.7, selfGain: 0.4, initial: 36.3, gpt4F1: 89.5, gpt4Final: 42.5, gpt4Gain: 6.2, oracleFinal: 47.4, oracleGain: 11.1 }),
+    commonsenseQa: Object.freeze({ llamaSelfF1: 47.1, llamaSelfGain: 0.0, gemmaSelfF1: 42.0, gemmaSelfGain: 0.3, gpt4Gains: 'LLaMA +2.7 / Gemma +7.8', oracleGains: 'LLaMA +16.5 / Gemma +18.2' }),
+    transfer: 'LLaMA CSQA→RiddleSense self −0.1 vs GPT-4 +9.7',
+    oracleCeiling: '+8.8 to +18.8 pp',
+    verdict: 'The REFINER is capable; the VERIFIER is what strands it — the Batches 2/3 teacher pattern a fifth time',
+  }),
+  fireRates: Object.freeze({
+    llamaSelf: 0.19, gemmaSelf: 0.279, oracle: 0.628, gpt4: 0.633,
+    swePrmOverFire: 0.996,
+    lesson: 'Weak verification is miscalibrated in BOTH directions — UNDER-fire (SCORE) and OVER-fire (SWE-PRM) — so flag rate alone cannot diagnose a critic',
+  }),
+  filterYields: Object.freeze({
+    stage1: Object.freeze({ llamaGsm8k: 0.639, gemmaGsm8k: 0.327 }),
+    finalKept: Object.freeze({ llamaGsm8k: 0.255, gemmaGsm8k: 0.088, llamaCommonsenseQa: 0.574, gemmaCommonsenseQa: 0.319 }),
+    honestPrior: '8.8–57.4% of raw critiques kept — most generated critiques are discarded, and the discard rule is outcome, not confidence',
+  }),
+  firstErrorOnly: Object.freeze({
+    firstErrorOnePass: Object.freeze({ final: 40.2, oracle: 49.5 }),
+    everyStep: Object.freeze({ final: 39.6, oracle: 46.4 }),
+    separateModules: Object.freeze({ final: 39.4, oracle: 43.6 }),
+    neither: Object.freeze({ final: 39.9, oracle: 47.0 }),
+    verdict: 'The trainable correction unit is the FIRST error, not the whole trajectory',
+  }),
+  ensembling: Object.freeze({
+    method: 'oversample-then-rerank (k=10 samples, temperature 0.9, weighted voting by verifier probability)',
+    llamaGsm8k: Object.freeze({ singleGreedy: 37.2, ensemble: 44.3, ensembleGain: 7.1, ensemblePlusRefinement: 46.0, ensemblePlusRefinementGain: 8.8 }),
+    gemmaGsm8k: Object.freeze({ singleGreedy: 36.3, ensemble: 39.5, ensemblePlusRefinement: 41.1 }),
+    latencyCost: '4.5x vs the SCORE live pipeline 1.3–1.4x base — ensembling belongs in the sleep job ONLY, never on the resident live path',
+  }),
+  promotionTest: Object.freeze({
+    arms: ['(a) person-correction labels alone', '(b) critic labels raw', '(c) critic labels through the SCORE two-stage filter'],
+    armWithPriorReasonToWin: '(c) critic labels through the SCORE two-stage filter',
+    verdictBasis: 'Label quality (filtered vs unfiltered, outcome-corroborated vs raw), NOT dataset size — with a weak self-verifier, more data does NOT help (SCORE §5.4, Figure 4: flat curve; strong-verifier data helps up to ~10K examples, 75% of 14,499, then plateaus)',
+    metricSet: 'Batch 4 metric set: success, valid@1, ExecRate, CPS, p50/p95, deferral rate',
+    abortRule: 'Batch 4 rollback triggers: −2 valid@1 / −3 ExecRate / +20% p95',
+    scope: 'Measured WITHIN routines; a pooled cross-routine comparison does not promote',
+  }),
+  weaverLead: Object.freeze({
+    paper: 'Saad-Falcon et al., "Shrinking the Generation-Verification Gap with Weak Verifiers," arXiv:2506.18203',
+    status: 'UNVERIFIED LEAD — search-result abstract only, NOT read in full, NEVER evidence',
+    abstractClaim: 'Weighted ensembles of weak verifiers, with weak-supervision accuracy estimation, shrink the gap to oracle verifiers',
+    question: 'Does weighted weak-verifier ensembling generalize SCORE Appendix D, and can it weight the offline critic ensemble without gold labels?',
+  }),
+});
+
+/**
+ * Name-collision guard (Batch 211). A claim about SCORE must
+ * name Zhang et al. and its mechanism; attributing SCoRe's
+ * 72B teacher, student-centered distillation, or 8xH20 GRPO
+ * to SCORE throws — those are Lyu et al., a different paper.
+ */
+function assertScoreIdentity211(claim) {
+  if (!claim || typeof claim !== 'object') throw new Error('assertScoreIdentity211: claim must be an object');
+  const text = JSON.stringify(claim).toLowerCase();
+  if (/72b teacher|student-centered|8x ?h20|grpo/i.test(text)) {
+    throw new Error('assertScoreIdentity211: REFUSED — that is SCoRe (Lyu et al., ICML 2026, 72B teacher), NOT SCORE (Zhang et al., arXiv:2404.17140). Do not merge their claims: SCORE = Self-COrrection in REasoning, verifier F1s ~51–57 self vs ~88–90 GPT-4, LoRA r=32 refiner, no stronger teacher');
+  }
+  if (claim.paper && !/2404\.17140/i.test(String(claim.paper))) {
+    throw new Error(`assertScoreIdentity211: SCORE is arXiv:2404.17140 (Zhang et al.), not "${claim.paper}" (Batch 211)`);
+  }
+  return { paper: 'Zhang et al., arXiv:2404.17140v2 (ACL 2024)', fullName: SCORE_211.fullName, notScorE: 'SCoRe (Lyu et al., ICML 2026) is a different paper' };
+}
+
+/**
+ * Batch 208 Decision 1 CONFIRMED by Batch 211, not changed.
+ * SCORE strengthens the ban: the live pipeline's 1.3–1.4x
+ * latency is affordable, but its verifier (F1 ~51–57 self vs
+ * ~88–90 GPT-4) is the bottleneck, and the live resident tier
+ * has no strong verifier to substitute. The live gate stack
+ * (Batch 201/206 order) is unchanged — this delegates to the
+ * Batch 208 guard and adds the SCORE evidence to the verdict.
+ */
+function assertNoLivePeriodicCriticStage211(timeline) {
+  const base = assertNoLivePeriodicCriticStage208(timeline);
+  return { ...base, confirmedBy: 'Batch 211 (SCORE): weak self-verifier F1 ~51–57 vs strong ~88–90, self-verifier final-accuracy gain ~0 vs +4 to +8 strong / +9 to +19 oracle — the verifier is the bottleneck, not the refiner; live gate stack unchanged' };
+}
+
+/**
+ * Stage 1 of the SCORE filter, personal-task form (Batch 211):
+ * category (one of the 12 Batch 208 categories) + window
+ * (logged steps) + evidence COPIED from the trajectory,
+ * matching the Batch 208 ledger fields. A label missing any
+ * of the three is DISCARDED, not repaired — the paper's
+ * stage-1 rule is format, and format failures do not become
+ * training data.
+ */
+function scoreFilterStage1_211(label) {
+  if (!label || typeof label !== 'object') throw new Error('scoreFilterStage1_211: label must be an object');
+  const row = taxonomyCategory208(label.category);
+  if (!Array.isArray(label.windowSteps) || label.windowSteps.length === 0) {
+    throw new Error(`scoreFilterStage1_211: DISCARDED — a well-formed label needs logged window steps (Batch 211 Stage 1, personal-task form of SCORE §3.1 format rule). Category "${label.category}" has no window`);
+  }
+  if (typeof label.copiedEvidence !== 'string' || label.copiedEvidence.trim().length === 0) {
+    throw new Error(`scoreFilterStage1_211: DISCARDED — a well-formed label needs evidence COPIED from the trajectory (Batch 211 Stage 1). Category "${label.category}" carries no copied evidence`);
+  }
+  return { stage1: 'pass', category: row.category, family: row.family, ledgerMapping: row.ledgerMapping, steps: label.windowSteps.length };
+}
+
+/**
+ * Stage 2 of the SCORE filter, personal-task form (Batch 211):
+ * outcome-corroborated — the flagged window precedes a
+ * verified failure, OR applying the flag's recovery action to
+ * the trajectory yields a verified success. Verification is
+ * tool-result/person-acceptance, NOT a gold answer (personal
+ * tasks usually have no gold answer; the person-correction-
+ * as-hint substitution is still an untested proposal). A
+ * flag passing Stage 1 but failing Stage 2 stays diagnostic.
+ */
+function scoreFilterStage2_211(label) {
+  if (!label || typeof label !== 'object') throw new Error('scoreFilterStage2_211: label must be an object');
+  if (label.precedesVerifiedFailure === true || label.recoveryActionVerifiedSuccess === true) {
+    return { stage2: 'pass', corroboration: label.precedesVerifiedFailure === true ? 'flagged window precedes a verified failure' : 'recovery action applied to the trajectory yields a verified success' };
+  }
+  throw new Error(`scoreFilterStage2_211: DISCARDED — outcome-corroboration failed (Batch 211 Stage 2). Neither "flagged window precedes a verified failure" nor "recovery action yields a verified success" holds; the flag stays diagnostic, never training data`);
+}
+
+/**
+ * The full SCORE filter (Batch 211): BOTH stages, in order.
+ * This is the ONLY path by which an offline-critic flag
+ * becomes adapter training data. A raw flag that skips
+ * either stage is refused — Batch 208's
+ * offlineCriticLabel208 (outcome-corroborated boolean) is
+ * now the Stage-2 gate inside a stricter two-stage filter,
+ * not a standalone shortcut.
+ */
+function scoreFilterLabel211(label) {
+  const stage1 = scoreFilterStage1_211(label);
+  const stage2 = scoreFilterStage2_211(label);
+  return { category: stage1.category, usableForTraining: true, stage1: stage1.stage1, stage2: stage2.stage2, corroboration: stage2.corroboration, note: 'Passed the SCORE two-stage filter (Batch 211) — eligible as QLoRA correction data, subject to the three-arm promotion rule' };
+}
+
+/**
+ * Keep-rate honesty check (Batch 211). SCORE's yields are the
+ * honest prior: 8.8–57.4% of raw critiques kept. A pipeline
+ * keeping ~99.6% of flags (SWE-PRM's per-invocation rate)
+ * has skipped its filter — it is shipping raw critiques as
+ * if they were training data, and the aggregate throws.
+ * A keep rate inside the prior passes; a rate above it is
+ * not automatically a failure (tasks differ), but a rate at
+ * or above 0.90 is refused as unfiltered until the filter
+ * is shown to have run.
+ */
+function scoreFilterKeepRate211(counts) {
+  if (!counts || typeof counts !== 'object') throw new Error('scoreFilterKeepRate211: counts must be an object');
+  if (typeof counts.kept !== 'number' || typeof counts.raw !== 'number' || counts.raw <= 0) throw new Error('scoreFilterKeepRate211: kept and raw counts are required numbers, raw > 0');
+  const rate = counts.kept / counts.raw;
+  if (rate >= 0.9) {
+    throw new Error(`scoreFilterKeepRate211: REFUSED — keep rate ${(rate * 100).toFixed(1)}% is at SWE-PRM's ~99.6% unfiltered rate, far above SCORE's honest prior of 8.8–57.4% kept (Batch 211). A pipeline keeping nearly every flag has skipped its filter; show the two-stage filter ran`);
+  }
+  return { keepRate: rate, withinHonestPrior: rate >= 0.088 && rate <= 0.574, note: 'SCORE honest prior: 8.8–57.4% of raw critiques kept (Batch 211)' };
+}
+
+/**
+ * FIRST-ERROR-ONLY labeling (Batch 211, paper Table 3).
+ * flags: the flagged windows of ONE trajectory, in order.
+ * Only the first error window is labeled; later flagged
+ * windows are dropped, not labeled. The comparable rate
+ * across critics is the per-trajectory first-flag rate, not
+ * the per-invocation rate — SWE-PRM's 99.6% per-invocation
+ * rate deflates to a per-trajectory first-flag rate under
+ * this rule. A trajectory with no flagged window labels
+ * nothing (clean trajectories are not errors).
+ */
+function firstErrorLabel211(trajectory) {
+  if (!trajectory || typeof trajectory !== 'object') throw new Error('firstErrorLabel211: trajectory must be an object');
+  const flags = Array.isArray(trajectory.flags) ? trajectory.flags : [];
+  if (flags.length === 0) {
+    return { trajectoryId: trajectory.trajectoryId, labeledWindows: 0, verdict: 'NO LABEL — no flagged window on this trajectory; clean trajectories are not errors' };
+  }
+  const first = flags[0];
+  taxonomyCategory208(first.category);
+  return {
+    trajectoryId: trajectory.trajectoryId,
+    firstErrorWindow: first,
+    labeledWindows: 1,
+    droppedLaterFlags: flags.length - 1,
+    rateBasis: 'per-trajectory first-flag rate — the ONLY rate comparable across critics (Batch 211)',
+    note: 'First-error-only: the trainable correction unit is the FIRST error, not the whole trajectory (SCORE Table 3: 40.2 / oracle 49.5, beating every-step 39.6 / 46.4)',
+  };
+}
+
+/**
+ * TWO-SIDED CALIBRATION REPORTING (Batch 211). A critic
+ * report MUST carry flag rate AND outcome-corroborated
+ * precision AND miss rate. A report carrying flag rate alone
+ * is uncalibrated by construction and throws — one weak
+ * verifier fires too rarely (SCORE: 19.0% vs oracle 62.8%),
+ * another fires nearly always (SWE-PRM: ~99.6%), so neither
+ * direction is diagnosable from flag rate alone. All three
+ * metrics must be numbers in [0, 1].
+ */
+function criticCalibration211(report) {
+  if (!report || typeof report !== 'object') throw new Error('criticCalibration211: report must be an object');
+  const missing = ['flagRate', 'outcomeCorroboratedPrecision', 'missRate'].filter((k) => typeof report[k] !== 'number');
+  if (missing.length > 0) {
+    throw new Error(`criticCalibration211: REFUSED — a critic report carrying flag rate alone is uncalibrated by construction (Batch 211). Missing: ${missing.join(', ')}. SCORE under-fires (19.0% vs oracle 62.8%) and SWE-PRM over-fires (~99.6%) — both directions need all three metrics`);
+  }
+  for (const k of ['flagRate', 'outcomeCorroboratedPrecision', 'missRate']) {
+    if (report[k] < 0 || report[k] > 1) throw new Error(`criticCalibration211: ${k} must be in [0, 1], got ${report[k]}`);
+  }
+  return { calibrated: true, flagRate: report.flagRate, outcomeCorroboratedPrecision: report.outcomeCorroboratedPrecision, missRate: report.missRate, note: 'Two-sided calibration (Batch 211): flag rate + outcome-corroborated precision + miss rate, all three, or the report is not citable' };
+}
+
+/**
+ * PROMOTION TEST AMENDMENT (Batch 211, amending Batch 208
+ * Q10): THREE arms, not two — (a) person-correction labels
+ * alone, (b) critic labels raw, (c) critic labels through
+ * the SCORE two-stage filter — measured WITHIN routines on
+ * the Batch 4 metric set, with two-sided critic calibration
+ * reported in all arms. Arm (c) is the arm with a prior
+ * reason to win; the test's verdict is about LABEL QUALITY
+ * (filtered vs unfiltered, outcome-corroborated vs raw),
+ * not dataset size — with a weak self-verifier, more data
+ * does NOT help (SCORE §5.4, Figure 4: flat curve).
+ * Promotion requires the FILTERED arm to beat person labels
+ * alone, within routines. The Batch 4 rollback triggers
+ * (−2 valid@1 / −3 ExecRate / +20% p95) ABORT the promotion
+ * regardless of arm scores. A pooled cross-routine win does
+ * not promote.
+ */
+function offlineCriticPromotion211(result) {
+  if (!result || typeof result !== 'object') throw new Error('offlineCriticPromotion211: result must be an object');
+  if (!result.withinRoutines) throw new Error('offlineCriticPromotion211: REFUSED — the promotion comparison runs WITHIN routines (Batch 211, amending Batch 208 Q10). A pooled cross-routine win does not promote');
+  const arms = result.arms || {};
+  if (typeof arms.personAlone !== 'number' || typeof arms.criticRaw !== 'number' || typeof arms.criticFiltered !== 'number') {
+    throw new Error('offlineCriticPromotion211: three arms are required numbers — personAlone, criticRaw, criticFiltered (Batch 211 amendment to Batch 208 Q10: two arms are no longer a complete test)');
+  }
+  const metrics = result.metrics || {};
+  if ((typeof metrics.validAt1Delta === 'number' && metrics.validAt1Delta <= -2) ||
+      (typeof metrics.execRateDelta === 'number' && metrics.execRateDelta <= -3) ||
+      (typeof metrics.p95DeltaPct === 'number' && metrics.p95DeltaPct >= 20)) {
+    return { promoted: false, verdict: 'ABORT — Batch 4 rollback trigger hit (−2 valid@1 / −3 ExecRate / +20% p95); promotion refused regardless of arm scores (Batch 211)' };
+  }
+  const winner = arms.criticFiltered > arms.personAlone && arms.criticFiltered >= arms.criticRaw ? 'criticFiltered' :
+    arms.criticRaw > arms.personAlone ? 'criticRaw (raw labels beat person labels, but the promotable arm is the FILTERED arm — see verdict)' : 'personAlone';
+  if (arms.criticFiltered > arms.personAlone) {
+    return { promoted: true, winner: 'criticFiltered', arms, verdict: 'Critic labels through the SCORE two-stage filter beat person-correction labels alone, within routines — the offline critic pass earns its place as training data (Batch 211, amending Batch 208 Q10)' };
+  }
+  return { promoted: false, winner, arms, verdict: 'DIAGNOSTIC ONLY — the SCORE-filtered arm did not beat person-correction labels alone within routines; the critic pass stays a diagnostic (Batch 211). Verdict is about label quality, not dataset size' };
+}
+
+/**
+ * DECOUPLING REPORTING RULE (Batch 211, adopted for ALL
+ * future gate/critic work): Self-Correct := Verify + Refine,
+ * decoupled. Any gate/critic claim MUST report a verifier
+ * figure (F1 or AUROC) AND a refiner contribution,
+ * separately. A single "self-correction accuracy" is NOT
+ * citable and throws — previous small-model self-correction
+ * work conflated the halves, which is why its claims could
+ * not say which half failed.
+ */
+function assertDecoupledCriticClaim211(claim) {
+  if (!claim || typeof claim !== 'object') throw new Error('assertDecoupledCriticClaim211: claim must be an object');
+  if (claim.selfCorrectionAccuracy !== undefined && (claim.verifierF1 === undefined && claim.verifierAuroc === undefined || claim.refinerContribution === undefined)) {
+    throw new Error('assertDecoupledCriticClaim211: REFUSED — a single "self-correction accuracy" is NOT citable (Batch 211). Report the verifier figure (F1 or AUROC) AND the refiner contribution, separately — conflated halves cannot say which half failed');
+  }
+  if ((claim.verifierF1 === undefined && claim.verifierAuroc === undefined) || claim.refinerContribution === undefined) {
+    throw new Error('assertDecoupledCriticClaim211: REFUSED — a gate/critic claim must report BOTH halves (Batch 211): a verifier figure (F1 or AUROC) AND a refiner contribution');
+  }
+  return { decoupled: true, verifier: claim.verifierF1 !== undefined ? { f1: claim.verifierF1 } : { auroc: claim.verifierAuroc }, refinerContribution: claim.refinerContribution };
+}
+
+/**
+ * ENSEMBLING PLACEMENT (Batch 211, SCORE Appendix D):
+ * oversample-then-rerank (k=10, temperature 0.9, weighted
+ * voting by verifier probability) lifts LLaMA GSM8K 37.2 →
+ * 44.3 (+7.1), 46.0 (+8.8) with SCORE refinement; Gemma
+ * 36.3 → 39.5 → 41.1. Aggregation makes the weak verifier
+ * stronger — but at 4.5x latency vs the live pipeline's
+ * 1.3–1.4x base. Ensembling belongs in the SLEEP JOB
+ * (where 4.5x is affordable and the output is training
+ * data), NEVER on the resident live path.
+ */
+function assertEnsemblePlacement211(placement) {
+  const where = String((placement && placement.where) || '');
+  if (where === 'live' || where === 'resident-live-path') {
+    throw new Error('assertEnsemblePlacement211: REFUSED — weak-verifier ensembling (4.5x latency, SCORE Appendix D) NEVER goes on the resident live path (Batch 211). It belongs in the sleep job, where 4.5x is affordable and the output is training data');
+  }
+  if (where !== 'sleep-job') {
+    throw new Error(`assertEnsemblePlacement211: ensemble placement must be "sleep-job" (Batch 211), got "${where}"`);
+  }
+  return { placement: 'sleep-job', latencyNote: '4.5x vs the SCORE live pipeline 1.3–1.4x base — affordable offline, forbidden live' };
+}
+
+/**
+ * Weaver lead (Batch 211): Saad-Falcon et al.,
+ * arXiv:2506.18203 — weighted ensembles of weak verifiers
+ * with weak-supervision accuracy estimation. Abstract ONLY,
+ * not read in full: this function records it as a lead and
+ * refuses to cite it as evidence.
+ */
+function weaverLead211() {
+  return { ...SCORE_211.weaverLead, citableAsEvidence: false, note: 'Carried lead for the next batch: read Weaver in full, or explicitly deprioritize it — never quote its abstract as evidence (Batch 211)' };
+}
+
+/**
+ * Composite offline-critic spec check (Batch 211, amending
+ * Batch 208): cadence, non-destructive shape, SCORE two-
+ * stage filter on every label, two-sided calibration report,
+ * three-arm promotion rule, ensemble placement — all as a
+ * SPEC. spec: { cadence: { everyNHops, windowKSteps },
+ * intervention, labels?, calibrationReport?, promotionResult?,
+ * ensemblePlacement? }. executed is always false: no critic
+ * was run, no label was applied to a personal trajectory,
+ * no promotion test was run, and the person-correction-as-
+ * hint substitution is still an untested proposal.
+ */
+function checkOfflineCriticSpec211(spec) {
+  if (!spec || typeof spec !== 'object') throw new Error('checkOfflineCriticSpec211: spec must be an object');
+  const cadence = spec.cadence || {};
+  if (cadence.everyNHops !== SWE_PRM_208.schedule.everyNHops || cadence.windowKSteps !== SWE_PRM_208.schedule.windowKSteps) {
+    throw new Error(`checkOfflineCriticSpec211: the offline pass uses the paper cadence — every ${SWE_PRM_208.schedule.everyNHops} hops, ${SWE_PRM_208.schedule.windowKSteps}-step window (Batch 208 Decision 3, confirmed Batch 211). Got every ${cadence.everyNHops} hops, ${cadence.windowKSteps}-step window`);
+  }
+  const shape = assertOfflineCriticNonDestructive208(spec.intervention || { kind: 'append-guidance' });
+  const labels = (spec.labels || []).map((l) => scoreFilterLabel211(l));
+  const calibration = spec.calibrationReport ? criticCalibration211(spec.calibrationReport) : { calibrated: false, note: 'UNREPORTED — two-sided calibration (flag rate + outcome-corroborated precision + miss rate) is required before any critic claim is citable (Batch 211)' };
+  const promotion = spec.promotionResult ? offlineCriticPromotion211(spec.promotionResult) : { promoted: false, verdict: 'UNDECIDED — three-arm promotion test (Batch 211 amendment to Batch 208 Q10) not yet run; the pass is diagnostic only until it passes' };
+  const ensemble = spec.ensemblePlacement ? assertEnsemblePlacement211(spec.ensemblePlacement) : { placement: 'UNSET — weak-verifier ensembling, if used, belongs in the sleep job only (Batch 211)' };
+  return {
+    batch: 211,
+    verdict: 'SPEC OK',
+    cadence: { everyNHops: 5, windowKSteps: 8 },
+    shape,
+    labels,
+    calibration,
+    promotion,
+    ensemble,
+    executed: false,
+    note: 'Spec only — no critic was run, no label was applied to a personal trajectory, no promotion test was run. Batch 208 Decisions 1 and 3 CONFIRMED unchanged; the filter, calibration rule, and three-arm amendment are new. Person-correction-as-hint is still an untested proposal; no 4B weak-verifier F1 exists in SCORE.',
+  };
+}
+
 module.exports = {
   percentile,
   median,
@@ -4397,4 +4843,19 @@ module.exports = {
   offlineCriticLabel208,
   offlineCriticPromotion208,
   checkOfflineCriticSpec208,
+  // Batch 211: SCORE in full — weak-self-verifier replication + two-stage filter, first-error-only, two-sided calibration, three-arm promotion (spec, unexecuted).
+  SCORE_211,
+  assertScoreIdentity211,
+  assertNoLivePeriodicCriticStage211,
+  scoreFilterStage1_211,
+  scoreFilterStage2_211,
+  scoreFilterLabel211,
+  scoreFilterKeepRate211,
+  firstErrorLabel211,
+  criticCalibration211,
+  offlineCriticPromotion211,
+  assertDecoupledCriticClaim211,
+  assertEnsemblePlacement211,
+  weaverLead211,
+  checkOfflineCriticSpec211,
 };

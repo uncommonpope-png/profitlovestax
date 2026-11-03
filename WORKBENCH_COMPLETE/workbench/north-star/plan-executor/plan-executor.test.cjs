@@ -153,6 +153,20 @@ const {
   offlineCriticLabel208,
   offlineCriticPromotion208,
   checkOfflineCriticSpec208,
+  SCORE_211,
+  assertScoreIdentity211,
+  assertNoLivePeriodicCriticStage211,
+  scoreFilterStage1_211,
+  scoreFilterStage2_211,
+  scoreFilterLabel211,
+  scoreFilterKeepRate211,
+  firstErrorLabel211,
+  criticCalibration211,
+  offlineCriticPromotion211,
+  assertDecoupledCriticClaim211,
+  assertEnsemblePlacement211,
+  weaverLead211,
+  checkOfflineCriticSpec211,
 } = require('./plan-executor.cjs');
 
 const read = (id, dependsOn, run) => ({ id, dependsOn, kind: 'read', readOnly: true, run: run || (async () => `${id}-done`) });
@@ -2048,4 +2062,154 @@ test('Batch 208: round 11 composes with rounds 5–10 without weakening them; th
   // Round 11's own status: spec, unexecuted.
   assert.equal(SWE_PRM_208.source.includes('arXiv:2509.02360'), true);
   assert.equal(checkOfflineCriticSpec208({ cadence: { everyNHops: 5, windowKSteps: 8 }, intervention: { kind: 'append-guidance' } }).executed, false);
+});
+
+// ------------------------------------------------------------ Batch 211
+
+test('Batch 211 identity: SCORE (Zhang et al.) is NOT SCoRe (Lyu et al.) — merging their claims throws', () => {
+  const id = assertScoreIdentity211({ paper: 'arXiv:2404.17140' });
+  assert.equal(id.fullName, 'Self-COrrection in REasoning');
+  assert.match(id.notScorE, /SCoRe/);
+  assert.throws(() => assertScoreIdentity211({ paper: 'arXiv:2404.17140', teacher: '72B teacher' }), /NOT SCORE/);
+  assert.throws(() => assertScoreIdentity211({ paper: 'arXiv:2404.17140', mechanism: 'student-centered distillation' }), /NOT SCORE/);
+  assert.throws(() => assertScoreIdentity211({ paper: 'arXiv:2404.17140', mechanism: 'GRPO on 8xH20' }), /NOT SCORE/);
+  assert.throws(() => assertScoreIdentity211({ paper: 'arXiv:2509.02360' }), /arXiv:2404\.17140/);
+});
+
+test('Batch 211 decision 1 confirmed: no live periodic critic stage — SCORE strengthens the ban, live stack unchanged', () => {
+  const timeline = detectorTimeline();
+  const ok = assertNoLivePeriodicCriticStage211(timeline);
+  assert.equal(ok.liveCriticStage, false);
+  assert.equal(ok.stages.length, 5);
+  assert.match(ok.confirmedBy, /verifier is the bottleneck/);
+  assert.throws(() => assertNoLivePeriodicCriticStage211([...timeline, 'periodic-critic']), /no live periodic critic stage/);
+  assert.equal(SCORE_211.bottleneck.llamaGsm8k.selfF1, 51.1);
+  assert.equal(SCORE_211.bottleneck.gemmaGsm8k.selfF1, 56.8);
+  assert.equal(SCORE_211.bottleneck.llamaGsm8k.gpt4F1, 88.4);
+  assert.equal(SCORE_211.bottleneck.llamaGsm8k.selfGain, 0.3);
+  assert.equal(SCORE_211.bottleneck.llamaGsm8k.oracleGain, 8.8);
+});
+
+test('Batch 211 filter stage 1: well-formed label needs category + window steps + copied evidence', () => {
+  const good = { category: 'step repetition', windowSteps: ['a', 'b', 'a'], copiedEvidence: 'a' };
+  const s1 = scoreFilterStage1_211(good);
+  assert.equal(s1.stage1, 'pass');
+  assert.equal(s1.family, 'Specification errors');
+  assert.throws(() => scoreFilterStage1_211({ category: 'step repetition', windowSteps: [], copiedEvidence: 'a' }), /DISCARDED/);
+  assert.throws(() => scoreFilterStage1_211({ category: 'step repetition', windowSteps: ['a'], copiedEvidence: '  ' }), /DISCARDED/);
+  assert.throws(() => scoreFilterStage1_211({ category: 'step repetition', windowSteps: ['a'] }), /DISCARDED/);
+  assert.throws(() => scoreFilterStage1_211({ category: 'looping forever', windowSteps: ['a'], copiedEvidence: 'a' }), /exactly 12 categories/);
+});
+
+test('Batch 211 filter stage 2: outcome-corroborated only — precedes-failure or recovery-success, never a gold answer', () => {
+  assert.equal(scoreFilterStage2_211({ precedesVerifiedFailure: true }).stage2, 'pass');
+  assert.equal(scoreFilterStage2_211({ recoveryActionVerifiedSuccess: true }).stage2, 'pass');
+  assert.throws(() => scoreFilterStage2_211({}), /DISCARDED/);
+  assert.throws(() => scoreFilterStage2_211({ precedesVerifiedFailure: false, recoveryActionVerifiedSuccess: false }), /DISCARDED/);
+});
+
+test('Batch 211 full filter: both stages, in order — a raw flag skipping either stage is refused as training data', () => {
+  const passed = scoreFilterLabel211({ category: 'verification failure', windowSteps: ['x'], copiedEvidence: 'x', precedesVerifiedFailure: true });
+  assert.equal(passed.usableForTraining, true);
+  assert.match(passed.note, /SCORE two-stage filter/);
+  assert.throws(() => scoreFilterLabel211({ category: 'verification failure', windowSteps: ['x'], copiedEvidence: 'x' }), /DISCARDED/);
+  assert.throws(() => scoreFilterLabel211({ category: 'verification failure', windowSteps: ['x'], precedesVerifiedFailure: true }), /DISCARDED/);
+});
+
+test('Batch 211 keep-rate honesty: SCORE prior is 8.8–57.4% kept; ~99.6% keep means the filter was skipped', () => {
+  assert.equal(SCORE_211.filterYields.finalKept.llamaGsm8k, 0.255);
+  assert.equal(SCORE_211.filterYields.finalKept.gemmaGsm8k, 0.088);
+  assert.equal(scoreFilterKeepRate211({ kept: 14499, raw: 56843 }).withinHonestPrior, true);
+  assert.throws(() => scoreFilterKeepRate211({ kept: 996, raw: 1000 }), /skipped its filter/);
+  assert.throws(() => scoreFilterKeepRate211({ kept: 10, raw: 0 }), /raw > 0/);
+});
+
+test('Batch 211 first-error-only: one trajectory labels one window; later flags drop; rate basis is per-trajectory', () => {
+  const labeled = firstErrorLabel211({ trajectoryId: 't1', flags: [{ category: 'step repetition' }, { category: 'goal deviation' }, { category: 'hallucination' }] });
+  assert.equal(labeled.labeledWindows, 1);
+  assert.equal(labeled.droppedLaterFlags, 2);
+  assert.equal(labeled.firstErrorWindow.category, 'step repetition');
+  assert.match(labeled.rateBasis, /per-trajectory first-flag rate/);
+  assert.equal(SCORE_211.firstErrorOnly.firstErrorOnePass.final, 40.2);
+  assert.equal(firstErrorLabel211({ trajectoryId: 't2', flags: [] }).labeledWindows, 0);
+});
+
+test('Batch 211 two-sided calibration: flag rate + precision + miss rate, all three, or the report is not citable', () => {
+  const ok = criticCalibration211({ flagRate: 0.19, outcomeCorroboratedPrecision: 0.62, missRate: 0.41 });
+  assert.equal(ok.calibrated, true);
+  assert.throws(() => criticCalibration211({ flagRate: 0.19 }), /uncalibrated by construction/);
+  assert.throws(() => criticCalibration211({ flagRate: 0.996, outcomeCorroboratedPrecision: 0.5 }), /uncalibrated by construction/);
+  assert.throws(() => criticCalibration211({ flagRate: 1.2, outcomeCorroboratedPrecision: 0.5, missRate: 0.1 }), /in \[0, 1\]/);
+  assert.equal(SCORE_211.fireRates.llamaSelf, 0.19);
+  assert.equal(SCORE_211.fireRates.swePrmOverFire, 0.996);
+});
+
+test('Batch 211 promotion amendment: three arms, filtered arm promotes, rollback triggers abort regardless', () => {
+  const promoted = offlineCriticPromotion211({ withinRoutines: true, arms: { personAlone: 0.58, criticRaw: 0.60, criticFiltered: 0.64 } });
+  assert.equal(promoted.promoted, true);
+  assert.equal(promoted.winner, 'criticFiltered');
+  const diagnostic = offlineCriticPromotion211({ withinRoutines: true, arms: { personAlone: 0.58, criticRaw: 0.61, criticFiltered: 0.57 } });
+  assert.equal(diagnostic.promoted, false);
+  assert.match(diagnostic.verdict, /DIAGNOSTIC ONLY/);
+  const aborted = offlineCriticPromotion211({ withinRoutines: true, arms: { personAlone: 0.58, criticRaw: 0.60, criticFiltered: 0.70 }, metrics: { validAt1Delta: -2 } });
+  assert.equal(aborted.promoted, false);
+  assert.match(aborted.verdict, /^ABORT/);
+  const abortedP95 = offlineCriticPromotion211({ withinRoutines: true, arms: { personAlone: 0.58, criticRaw: 0.60, criticFiltered: 0.70 }, metrics: { p95DeltaPct: 20 } });
+  assert.match(abortedP95.verdict, /^ABORT/);
+  assert.throws(() => offlineCriticPromotion211({ withinRoutines: true, arms: { personAlone: 0.58, criticRaw: 0.60 } }), /three arms are required/);
+  assert.throws(() => offlineCriticPromotion211({ withinRoutines: false, arms: { personAlone: 0.58, criticRaw: 0.60, criticFiltered: 0.64 } }), /WITHIN routines/);
+});
+
+test('Batch 211 decoupling rule: verifier figure AND refiner contribution, separately — a single accuracy is not citable', () => {
+  assert.equal(assertDecoupledCriticClaim211({ verifierF1: 51.1, refinerContribution: 10.8 }).decoupled, true);
+  assert.equal(assertDecoupledCriticClaim211({ verifierAuroc: 0.73, refinerContribution: 15.6 }).decoupled, true);
+  assert.throws(() => assertDecoupledCriticClaim211({ selfCorrectionAccuracy: 0.42 }), /NOT citable/);
+  assert.throws(() => assertDecoupledCriticClaim211({ verifierF1: 51.1 }), /BOTH halves/);
+  assert.throws(() => assertDecoupledCriticClaim211({ refinerContribution: 10.8 }), /BOTH halves/);
+});
+
+test('Batch 211 ensembling placement: sleep job only — 4.5x latency never goes on the resident live path', () => {
+  assert.equal(assertEnsemblePlacement211({ where: 'sleep-job' }).placement, 'sleep-job');
+  assert.throws(() => assertEnsemblePlacement211({ where: 'live' }), /NEVER goes on the resident live path/);
+  assert.throws(() => assertEnsemblePlacement211({ where: 'resident-live-path' }), /NEVER goes on the resident live path/);
+  assert.equal(SCORE_211.ensembling.llamaGsm8k.ensembleGain, 7.1);
+});
+
+test('Batch 211 Weaver lead: abstract only, recorded as a lead, never as evidence', () => {
+  const lead = weaverLead211();
+  assert.equal(lead.citableAsEvidence, false);
+  assert.match(lead.status, /UNVERIFIED LEAD/);
+  assert.match(lead.paper, /2506\.18203/);
+});
+
+test('Batch 211 composite: the amended offline spec passes at the paper cadence with filter + calibration + three-arm promotion', () => {
+  const spec = checkOfflineCriticSpec211({
+    cadence: { everyNHops: 5, windowKSteps: 8 },
+    intervention: { kind: 'append-guidance' },
+    labels: [{ category: 'step repetition', windowSteps: ['a', 'b', 'a'], copiedEvidence: 'a', precedesVerifiedFailure: true }],
+    calibrationReport: { flagRate: 0.19, outcomeCorroboratedPrecision: 0.62, missRate: 0.41 },
+    promotionResult: { withinRoutines: true, arms: { personAlone: 0.58, criticRaw: 0.60, criticFiltered: 0.64 } },
+    ensemblePlacement: { where: 'sleep-job' },
+  });
+  assert.equal(spec.verdict, 'SPEC OK');
+  assert.equal(spec.executed, false);
+  assert.equal(spec.labels[0].usableForTraining, true);
+  assert.equal(spec.calibration.calibrated, true);
+  assert.equal(spec.promotion.promoted, true);
+  assert.equal(spec.ensemble.placement, 'sleep-job');
+  assert.match(spec.note, /Person-correction-as-hint is still an untested proposal/);
+  assert.throws(() => checkOfflineCriticSpec211({ cadence: { everyNHops: 1, windowKSteps: 8 }, intervention: { kind: 'append-guidance' } }), /every 5 hops, 8-step window/);
+  assert.throws(() => checkOfflineCriticSpec211({ cadence: { everyNHops: 5, windowKSteps: 8 }, intervention: { kind: 'append-guidance' }, labels: [{ category: 'step repetition', windowSteps: ['a'], copiedEvidence: 'a' }] }), /DISCARDED/);
+  assert.throws(() => checkOfflineCriticSpec211({ cadence: { everyNHops: 5, windowKSteps: 8 }, intervention: { kind: 'append-guidance' }, ensemblePlacement: { where: 'live' } }), /NEVER goes on the resident live path/);
+});
+
+test('Batch 211: round 12 composes with rounds 5–11 without weakening them; the spec is unexecuted', () => {
+  // Round 11 guards still bite.
+  assert.throws(() => assertNoLivePeriodicCriticStage208([...detectorTimeline(), 'periodic-critic']), /no live periodic critic stage/);
+  assert.equal(checkOfflineCriticSpec208({ cadence: { everyNHops: 5, windowKSteps: 8 }, intervention: { kind: 'append-guidance' } }).executed, false);
+  // Round 10 guards still bite.
+  assert.throws(() => checkPilotSampledStepCompliance206({ design: { callsPerArm: 1, temperature: 0, freshContextPerArm: true }, aRecDelivery: { mode: 'margin-gated', hintOnEveryTask: false }, arms: [], abortBars: { validAt1Down: 0.02, execRateDown: 0.03, multiTurn: true }, report: { metrics: [] } }), /REFUSED inside the pilot/);
+  // Round 12's own status: spec, unexecuted.
+  assert.equal(SCORE_211.source.includes('arXiv:2404.17140'), true);
+  assert.equal(checkOfflineCriticSpec211({ cadence: { everyNHops: 5, windowKSteps: 8 }, intervention: { kind: 'append-guidance' } }).executed, false);
 });

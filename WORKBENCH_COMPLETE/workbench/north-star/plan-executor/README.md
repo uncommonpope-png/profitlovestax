@@ -3,7 +3,7 @@
 Node.js, CommonJS, zero dependencies. Runs with plain `node`.
 
 ```sh
-node plan-executor.test.cjs   # 73 tests, exit 0 on pass
+node plan-executor.test.cjs   # 104 tests, exit 0 on pass
 ```
 
 ## What it implements
@@ -68,6 +68,15 @@ executor }`. `prefix` is the list of completed levels only.
 | Disputed-hop tier order, canonical, cheapest first: (1) advisory hint, (2) Wu cosine-gap DETECTOR candidate, (3) Wu steering lab arm, (4) Chen S2 attention — Batch 194's "residual lever as cheaper alternative" framing RETIRED; Batch 3 Select stays advisory-only (Chen −19.1 untouched) | 199 | `DISPUTED_HOP_TIERS_199`, `canonicalTierOrder()`, `assertTierOrder()`, `BATCH_194_RESIDUAL_FRAMING` |
 | Wu cosine gap as pre-generation detector candidate, not selector, not shipped: one last-token read, <0.1 ms over the prompt pass, BFCL AUROC 0.61–0.78, NO threshold set (ranking only, 13–61 errors/model); needs within-routine validation (Batch 13) + comparison vs Batch 5 logprob-margin gate; flags uncertainty, not wrongness; silent on confident errors | 199 | `WU_GAP`, `assertGapThreshold()`, `assertGapUse()`, `gapDetectorStatus()`, `gapReading()` |
 | Infrastructure convergence: gap needs Batch 7/8 in-process capture (one layer); steering needs the same PLUS a prefill write hook; neither works over HTTP; one-layer element bound ~6,553 (vs 1,310 for 5 layers), still a full-tensor copy, fail-soft to G-NLL + verifier; SEP-TBG probe and Wu gap share one capture only if layers coincide, else the budget doubles | 199 | `CAPTURE_CONVERGENCE`, `captureElementBound()`, `captureCopies()`, `assertCapturePath()` |
+| Detector stack as a TIMELINE by time, not a menu — Healy slotting correction: (0) advisory hint first; (1) Wu gap PRE-generation (selection-only); (2) logprob/first-token margin DURING generation (first-token only, selection-only); (3) Healy-style classifier POST-generation, PRE-execution — the ONLY stage that sees arguments, the first argument/completeness-error detector; (4) Batch 4 schema verifier + argument checks mandatory after every stage (no detector stage repairs arguments). Round 7's tier order stands untouched; the timeline extends it by adding a stage, not replacing one | 201 (Healy, arXiv:2601.05214) | `DETECTOR_TIMELINE_201`, `detectorTimeline()`, `assertTimelineOrder()`, `assertHealyNotPreGeneration()`, `assertExecutionRequiresVerifier()` |
+| Healy gate is CONFIRMATION-TIER ONLY: it may flag for person confirmation or an advisory re-pick, NEVER auto-block or decide on its own — justification verbatim: hallucination recall 0.53–0.62 (best model misses about half), Qwen precision 0.34 (two-thirds of flags false alarms). Any auto-block policy throws | 201 | `HEALY_CONFIRMATION_JUSTIFICATION`, `healyGatePolicy()` |
+| Headline number corrected: the abstract's "up to 86.4% accuracy" and Table 1's rows are WEIGHTED averages, NOT hallucination-class performance. Real hallucination-class figures (Table 2, test split): GPT-OSS-20B 0.86/0.53/0.66 (support 587); Llama-3.1-8B 0.71/0.61/0.66 (support 1036); Qwen-7B 0.34/0.62/0.44 (support 333). Quoting the abstract/Table 1 as hallucination-class throws | 201 | `HEALY_201`, `healyHallucinationClass()`, `assertHealyQuote()` |
+| Healy method + limits as spec: feature vector z = Π(h at function-name's first sub-token ‖ mean over argument-region tokens ‖ h at closing delimiter), last layer only; five-type taxonomy BUT bypass never measured separately (do NOT cite Healy for bypass detection); intervention policy (block/confirm/fallback/repair-by-reprompting) PROPOSED, never evaluated — no measured effect on task success; ablation simplification — all ten feature methods within 0.007 accuracy (0.739–0.746), last-token 0.744 / mean-pooled 0.746, so a future build starts with last-token or mean-pooled features | 201 | `HEALY_201`, `assertHealyBypassClaim()` |
+| Healy reporting inconsistencies carried as caveats, NOT resolved: (a) Eq. (1) Π identity gives m = 3d, but training config lists input dims equal to hidden dim d (Qwen-7B 3584, GPT-OSS-20B 2880, Llama-3.1-8B 4096); (b) main protocol 60/20/20 over 2,411 per model, but Qwen Table 2 totals 2,000 and the ablation uses a different 70/30 split | 201 | `HEALY_201.reportingInconsistencies` |
+| Healy scope limits + personal-data recipe: five calculator-style Glaive domains, single-call canonicalizable tasks — NOT multi-turn routines, NOT real side-effect APIs, NOT similar-tool disputes; no near-synonym test (beats-Wu-on-confusables UNKNOWN, not favorable); no within-routine score; τ validation-tuned per model per dataset, so a personal deployment re-tunes τ on personal data. Recipe: masked-agreement labels from the person's verified calls (Batch 2 person-as-corrector in classifier form), but at personal scale (tens to low hundreds vs Healy's ~1,447/model) the honest version is a SMALLER classifier or probe, evaluated on within-routine hallucination recall/precision — not Healy's MLP at Healy's scale | 201 | `HEALY_201.scopeLimits`, `HEALY_201.personalDataRecipe` |
+| Healy infrastructure cost + artifact: "single forward pass" holds only in-process — it needs streaming capture DURING generation (function token, argument span, closing delimiter); on a server path it means a second pass over generated text. Trained, base-specific artifact joining the Batch 8/9 versioning tuple — a base swap orphans it | 201 | `HEALY_201.infrastructureCost`, `healyClassifierArtifact()`, `assertHealyArtifactBase()` |
+| What Healy does NOT change (guards, no regress): Batch 3's Select stays advisory-only (Healy gates execution, it does not select); Batch 197's pilot order stands (Healy is a later gate arm — do NOT merge it into the 100-task pilot); Batch 199's Wu-steering lab-arm exclusion stands (Healy detects, it does not steer) | 201 | `assertHealyNotPilotArm()`, `assertHealyNotSteering()` |
+| ASA re-checked, still withdrawn — quarantine STANDS: arXiv abstract 2602.04935, "withdrawn by Youjin Wang," v1 Feb 4 2026, v4 Aug 28 2026, no PDF; ASA numbers never cited as evidence. Wu-citation correction: Healy is cited by Wu §1 ONLY (not §1/§6) until a different Wu version shows otherwise | 201 | `ASA_RECHECK_201`, `assertAsaQuarantineStands()`, `WU_HEALY_CITATION_201`, `assertWuHealyCitation()` |
 
 ### Signal convention
 
@@ -147,6 +156,23 @@ otherwise, and the Batch 16 three-class split is untouched here.
   reading (upward re-freeze as a recorded sleep-job decision, never
   automatic) is not enforced by this function; callers that want it
   should gate upward re-freezes on a recorded decision.
+- **Round-8 slotting correction is a spec, NOT executed (Batch 201).**
+  No Healy classifier was trained, no gap was computed, no Healy
+  feature was extracted — every Healy figure is the paper's on Glaive
+  calculator-style tasks (five domains, single-call, canonicalizable
+  arguments), NOT on the north-star tool pool or the bundled base.
+  Whether Healy beats, duplicates, or complements the Wu gap /
+  logprob margin on the SAME hops is unmeasured (different
+  benchmarks, different label definitions: Healy's agreement label
+  includes argument errors, Wu's gap AUROC is selection-error only).
+  Healy's intervention policy, its threshold τ, its personal-data
+  scale behavior, and its near-synonym performance are all
+  unmeasured. The abstract/Table 1 numbers must never be quoted as
+  hallucination-class performance; the Eq. (1) dimension and
+  split-size inconsistencies are carried as caveats, not resolved.
+  ASA's re-check is from the arXiv abstract page (still withdrawn,
+  no PDF), and the Wu §1-only citation correction rests on the Wu
+  v3 HTML read in Batch 201.
 - **Round-7 disentanglement is a spec, NOT executed (Batch 199).**
   No tool vector was built, no steering was run, no cosine gap was
   computed — every Wu/ASA figure is the paper's on its benchmarks

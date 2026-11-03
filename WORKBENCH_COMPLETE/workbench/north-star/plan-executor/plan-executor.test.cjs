@@ -85,6 +85,25 @@ const {
   captureElementBound,
   captureCopies,
   assertCapturePath,
+  DETECTOR_TIMELINE_201,
+  detectorTimeline,
+  assertTimelineOrder,
+  assertHealyNotPreGeneration,
+  HEALY_201,
+  healyHallucinationClass,
+  assertHealyQuote,
+  HEALY_CONFIRMATION_JUSTIFICATION,
+  healyGatePolicy,
+  assertHealyBypassClaim,
+  healyClassifierArtifact,
+  assertHealyArtifactBase,
+  assertExecutionRequiresVerifier,
+  assertHealyNotPilotArm,
+  assertHealyNotSteering,
+  ASA_RECHECK_201,
+  assertAsaQuarantineStands,
+  WU_HEALY_CITATION_201,
+  assertWuHealyCitation,
 } = require('./plan-executor.cjs');
 
 const read = (id, dependsOn, run) => ({ id, dependsOn, kind: 'read', readOnly: true, run: run || (async () => `${id}-done`) });
@@ -1288,4 +1307,190 @@ test('Batch 199: round 7 composes with rounds 5–6 without weakening them', () 
   assert.throws(() => assertMultiTurnOrder({ phase: 'M2', pilotPassed: true, m1Passed: false }), /M1 to pass first/);
   // Round 7 steering lab arm still sits behind that pilot.
   assert.throws(() => leverGate('wu-gold-free-steering', { arm: 'lab', pilotPassed: false }), /BEHIND the advisory pilot/);
+});
+
+// ------------------------------------------------------------ Batch 201: Healy detector slotting correction
+
+test('Batch 201: detector stack is a TIMELINE by time, not a menu — Healy sits post-generation, pre-execution', () => {
+  assert.deepEqual(detectorTimeline(), [
+    'advisory-hint',
+    'wu-cosine-gap-pre-generation',
+    'logprob-first-token-margin-during-generation',
+    'healy-post-generation-pre-execution-confirmation',
+    'batch4-schema-verifier-and-argument-checks',
+  ]);
+  assert.equal(DETECTOR_TIMELINE_201[0].timing, 'first, before inference changes');
+  assert.equal(DETECTOR_TIMELINE_201[1].timing, 'PRE-generation');
+  assert.equal(DETECTOR_TIMELINE_201[2].timing, 'DURING generation');
+  assert.equal(DETECTOR_TIMELINE_201[3].timing, 'POST-generation, PRE-execution');
+  assert.equal(DETECTOR_TIMELINE_201[4].timing, 'after every stage, before execution');
+  assert.equal(assertTimelineOrder(detectorTimeline()).orderOk, true);
+  // Healy placed pre-generation, or as a Wu-gap rival, is refused.
+  assert.throws(() => assertTimelineOrder([
+    'advisory-hint',
+    'healy-post-generation-pre-execution-confirmation',
+    'wu-cosine-gap-pre-generation',
+    'logprob-first-token-margin-during-generation',
+    'batch4-schema-verifier-and-argument-checks',
+  ]), /POST-generation \/ PRE-execution/);
+  assert.throws(() => assertHealyNotPreGeneration('pre-generation'), /POST-generation/);
+  assert.throws(() => assertHealyNotPreGeneration('wu-gap-rival'), /POST-generation/);
+  assert.throws(() => assertHealyNotPreGeneration('selector'), /gates execution, it does not select/);
+  assert.equal(assertHealyNotPreGeneration('post-generation-pre-execution-detector').timing, 'POST-generation, PRE-execution');
+});
+
+test('Batch 201: Healy stage is the ONLY stage that sees arguments — first argument/completeness-error detector', () => {
+  assert.ok(DETECTOR_TIMELINE_201[3].basis.includes('ONLY stage that sees arguments'));
+  assert.ok(HEALY_201.featureVector.includes('mean over all argument-region tokens'));
+  assert.ok(HEALY_201.featureVector.includes('last layer only'));
+  assert.deepEqual(HEALY_201.taxonomy.slice(0, 4), [
+    'nonexistent function',
+    'semantically inappropriate function',
+    'parameter outside the valid domain',
+    'missing required parameters',
+  ]);
+  // Selection-only stages never claim argument coverage.
+  assert.ok(DETECTOR_TIMELINE_201[1].basis.includes('selection-only'));
+  assert.ok(DETECTOR_TIMELINE_201[2].basis.includes('selection-only'));
+});
+
+test('Batch 201: Healy gate is CONFIRMATION-TIER ONLY — auto-block is refused by guard', () => {
+  assert.equal(healyGatePolicy('person-confirmation').tier, 'confirmation');
+  assert.equal(healyGatePolicy('advisory-repick').tier, 'confirmation');
+  assert.ok(HEALY_CONFIRMATION_JUSTIFICATION.includes('0.53–0.62'));
+  assert.ok(HEALY_CONFIRMATION_JUSTIFICATION.includes('0.34'));
+  assert.throws(() => healyGatePolicy('auto-block'), /confirmation-tier, not auto-block/);
+  assert.throws(() => healyGatePolicy('auto-block'), /misses about half/);
+  assert.throws(() => healyGatePolicy('auto-block'), /two-thirds of flags are false alarms/);
+  assert.throws(() => healyGatePolicy('execute-if-clean'), /person-confirmation, advisory-repick only/);
+});
+
+test('Batch 201: headline number corrected — Table 2 hallucination class, never the abstract 86.4%', () => {
+  assert.deepEqual(healyHallucinationClass('gpt-oss-20b'), {
+    model: 'gpt-oss-20b', precision: 0.86, recall: 0.53, f1: 0.66, support: 587, accuracy: 0.86, nonHallucinationRecall: 0.97,
+  });
+  assert.equal(healyHallucinationClass('llama-3.1-8b').recall, 0.61);
+  assert.equal(healyHallucinationClass('llama-3.1-8b').support, 1036);
+  assert.equal(healyHallucinationClass('qwen-7b').precision, 0.34);
+  assert.equal(healyHallucinationClass('qwen-7b').f1, 0.44);
+  assert.equal(healyHallucinationClass('qwen-7b').support, 333);
+  assert.equal(HEALY_201.abstractNumber.reading, 'WEIGHTED average, NOT hallucination-class performance — never quote it as hallucination-class performance');
+  assert.throws(() => assertHealyQuote({ metric: 'abstract-accuracy', quotedAs: 'hallucination-class' }), /WEIGHTED averages/);
+  assert.throws(() => assertHealyQuote({ metric: 'table1-row', quotedAs: 'hallucination-class' }), /WEIGHTED averages/);
+  assert.equal(assertHealyQuote({ metric: 'hallucination-class', model: 'qwen-7b' }).precision, 0.34);
+  assert.throws(() => healyHallucinationClass('bundled-base'), /Table 2, test split/);
+});
+
+test('Batch 201: reporting inconsistencies carried as caveats, NOT resolved facts', () => {
+  assert.equal(HEALY_201.reportingInconsistencies.length, 2);
+  assert.ok(HEALY_201.reportingInconsistencies[0].issue.includes('m = 3d'));
+  assert.ok(HEALY_201.reportingInconsistencies[0].issue.includes('3584'));
+  assert.ok(HEALY_201.reportingInconsistencies[0].issue.includes('2880'));
+  assert.ok(HEALY_201.reportingInconsistencies[0].issue.includes('4096'));
+  assert.ok(HEALY_201.reportingInconsistencies[0].status.startsWith('CAVEAT'));
+  assert.ok(HEALY_201.reportingInconsistencies[1].issue.includes('2,411'));
+  assert.ok(HEALY_201.reportingInconsistencies[1].issue.includes('2,000'));
+  assert.ok(HEALY_201.reportingInconsistencies[1].issue.includes('70/30'));
+  assert.ok(HEALY_201.reportingInconsistencies[1].status.startsWith('CAVEAT'));
+});
+
+test('Batch 201: ablation simplification — three-point construction adds NO measured advantage', () => {
+  assert.equal(HEALY_201.ablation.methods, 10);
+  assert.deepEqual(HEALY_201.ablation.accuracyRange, [0.739, 0.746]);
+  assert.equal(HEALY_201.ablation.accuracySpread, 0.007);
+  assert.equal(HEALY_201.ablation.lastTokenOnly.accuracy, 0.744);
+  assert.equal(HEALY_201.ablation.meanPooled.accuracy, 0.746);
+  assert.ok(HEALY_201.ablation.buildRule.includes('last-token or mean-pooled'));
+  assert.ok(HEALY_201.ablation.threePointNote.includes('NOT separately tabulated'));
+});
+
+test('Batch 201: scope limits — Glaive single-call only, no near-synonym test, no within-routine score, τ re-tuned', () => {
+  assert.ok(HEALY_201.scopeLimits.domains.includes('digital commerce'));
+  assert.equal(HEALY_201.scopeLimits.taskShape, 'single-call computational tasks with canonicalizable arguments');
+  assert.deepEqual(HEALY_201.scopeLimits.notCovered, ['multi-turn routines', 'real side-effect APIs', 'similar-tool disputes']);
+  assert.ok(HEALY_201.scopeLimits.nearSynonym.includes('UNKNOWN, not favorable'));
+  assert.ok(HEALY_201.scopeLimits.withinRoutine.includes('Batch 13'));
+  assert.ok(HEALY_201.scopeLimits.tauRule.includes('re-tune τ on personal data'));
+});
+
+test('Batch 201: Healy is never cited for bypass detection; intervention policy is proposed, never evaluated', () => {
+  assert.equal(HEALY_201.taxonomy[4], 'tool bypass (answering without calling)');
+  assert.equal(assertHealyBypassClaim({}).bypassSeparatelyMeasured, false);
+  assert.throws(() => assertHealyBypassClaim({ citesHealyForBypassDetection: true }), /never measured separately/);
+  assert.ok(HEALY_201.interventionPolicy.startsWith('PROPOSED, never evaluated'));
+  assert.ok(HEALY_201.interventionPolicy.includes('no measured effect of blocking or repair'));
+});
+
+test('Batch 201: personal-data recipe is portable but limited — smaller classifier, not Healy MLP at Healy scale', () => {
+  assert.ok(HEALY_201.personalDataRecipe.labeling.includes('Batch 2'));
+  assert.ok(HEALY_201.personalDataRecipe.scaleLimit.includes('1,447'));
+  assert.ok(HEALY_201.personalDataRecipe.scaleLimit.includes('tens to low hundreds'));
+  assert.ok(HEALY_201.personalDataRecipe.honestVersion.includes('SMALLER classifier'));
+  assert.ok(HEALY_201.personalDataRecipe.honestVersion.includes('within-routine hallucination recall/precision'));
+  assert.ok(HEALY_201.personalDataRecipe.honestVersion.includes('NOT Healy\'s MLP at Healy\'s scale'));
+});
+
+test('Batch 201: infrastructure cost — single pass holds only in-process; server path means a second pass', () => {
+  assert.ok(HEALY_201.infrastructureCost.includes('ONLY in-process'));
+  assert.ok(HEALY_201.infrastructureCost.includes('streaming capture DURING generation'));
+  assert.ok(HEALY_201.infrastructureCost.includes('SECOND PASS'));
+  assert.ok(HEALY_201.infrastructureCost.includes('0.744 vs 0.746'));
+});
+
+test('Batch 201: Healy classifier is a trained, base-specific artifact — a base swap orphans it', () => {
+  assert.ok(HEALY_201.artifactNote.includes('Batch 8/9 versioning tuple'));
+  assert.equal(healyClassifierArtifact('bundled-base').baseSpecific, true);
+  assert.equal(assertHealyArtifactBase(healyClassifierArtifact('bundled-base'), 'bundled-base').baseOk, true);
+  assert.throws(() => assertHealyArtifactBase(healyClassifierArtifact('base-a'), 'base-b'), /base swap orphans/);
+  assert.throws(() => assertHealyArtifactBase({ artifact: 'healy-classifier' }, 'base-b'), /without a base cannot be trusted/);
+});
+
+test('Batch 201: Batch 4 verifier stays mandatory after every stage — no detector stage repairs arguments', () => {
+  assert.equal(assertExecutionRequiresVerifier({ schemaValid: true, argumentChecksPassed: true }).verified, true);
+  assert.throws(() => assertExecutionRequiresVerifier({ schemaValid: true, argumentChecksPassed: false }), /mandatory after every detector stage/);
+  assert.throws(() => assertExecutionRequiresVerifier({ schemaValid: false, argumentChecksPassed: true }), /no detector stage repairs arguments/);
+  assert.ok(DETECTOR_TIMELINE_201[4].basis.includes('no detector stage repairs arguments'));
+});
+
+test('Batch 201: what Healy does NOT change — Select advisory-only, pilot order, steering exclusion', () => {
+  // Select stays advisory-only (round 5 guard still bites).
+  assert.throws(() => selectAdvisory([{ id: 'c1' }], 'search', { forcedPrefix: 'search' }), /advisory-only/);
+  // Pilot order stands: Healy is a later gate arm, never a pilot arm.
+  assert.deepEqual(ADVISORY_TEST_ARMS, ['free', 'advisory-rec', 'advisory-gold']);
+  assert.equal(assertHealyNotPilotArm(['free', 'advisory-rec', 'advisory-gold']).pilotArmsOk, true);
+  assert.throws(() => assertHealyNotPilotArm(['free', 'advisory-rec', 'healy-gate']), /LATER gate arm/);
+  assert.throws(() => assertHealyNotPilotArm(['free', 'healy-gate', 'advisory-gold']), /do NOT merge it into the 100-task advisory pilot/);
+  // Wu-steering lab-arm exclusion stands: Healy detects, it does not steer.
+  assert.equal(assertHealyNotSteering('detect').detectsOnly, true);
+  assert.throws(() => assertHealyNotSteering('steering-substitute'), /detects, it does not steer/);
+  assert.throws(() => assertHealyNotSteering('steer'), /cannot substitute for steering evidence/);
+});
+
+test('Batch 201: ASA re-checked, still withdrawn — quarantine STANDS; Wu cites Healy in §1 only', () => {
+  assert.equal(ASA_RECHECK_201.quarantine, 'STANDS');
+  assert.equal(ASA_RECHECK_201.status, 'WITHDRAWN by Youjin Wang');
+  assert.equal(ASA_RECHECK_201.versions.v1, 'Feb 4 2026');
+  assert.equal(ASA_RECHECK_201.versions.v4, 'Aug 28 2026');
+  assert.equal(ASA_RECHECK_201.pdf, 'none');
+  assert.equal(assertAsaQuarantineStands().quarantine, 'STANDS');
+  // Prior quarantine guard still bites (round 7, unweakened).
+  assert.throws(() => leverGate('wang-asa', { evidenceFor: 'gate' }), /QUARANTINED/);
+  // Citation correction: §1 only, not §1/§6.
+  assert.equal(WU_HEALY_CITATION_201.citedBy, 'Wu §1 only');
+  assert.ok(WU_HEALY_CITATION_201.correctedShorthand.includes('§1/§6'));
+  assert.equal(assertWuHealyCitation(['§1']).citedBy, 'Wu §1 only');
+  assert.throws(() => assertWuHealyCitation(['§1', '§6']), /§1 ONLY/);
+});
+
+test('Batch 201: round 8 composes with rounds 5–7 without weakening them', () => {
+  // Round 7 canonical tier order is untouched (extended, not replaced).
+  assert.deepEqual(canonicalTierOrder(), ['advisory-hint', 'wu-cosine-gap-detector-candidate', 'wu-steering-lab', 'chen-s2-attention']);
+  assert.equal(assertTierOrder(canonicalTierOrder()).orderOk, true);
+  // Round 7 gap still a candidate, not shipped; round 6 pilot still gates M1/M2.
+  assert.throws(() => assertGapUse('shipped'), /CANDIDATE, not shipped/);
+  assert.throws(() => assertMultiTurnOrder({ phase: 'M2', pilotPassed: true, m1Passed: false }), /M1 to pass first/);
+  assert.throws(() => leverGate('wu-gold-free-steering', { arm: 'lab', pilotPassed: false }), /BEHIND the advisory pilot/);
+  // Timeline stage 1 IS the round-7 gap tier, re-slotted by time — same detector, later company.
+  assert.equal(DETECTOR_TIMELINE_201[1].tier, 'wu-cosine-gap-pre-generation');
+  assert.equal(DETECTOR_TIMELINE_201[0].tier, DISPUTED_HOP_TIERS_199[0].tier);
 });

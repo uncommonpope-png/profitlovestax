@@ -2935,6 +2935,299 @@ function assertCapturePath(path, opts = {}) {
   return { path: 'in-process', writeHookAtPrefill: opts.needsWriteHook === true };
 }
 
+// ------------------- Batch 201: Healy detector slotting correction (SPEC, UNEXECUTED)
+//
+// Batch 199/200's queue item mis-slotted Healy as "a possible third
+// detector alongside Wu gap and logprob margin" in the Wu-gap slot.
+// Batch 201, reading Healy et al. 2026 ("Internal Representations as
+// Indicators of Hallucinations in Agent Tool Selection,"
+// arXiv:2601.05214) in full, corrects the slotting: Healy is
+// POST-generation / PRE-execution, NOT a rival to Wu's pre-generation
+// gap. The detector stack is a TIMELINE, not a menu: the gap flags
+// uncertainty before writing, the margin scores the first token as
+// written, the Healy classifier scores the completed call before
+// execution, and the Batch 4 verifier checks the call's form. Each
+// later stage costs more of the call's existence, and only Healy's
+// stage sees the arguments at all. No classifier was trained, no gap
+// was computed, no Healy feature was extracted in Batch 201 — every
+// number below is the paper's on Glaive calculator-style tasks, NOT
+// on the north-star tool pool or the bundled base. Round 7's tier
+// order (DISPUTED_HOP_TIERS_199) STANDS untouched; this timeline
+// extends it by adding a stage, it does not replace it. Wu steering
+// (lab arm) and Chen S2 (attention) are interventions/candidates in
+// the 199 tier order, not detector stages, and are not re-ordered here.
+
+/** Detector stack as a TIMELINE (Batch 201), by time, not a menu. */
+const DETECTOR_TIMELINE_201 = [
+  { order: 0, tier: 'advisory-hint', timing: 'first, before inference changes', basis: 'Batch 197 advisory hint first (no inference change, AST-neutral-or-better) — the pilot arm, not a gate' },
+  { order: 1, tier: 'wu-cosine-gap-pre-generation', timing: 'PRE-generation', basis: 'Wu cosine gap flags uncertain hops BEFORE writing (selection-only); cheapest detector, training-free, weakest on near-synonyms' },
+  { order: 2, tier: 'logprob-first-token-margin-during-generation', timing: 'DURING generation', basis: 'Batch 5 logprob / first-token margin: free logits, first token only, same selection-only limit as the gap' },
+  { order: 3, tier: 'healy-post-generation-pre-execution-confirmation', timing: 'POST-generation, PRE-execution', basis: 'Healy-style classifier: the ONLY stage that sees arguments, so it is the argument/completeness gate — CONFIRMATION-TIER ONLY (see healyGatePolicy), never auto-block' },
+  { order: 4, tier: 'batch4-schema-verifier-and-argument-checks', timing: 'after every stage, before execution', basis: 'Batch 4 schema verifier + argument checks still mandatory after every stage, because no detector stage repairs arguments (Healy detects, it does not fix; Wu steering invents values, Batch 199)' },
+];
+
+function detectorTimeline() {
+  return DETECTOR_TIMELINE_201.map((t) => t.tier);
+}
+
+/**
+ * Timeline-order guard: the canonical time order is the ONLY order.
+ * Placing Healy pre-generation, or as a rival to the Wu gap, throws —
+ * Healy cannot fire before the call exists, which the gap can, and it
+ * answers a later question ("this written call looks wrong,
+ * block/confirm it?") that the gap cannot answer.
+ */
+function assertTimelineOrder(tiers) {
+  const canonical = detectorTimeline();
+  if (!Array.isArray(tiers) || tiers.length !== canonical.length || !tiers.every((t, i) => t === canonical[i])) {
+    throw new Error(`assertTimelineOrder: canonical detector timeline is ${canonical.join(' → ')} by time (Batch 201); Healy is POST-generation / PRE-execution, NOT a pre-generation rival to the Wu gap`);
+  }
+  return { orderOk: true, tiers: canonical, note: 'Batch 199 tier order stands untouched; this timeline extends it by adding a stage, not replacing one' };
+}
+
+/** Healy-use guard: pre-generation, rival-gate, and selector uses all throw. */
+function assertHealyNotPreGeneration(use) {
+  if (use === 'pre-generation' || use === 'wu-gap-rival' || use === 'selector') {
+    throw new Error(`assertHealyNotPreGeneration: Healy is POST-generation / PRE-execution, never "${use}" — it cannot fire before the call exists and it gates execution, it does not select (Batch 201)`);
+  }
+  if (use !== 'post-generation-pre-execution-detector') throw new Error(`assertHealyNotPreGeneration: unknown Healy use "${use}" (post-generation-pre-execution-detector only)`);
+  return { use: 'post-generation-pre-execution-detector', timing: 'POST-generation, PRE-execution' };
+}
+
+/**
+ * Healy et al. 2026, arXiv:2601.05214, as spec not result.
+ * Method: unsupervised-by-agreement labeling — take a Glaive v2
+ * reference call, mask it from the prompt, regenerate, label
+ * hallucination iff the predicted function name differs from the
+ * reference OR arguments fail after canonicalization. Model-specific
+ * 2-layer MLP (hidden 512, ReLU, sigmoid, dropout 0.1, AdamW lr 1e-4,
+ * up to 50 epochs, early stop patience 5, batch 32); threshold τ by
+ * grid search 0.1–0.9 on validation, temperature scaling for
+ * calibration. Inference reuses the generation pass's final-layer
+ * states — in-process only (see infrastructureCost).
+ */
+const HEALY_201 = {
+  source: 'Healy et al. 2026, "Internal Representations as Indicators of Hallucinations in Agent Tool Selection," arXiv:2601.05214',
+  featureVector: 'z = Π(h at the function-name\'s first sub-token ‖ mean over all argument-region tokens ‖ h at the closing delimiter), last layer only, Eq. (1)',
+  taxonomy: [
+    'nonexistent function',
+    'semantically inappropriate function',
+    'parameter outside the valid domain',
+    'missing required parameters',
+    'tool bypass (answering without calling)',
+  ],
+  taxonomyNote: 'the paper reports only a UNIFIED BINARY result — bypass is never measured separately, so type (5) detection is a taxonomy entry, not a result. Do NOT cite Healy for bypass detection (see assertHealyBypassClaim).',
+  // Real hallucination-class figures (Table 2, test split). NEVER quote
+  // the abstract's "up to 86.4% accuracy" or Table 1's rows as
+  // hallucination-class performance: Table 1's rows match Table 2's
+  // WEIGHTED averages, not the hallucination class.
+  hallucinationClassTable2: {
+    'gpt-oss-20b': { precision: 0.86, recall: 0.53, f1: 0.66, support: 587, accuracy: 0.86, nonHallucinationRecall: 0.97 },
+    'llama-3.1-8b': { precision: 0.71, recall: 0.61, f1: 0.66, support: 1036, accuracy: 0.73 },
+    'qwen-7b': { precision: 0.34, recall: 0.62, f1: 0.44, support: 333, accuracy: 0.74 },
+  },
+  abstractNumber: { value: 'up to 86.4% accuracy', reading: 'WEIGHTED average, NOT hallucination-class performance — never quote it as hallucination-class performance' },
+  interventionPolicy: 'PROPOSED, never evaluated: if p > τ, block / ask confirmation / fall back / repair-by-reprompting. No intervention experiment exists — no measured effect of blocking or repair on task success (Wu §1 characterization confirmed: Healy "leaves the signal\'s effect on the call untested").',
+  ablation: {
+    slice: 'Qwen-7B digital-commerce slice',
+    methods: 10,
+    accuracyRange: [0.739, 0.746],
+    accuracySpread: 0.007,
+    aucRange: [0.716, 0.721],
+    lastTokenOnly: { accuracy: 0.744, auc: 0.720 },
+    meanPooled: { accuracy: 0.746, auc: 0.721 },
+    threePointNote: 'the paper\'s own three-point concatenation is NOT separately tabulated in the ablation, so its claimed design adds NO measured advantage over last-token or mean pooling on this evidence',
+    buildRule: 'if a Healy-style classifier is ever built, start with last-token or mean-pooled features — the three-point construction is complexity without a measured payoff, and the harder capture (three token regions vs one)',
+  },
+  reportingInconsistencies: [
+    { id: '(a)', issue: 'Eq. (1) says projection Π is identity by default, giving m = 3d — but the training configuration lists classifier input dimensions equal to the hidden dimension d (Qwen-7B 3584, GPT-OSS-20B 2880, Llama-3.1-8B 4096), not 3d', status: 'CAVEAT, not resolved: either Π is not identity in practice or the dimensions are misreported; a reproduction cannot tell which from the paper' },
+    { id: '(b)', issue: 'main protocol is a 60/20/20 split over 2,411 instances per model, but Qwen-7B\'s Table 2 totals 2,000, and the ablation uses a different 70/30 split', status: 'CAVEAT, not resolved: Qwen\'s numbers are not on the same footing as the other two models\'; never quote Healy numbers to three significant figures in a build spec' },
+  ],
+  baselines: {
+    note: 'NCP and semantic similarity (n=3 samples each) reach accuracy 0.935–0.95 with precision 1.0, but lower hallucination recall on Qwen (0.45/0.44 vs Healy 0.62) and similar recall on GPT-OSS/Llama (0.79/0.733 vs 0.53/0.61 — Healy trails on GPT-OSS recall)',
+    overheadFlag: 'the paper\'s "5× computational overhead" for baselines sits uneasily next to its own n=3 sampling description (3 passes, not 5) — FLAG, do not resolve',
+    precisionFlag: 'the precision-1.0 baseline figures are suspiciously clean for agreement-based labels — REPORTED, not endorsed',
+  },
+  scopeLimits: {
+    domains: 'five calculator-style Glaive agents (quick calculator, personal finance, health, sustainability, digital commerce)',
+    taskShape: 'single-call computational tasks with canonicalizable arguments',
+    notCovered: ['multi-turn routines', 'real side-effect APIs', 'similar-tool disputes'],
+    nearSynonym: 'NO near-synonym test exists (its name-difference label lumps a near-synonym swap with a domain error) — whether it beats Wu\'s gap on confusable pairs is UNKNOWN, not favorable',
+    withinRoutine: 'NO within-routine score exists (Batch 13: pooled-across-domains accuracy is not a within-routine AUROC)',
+    tauRule: 'τ is validation-tuned per model per dataset, so a personal deployment must re-tune τ on personal data (exactly like Batch 5\'s τu/τv re-fit rule)',
+  },
+  confidentErrorHypothesis: 'HYPOTHESIS TO TEST, not a result: the gap flags UNCERTAINTY (silent on confident errors, Batch 199); Healy flags learned INCORRECTNESS patterns (a classifier trained on agreement labels), so a confidently-wrong call that differs from the reference IS in its positive class by construction — but measured hallucination recall 0.53–0.62 says it catches only about half of them even in-domain, so "in principle" must not become "in product" without a personal replication',
+  personalDataRecipe: {
+    labeling: 'masked-agreement labeling transfers with no extra labeling effort — take the person\'s verified call as reference, mask it, regenerate, label by agreement (Batch 2 person-as-corrector in classifier form)',
+    scaleLimit: 'Healy trains on ~1,447 labeled instances per model (60% of 2,411); a personal pool has tens to low hundreds of verified calls, and whether a 512-hidden MLP generalizes at that scale is untested',
+    honestVersion: 'a SMALLER classifier (or a probe, Batch 5 style) trained on personal agreement labels, evaluated on within-routine hallucination recall/precision — NOT Healy\'s MLP at Healy\'s scale',
+  },
+  infrastructureCost: 'Healy\'s "single forward pass" holds ONLY in-process (Batch 7 fork, unchanged): it needs final-layer states at the function token, ACROSS the argument span, and at the closing delimiter — streaming capture DURING generation, not one prompt token like Wu\'s gap. On a server path that means a SECOND PASS over the generated text, which breaks the single-pass claim in that deployment. Last-token-only capture (0.744 vs 0.746) would collapse capture to one generated token, but that token must still be captured during generation, and the ablation\'s last-token variant is a different feature than the three-point design — evidence for a simpler classifier, not proof the three-point classifier works from one token.',
+  artifactNote: 'TRAINED, base-specific artifact: joins the Batch 8/9 versioning tuple (alongside Wu vectors, adapter, probe, thresholds) — a base swap orphans it (see healyClassifierArtifact / assertHealyArtifactBase)',
+  status: 'SPEC, not executed — no classifier trained, no Healy feature extracted, no gap computed in Batch 201',
+};
+
+/** Hallucination-class Table 2 figures by model (never the abstract number). */
+function healyHallucinationClass(model) {
+  const row = HEALY_201.hallucinationClassTable2[model];
+  if (!row) throw new Error(`healyHallucinationClass: unknown model "${model}" (gpt-oss-20b, llama-3.1-8b, qwen-7b — Table 2, test split)`);
+  return { model, ...row };
+}
+
+/**
+ * Healy-number quote guard: the abstract's "up to 86.4% accuracy" and
+ * Table 1's rows are WEIGHTED averages. Quoting either as
+ * hallucination-class performance throws; a hallucination-class quote
+ * returns the Table 2 figures.
+ */
+function assertHealyQuote(quote = {}) {
+  if (quote.quotedAs === 'hallucination-class' && (quote.metric === 'abstract-accuracy' || quote.metric === 'table1-row')) {
+    throw new Error(`assertHealyQuote: the ${quote.metric === 'abstract-accuracy' ? 'abstract\'s "up to 86.4% accuracy"' : 'Table 1 rows'} are WEIGHTED averages, NOT hallucination-class performance — quote Table 2 (GPT-OSS-20B 0.86/0.53/0.66, Llama-3.1-8B 0.71/0.61/0.66, Qwen-7B 0.34/0.62/0.44) (Batch 201)`);
+  }
+  if (quote.metric === 'hallucination-class') {
+    if (typeof quote.model !== 'string') throw new Error('assertHealyQuote: a hallucination-class quote must name its model (Table 2, test split)');
+    return healyHallucinationClass(quote.model);
+  }
+  throw new Error(`assertHealyQuote: unknown metric "${quote.metric}" (abstract-accuracy, table1-row, hallucination-class)`);
+}
+
+/**
+ * Confirmation-tier justification, recorded verbatim (Batch 201):
+ * hallucination recall 0.53–0.62 (best model misses about half of
+ * hallucinations), Qwen precision 0.34 (two-thirds of flags are false
+ * alarms on Qwen). A gate with those numbers is confirmation-tier,
+ * not auto-block.
+ */
+const HEALY_CONFIRMATION_JUSTIFICATION =
+  'hallucination recall 0.53–0.62 (best model misses about half of ' +
+  'hallucinations), Qwen precision 0.34 (two-thirds of flags are false ' +
+  'alarms on Qwen). A gate with those numbers is confirmation-tier, ' +
+  'not auto-block.';
+
+/**
+ * Healy gate policy guard: the post-generation, pre-execution stage
+ * may flag for person confirmation or an advisory re-pick — NEVER
+ * auto-block, NEVER decide on its own. Any auto-block policy throws.
+ */
+function healyGatePolicy(policy) {
+  if (policy === 'auto-block') {
+    throw new Error(`healyGatePolicy: auto-block is REFUSED for the Healy stage — ${HEALY_CONFIRMATION_JUSTIFICATION} (Batch 201)`);
+  }
+  if (policy === 'person-confirmation' || policy === 'advisory-repick') {
+    return { tier: 'confirmation', policy, justification: HEALY_CONFIRMATION_JUSTIFICATION, note: 'flag → person confirms or advisory re-pick; the stage never decides on its own' };
+  }
+  throw new Error(`healyGatePolicy: unknown Healy gate policy "${policy}" (person-confirmation, advisory-repick only — auto-block refused)`);
+}
+
+/**
+ * Bypass-claim guard: tool bypass is a taxonomy entry, never a
+ * measured result. Citing Healy for bypass detection throws.
+ */
+function assertHealyBypassClaim(claim = {}) {
+  if (claim.citesHealyForBypassDetection === true) {
+    throw new Error('assertHealyBypassClaim: Healy reports only a unified binary result — bypass is never measured separately, so Healy must NOT be cited for bypass detection (Batch 201)');
+  }
+  return { bypassSeparatelyMeasured: false, note: 'bypass is a taxonomy entry, not a result' };
+}
+
+/**
+ * Healy classifier artifact: TRAINED and base-specific, joining the
+ * Batch 8/9 versioning tuple. A base swap orphans it, like Wu tool
+ * vectors (Batch 199) — rebuild on personal agreement labels, do not
+ * reuse across bases.
+ */
+function healyClassifierArtifact(base) {
+  if (typeof base !== 'string' || base.length === 0) throw new Error('healyClassifierArtifact: base must be a non-empty string');
+  return { artifact: 'healy-classifier', baseSpecific: true, base, trained: true, note: 'a base swap orphans it — rebuild, do not reuse (Batch 201)' };
+}
+
+function assertHealyArtifactBase(artifact, currentBase) {
+  if (!artifact || artifact.baseSpecific !== true) throw new Error('assertHealyArtifactBase: a Healy classifier is a trained, base-specific artifact — an artifact without a base cannot be trusted (Batch 201)');
+  if (artifact.base !== currentBase) {
+    throw new Error(`assertHealyArtifactBase: base swap orphans the Healy classifier (artifact base "${artifact.base}" != current base "${currentBase}") — rebuild on personal agreement labels, do not reuse (Batch 201)`);
+  }
+  return { baseOk: true, base: currentBase };
+}
+
+/**
+ * Post-stage verifier guard: Batch 4 schema verifier + argument
+ * checks are mandatory after EVERY detector stage, because no
+ * detector stage repairs arguments. A call reaching execution without
+ * both throws — a Healy flag, a gap flag, or a clean detector pass
+ * never waives the verifier.
+ */
+function assertExecutionRequiresVerifier(call = {}) {
+  if (call.schemaValid !== true || call.argumentChecksPassed !== true) {
+    throw new Error('assertExecutionRequiresVerifier: Batch 4 schema verifier + argument checks are mandatory after every detector stage before execution — no detector stage repairs arguments (Healy detects, it does not fix; Batch 201)');
+  }
+  return { verified: true, note: 'detector stages flag; only the verifier clears a call for execution' };
+}
+
+// ------------------- Batch 201: what Healy does NOT change (guards, no regress)
+
+/**
+ * Pilot-order guard: Batch 197's pilot order stands — advisory hint
+ * first, and Healy is a LATER gate arm, not a pilot arm. Merging a
+ * Healy arm into the 100-task pilot throws. Canonical pilot arms are
+ * ADVISORY_TEST_ARMS (free, advisory-rec, advisory-gold).
+ */
+function assertHealyNotPilotArm(arms) {
+  if (!Array.isArray(arms)) throw new Error('assertHealyNotPilotArm: arms must be an array');
+  if (arms.some((a) => typeof a === 'string' && a.toLowerCase().includes('healy'))) {
+    throw new Error('assertHealyNotPilotArm: Healy is a LATER gate arm — do NOT merge it into the 100-task advisory pilot (Batch 197 pilot order stands; Healy-gate spec execution comes after the pilot, Batch 201)');
+  }
+  return { pilotArmsOk: true, arms };
+}
+
+/**
+ * Steering-substitution guard: Batch 199's Wu-steering lab-arm
+ * exclusion stands. Healy DETECTS, it does not steer, so it cannot
+ * substitute for steering evidence or for a steering arm.
+ */
+function assertHealyNotSteering(use) {
+  if (use === 'steering-substitute' || use === 'steer') {
+    throw new Error('assertHealyNotSteering: Healy detects, it does not steer — it cannot substitute for steering evidence (Batch 199 lab-arm exclusion stands; Batch 201)');
+  }
+  if (use !== 'detect') throw new Error(`assertHealyNotSteering: unknown Healy use "${use}" (detect only)`);
+  return { detectsOnly: true, steers: false };
+}
+
+/** ASA re-check (Batch 201): quarantine STANDS, unchanged. */
+const ASA_RECHECK_201 = {
+  source: 'arXiv abstract page https://arxiv.org/abs/2602.04935, re-read Batch 201',
+  status: 'WITHDRAWN by Youjin Wang',
+  versions: { v1: 'Feb 4 2026', v4: 'Aug 28 2026' },
+  pdf: 'none',
+  quarantine: 'STANDS',
+  rule: 'ASA numbers are never cited as evidence; re-read only if reposted with resolved results, quarantine until then',
+};
+
+function assertAsaQuarantineStands() {
+  return { quarantine: ASA_RECHECK_201.quarantine, status: ASA_RECHECK_201.status, rule: ASA_RECHECK_201.rule, prior: ASA_QUARANTINE.status };
+}
+
+/**
+ * Wu-citation correction (Batch 201): Healy is cited by Wu §1 ONLY,
+ * not §1/§6. In the Wu v3 HTML read in Batch 201, Healy appears in §1
+ * and in the references only — no separate §6 treatment was found
+ * (text search returns exactly those two matches). The correction
+ * stands until a different Wu version shows otherwise.
+ */
+const WU_HEALY_CITATION_201 = {
+  citedBy: 'Wu §1 only',
+  correctedShorthand: 'Batch 199 shorthand "cited by Wu §1/§6" corrected to "cited by Wu §1"',
+  evidence: 'Wu v3 HTML read Batch 201: Healy appears in §1 and in the references only; no separate §6 treatment found',
+  until: 'a different Wu version shows otherwise',
+};
+
+function assertWuHealyCitation(sections) {
+  if (!Array.isArray(sections)) throw new Error('assertWuHealyCitation: sections must be an array');
+  if (sections.includes('§6') || sections.includes('6')) {
+    throw new Error('assertWuHealyCitation: Healy is cited by Wu §1 ONLY (Batch 201 correction of the Batch 199 "§1/§6" shorthand) — no §6 treatment exists in Wu v3 until a different version shows otherwise');
+  }
+  return { citedBy: WU_HEALY_CITATION_201.citedBy, sections };
+}
+
 module.exports = {
   percentile,
   median,
@@ -3028,4 +3321,24 @@ module.exports = {
   captureElementBound,
   captureCopies,
   assertCapturePath,
+  // Batch 201: Healy detector slotting correction, timeline, confirmation-tier gate (spec, unexecuted).
+  DETECTOR_TIMELINE_201,
+  detectorTimeline,
+  assertTimelineOrder,
+  assertHealyNotPreGeneration,
+  HEALY_201,
+  healyHallucinationClass,
+  assertHealyQuote,
+  HEALY_CONFIRMATION_JUSTIFICATION,
+  healyGatePolicy,
+  assertHealyBypassClaim,
+  healyClassifierArtifact,
+  assertHealyArtifactBase,
+  assertExecutionRequiresVerifier,
+  assertHealyNotPilotArm,
+  assertHealyNotSteering,
+  ASA_RECHECK_201,
+  assertAsaQuarantineStands,
+  WU_HEALY_CITATION_201,
+  assertWuHealyCitation,
 };

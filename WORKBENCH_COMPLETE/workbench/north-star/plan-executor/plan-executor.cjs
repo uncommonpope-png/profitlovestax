@@ -4678,6 +4678,359 @@ function checkOfflineCriticSpec211(spec) {
   };
 }
 
+/**
+ * Batch 212 — Weaver in full (Saad-Falcon et al.,
+ * arXiv:2506.18203v3). Spec/harness amendments to Batch
+ * 208/211's offline critic: a stage-0 ensemble spec, a
+ * mechanical drop rule, and a distilled-verifier placement
+ * rule. NO verifier, ensemble, or distilled model was run;
+ * NO label was applied to a personal trajectory; NO
+ * promotion test was run — this section is a spec plus
+ * guard code, not results. All Weaver numbers below are
+ * the paper's on math/reasoning benchmarks with 7B–72B
+ * verifiers and gold answers for evaluation, NOT personal
+ * tool tasks. No 4B Weaver result exists; the 8B result is
+ * the smallest scale evidenced, and its verifiers are still
+ * external models, not the generator itself.
+ *
+ * WEAVER CLOSED by this batch — no longer a lead. The
+ * Batch 211 weaverLead211() entry stands as history; this
+ * section replaces the lead with the read result, it does
+ * not re-quote the abstract as evidence.
+ */
+const WEAVER_212 = Object.freeze({
+  source: 'Saad-Falcon, Buchanan, Chen, Huang, McLaughlin, Bhathal, Zhu, Athiwaratkun, Sala, Linderman, Mirhoseini & Ré (Stanford + Wisconsin + Together AI), arXiv:2506.18203v3, read in full (Batch 212)',
+  job: 'Selection among already-generated candidates, never generation itself — its ceiling is Pass@K, and on sets where correct candidates are rare it cannot create what was never generated (Batch 212, paper §3 and §7/AIMO)',
+  table1Anchor: Object.freeze({ generator: 'Llama 3.3 70B Instruct, K=100, 33 reward models + LM judges sized 7B–72B', weaverAvg: 87.7, majorityVote: 72.2, passAt1: 68.4, oraclePassAt100: 91.9, gapToOracle: 4.2, note: 'Table 1 is the anchor. §4.1 oracle-weighted numbers (top-K +3.6, supervised weighted +7.8 over naive averaging) are a DIFFERENT baseline from §5\'s "beats unweighted averaging by 17.1% / majority by 13.5%" — never quote the two sets as one number' }),
+  scaleDown: Object.freeze({ generator: '8B + ≤8B verifiers', weaver: 70.0, majority: 57.2, vs70bMajority: 71.6, note: 'Closest to the resident tier; still no 4B test, and the verifiers are external models, not a 4B model judging itself' }),
+  thresholdsTable4: Object.freeze({ naiveFixed05: 79.0, dev1pct: 84.5, dev5pct: 87.5, dev20pct: 87.5, dev100pct: 87.5, lesson: 'Thresholds from a small dev set, never a fixed 0.5. ~5% labeled data buys the full threshold gain; even 5–10 queries buy +5.5 over naive. The personal dev set is the person\'s own ~5–25 outcome-labeled routines' }),
+  droppingTable5: Object.freeze({ noDrop: 79.4, lowMarginalsOnlyDropped: 84.2, extremeMarginalsDropped: 85.2, gainOverNoDrop: 5.8, note: 'Quote the TABLE (+5.8 points over no-drop), never the paper text\'s 12.5% pruning claim' }),
+  distillation: Object.freeze({ model: 'ModernBERT-Large 396M cross-encoder, task-specific per dataset, trained on Weaver posterior pseudolabels (80:20 split)', retainedPerf: 98.2, flopsBefore: 35.35, flopsAfter: 1.01, flopsSavedPct: 99.97, note: 'Number hygiene: §6 says 98.2% of Weaver performance and 99.97% FLOPs saved; the abstract says 98.7% accuracy and §5.2 says 97.3% compute savings — different denominators (accuracy vs a compute figure). Quote each with its denominator; never collapse into "98% at 99% savings" as if one measurement' }),
+  assumptions: 'Weak supervision assumes votes conditionally independent given the unknown true label Y, and a majority of verifiers better than random — otherwise the Eq. 5 solution is non-unique (Appendix B.2.3, symmetry breaking). Both assumptions are most violated exactly where the north-star critic lives (same-model critics share biases), which is why the filtering step is NOT optional',
+  closed: true,
+});
+
+/**
+ * WEAVER QUALIFICATION (Batch 212): Weaver generalizes
+ * SCORE Appendix D's ensemble gain BY SUBSTITUTION, not by
+ * rescue. SCORE's ensemble was still the same weak model
+ * voting on itself; Weaver's verifiers are 33 diverse
+ * external RMs/judges. A north-star offline ensemble made
+ * of N copies of the resident model judging itself does NOT
+ * inherit Weaver's numbers — it inherits its violated
+ * independence assumption. Any claim that Weaver (or
+ * ensembling generally) fixes same-tier self-verification,
+ * or that a same-model ensemble inherits Weaver's Table 1
+ * numbers, throws. Ensemble members MUST be heterogeneous
+ * signals: schema validator, tool-result verifier, person
+ * accept/correct signal, perplexity/probe uncertainty,
+ * taxonomy critic, optionally a small reward model.
+ * Diversity, not count, is the resource (paper §5.2:
+ * gains diminish as verifiers are added — "additional
+ * verifiers contribute redundant signal due to correlated
+ * biases on hard examples").
+ */
+function assertWeaverSubstitution212(claim) {
+  if (!claim || typeof claim !== 'object') throw new Error('assertWeaverSubstitution212: claim must be an object');
+  const text = String(claim.text || claim.claim || '');
+  if (/rescu(es?|ing)?\b.*(same-model|same-tier|self)[- ]?verification/i.test(text) ||
+      /same-model ensemble inherits Weaver/i.test(text) ||
+      /Weaver (fixes|proves|shows).*self-verification (works|is solved)/i.test(text)) {
+    throw new Error('assertWeaverSubstitution212: REFUSED — Weaver generalizes SCORE\'s ensemble gain by DIVERSE EXTERNAL verifiers + estimated weights, NOT by rescuing same-model self-verification (Batch 212). A same-model ensemble inherits Weaver\'s violated independence assumption, not its Table 1 numbers');
+  }
+  if (claim.fixesGeneration === true) {
+    throw new Error('assertWeaverSubstitution212: REFUSED — Weaver selects among already-generated candidates only; its ceiling is Pass@K (Batch 212, paper §3). Where correct candidates are rare (AIMO: 72.2% of queries in the 0.0–0.1 correct decile for the 8B generator), the fix is better generation, not better selection');
+  }
+  return { substitutionNotRescue: true, note: 'Weaver routes around the same-model failure with diverse external verifiers; it does not rescue it (Batch 212)' };
+}
+
+function assertEnsembleHeterogeneous212(members) {
+  if (!Array.isArray(members) || members.length === 0) throw new Error('assertEnsembleHeterogeneous212: ensemble members must be a non-empty array');
+  const kinds = new Set(members.map((m) => String((m && m.kind) || '')));
+  const bases = new Set(members.map((m) => String((m && m.base) || '')));
+  if (kinds.size < 2) {
+    throw new Error(`assertEnsembleHeterogeneous212: REFUSED — ensemble members must be HETEROGENEOUS signals (Batch 212: schema validator, tool-result verifier, person accept/correct, perplexity/probe uncertainty, taxonomy critic, optionally a small RM). Got only kind(s): ${[...kinds].join(', ') || '(none)'}`);
+  }
+  if (bases.size === 1 && members.length > 1) {
+    throw new Error(`assertEnsembleHeterogeneous212: REFUSED — N copies of one base (${[...bases][0]}) judging itself do NOT inherit Weaver's numbers; they inherit its violated conditional-independence assumption (Batch 212). Mix signal kinds AND bases`);
+  }
+  return { heterogeneous: true, kinds: [...kinds], bases: [...bases], note: 'Diversity, not count, is the resource (Batch 212, paper §5.2 diminishing returns)' };
+}
+
+/**
+ * STAGE 0 for Batch 211's offline-critic filter (Batch
+ * 212, proposal, NOT a tested result): BEFORE SCORE's two
+ * stages, run Weaver's pipeline over the critic ensemble —
+ * (1) normalize with ROBUST PERCENTILES (5th→0, 95th→1,
+ * paper C.1 for reward models), never min-max merged into
+ * the same rule (paper B.3 min-max and C.1 robust
+ * percentiles are two rules; the north-star version picks
+ * robust-percentile for skewed verifier scores and says
+ * so); (2) binarize from a small outcome-labeled dev set
+ * — the person's own ~5–25 outcome-labeled routines
+ * (Table 4: 1% dev buys +5.5 over naive 0.5, 5% buys the
+ * full gain) — never a fixed 0.5 threshold; (3) drop
+ * extreme-marginal verifiers by the paper's marginal rule
+ * (below). Then SCORE stage 1 and stage 2 STILL gate what
+ * reaches the adapter: Weaver's posterior is a soft label /
+ * prioritization; SCORE's outcome test remains the hard
+ * gate. A flag that passes the posterior but fails
+ * outcome-corroboration stays out.
+ *
+ * MARGINAL RULE (paper §B.3, quoted exactly in shape):
+ * for class balance in 20–80%, drop verifiers whose
+ * positive rate falls outside 20–80%; for balance <20%,
+ * drop verifiers predicting positive >80% of the time;
+ * for balance >80%, drop verifiers predicting positive
+ * <20% of the time. Boundary judgment (design choice,
+ * NOT the paper's): a verifier within 2 points of a band
+ * edge is BOUNDARY — down-weighted, decided by its
+ * estimated weight, not hard-dropped alone — because
+ * SCORE's under-firing self-verifier (19.0% fire rate)
+ * sits at the boundary, and the rule must be
+ * weight-plus-drop, not drop-alone (Batch 212).
+ *
+ * spec: { verifiers: [{ id, positiveRate }],
+ * classBalance (fraction positives, 0–1), devSetSize
+ * (routines), normalization, thresholdFromDev (bool) }.
+ * Weights are ESTIMATED from pairwise agreement with no
+ * gold labels (paper Eq. 1–5); this harness records that
+ * the estimation step ran, it does not compute weights —
+ * and pairwise-agreement / precision-matrix decorrelation
+ * (Figs. 13–14 pattern) MUST be measured on the pilot's
+ * actual critic signals before weights are trusted.
+ */
+function weaverStage0_212(spec) {
+  if (!spec || typeof spec !== 'object') throw new Error('weaverStage0_212: spec must be an object');
+  if (spec.normalization !== 'robust-percentile') {
+    throw new Error(`weaverStage0_212: REFUSED — north-star normalization is ROBUST PERCENTILES (5th→0, 95th→1, paper C.1 for skewed verifier scores), not min-max and not merged into one rule (Batch 212). Got "${spec.normalization}"`);
+  }
+  if (spec.thresholdFromDev !== true) {
+    throw new Error('weaverStage0_212: REFUSED — binarization thresholds come from the small outcome-labeled dev set, never a fixed 0.5 (Batch 212, Table 4: naive 0.5 averages 79.0 vs 84.5 at 1% dev, 87.5 at 5% dev)');
+  }
+  if (typeof spec.devSetSize !== 'number' || spec.devSetSize < 5 || spec.devSetSize > 25) {
+    throw new Error(`weaverStage0_212: REFUSED — the dev set is the person's own ~5–25 outcome-labeled routines (Batch 212, Table 4 lesson: 5–10 queries already buy +5.5 over naive; ~5% buys the full gain). Got devSetSize ${spec.devSetSize}`);
+  }
+  if (typeof spec.classBalance !== 'number' || spec.classBalance < 0 || spec.classBalance > 1) throw new Error('weaverStage0_212: classBalance must be a fraction in [0, 1]');
+  const balance = spec.classBalance;
+  const kept = [];
+  const dropped = [];
+  const boundary = [];
+  for (const v of (spec.verifiers || [])) {
+    const rate = v.positiveRate;
+    if (typeof rate !== 'number' || rate < 0 || rate > 1) throw new Error(`weaverStage0_212: verifier "${v.id}" needs a positiveRate in [0, 1]`);
+    let low = 0.2;
+    let high = 0.8;
+    if (balance < 0.2) { low = 0; high = 0.8; }
+    if (balance > 0.8) { low = 0.2; high = 1; }
+    if (rate < low - 0.02 || rate > high + 0.02) {
+      dropped.push({ id: v.id, positiveRate: rate, reason: `Extreme marginal (Batch 212, paper §B.3): positive rate ${rate} outside the ${low}–${high} band for class balance ${balance}` });
+    } else if (rate < low + 0.02 || rate > high - 0.02) {
+      boundary.push({ id: v.id, positiveRate: rate, reason: 'BOUNDARY — within 2 points of a band edge: down-weighted, decided by its estimated weight, not hard-dropped alone (Batch 212 weight-plus-drop rule; SCORE\'s 19.0% under-firer sits at this boundary)' });
+      kept.push(v);
+    } else {
+      kept.push(v);
+    }
+  }
+  return {
+    stage0: true,
+    normalization: 'robust-percentile (5th→0, 95th→1)',
+    devSetSize: spec.devSetSize,
+    classBalance: balance,
+    kept: kept.map((v) => v.id),
+    dropped,
+    boundary,
+    weights: 'Estimated from pairwise agreement with no gold labels (paper Eq. 1–5) — MEASURE pairwise-agreement / precision-matrix decorrelation on the pilot\'s actual critic signals before trusting them (Batch 212); conditional independence + majority-better-than-random are assumed, not shown',
+    posteriorRole: 'Soft label / prioritization ONLY — SCORE stage 1 + stage 2 still gate what reaches the adapter (Batch 211). A flag passing the posterior but failing outcome-corroboration stays out',
+    note: 'Stage 0 is a proposal, not a tested result: the personal-task substitutions (outcome-labeled routines as dev set, heterogeneous critic signals as verifiers, tool-verified success rate as difficulty proxy, Weaver posterior + SCORE outcome test as a stacked filter) are untested anywhere in this paper or this log (Batch 212)',
+  };
+}
+
+/**
+ * MECHANICAL DROP RULE for SWE-PRM's 99.6% flagger
+ * (Batch 212, applying the stage-0 marginal rule to a
+ * single critic): a critic whose flag rate falls outside
+ * 20–80% while routine success balance sits in 20–80% is
+ * DROPPED mechanically — it carries no discriminating
+ * marginal — not kept for symmetry or volume. Table 5
+ * anchor: extreme-marginals dropped 85.2 vs no-drop 79.4
+ * (+5.8 points, the paper's number — never the text's
+ * 12.5% claim). A near-always flagger (99.6%) fails
+ * outright; a near-never flagger fails the same way.
+ */
+function weaverMechanicalDrop212(critic) {
+  if (!critic || typeof critic !== 'object') throw new Error('weaverMechanicalDrop212: critic must be an object');
+  const rate = critic.flagRate;
+  const balance = critic.routineSuccessBalance;
+  if (typeof rate !== 'number' || typeof balance !== 'number') throw new Error('weaverMechanicalDrop212: critic needs numeric flagRate and routineSuccessBalance');
+  if (balance >= 0.2 && balance <= 0.8 && (rate < 0.2 || rate > 0.8)) {
+    return { dropped: true, flagRate: rate, routineSuccessBalance: balance, verdict: `DROPPED mechanically (Batch 212): flag rate ${rate} outside 20–80% while routine success balance ${balance} sits in 20–80% — no discriminating marginal. Table 5 anchor: extreme-marginals dropped 85.2 vs no-drop 79.4 (+5.8, paper number, never the text's 12.5% claim)` };
+  }
+  return { dropped: false, flagRate: rate, routineSuccessBalance: balance, verdict: 'Kept by the marginal rule (Batch 212) — still subject to the SCORE two-stage filter before any flag becomes training data' };
+}
+
+/**
+ * DISTILLED-VERIFIER PLACEMENT (Batch 212): the sleep job
+ * trains a small cross-encoder-class verifier (400M-class)
+ * on Weaver pseudolabels per routine cluster; that
+ * distilled model scores new trajectories cheaply IN THE
+ * SLEEP JOB. Per the round-13 brief it is SLEEP-JOB ONLY:
+ * any live-path placement throws — including an advisory
+ * score on the live path, and it never becomes the live
+ * gate by itself. It is per-routine, not general —
+ * Weaver's distilled models are task-specific.
+ *
+ * NUANCE RECORDED, NOT ADOPTED: Batch 212's own text
+ * allows the distilled model on the live path ONLY as an
+ * advisory score with its own verifier F1 reported
+ * separately under Batch 211's decoupling rule. This
+ * round enforces the stricter brief rule (sleep-job only)
+ * until the parent reconciles the two — the advisory
+ * allowance is recorded here so it is not lost, not
+ * silently adopted.
+ */
+function assertDistilledVerifierPlacement212(placement) {
+  const where = String((placement && placement.where) || '');
+  if (where === 'live' || where === 'resident-live-path' || where === 'live-advisory') {
+    throw new Error('assertDistilledVerifierPlacement212: REFUSED — the distilled 400M-class verifier is SLEEP-JOB ONLY (round-13 brief, Batch 212 placement rule). It never becomes the live gate, and no live-path advisory placement is adopted in this round — Batch 212\'s advisory-score allowance is recorded in the README honest limits, not silently adopted, pending parent reconciliation');
+  }
+  if (where !== 'sleep-job') {
+    throw new Error(`assertDistilledVerifierPlacement212: distilled verifier placement must be "sleep-job" (Batch 212), got "${where}"`);
+  }
+  return { placement: 'sleep-job', perRoutine: true, note: 'Per-routine, task-specific — Weaver\'s distilled models are task-specific, never general (Batch 212, paper §6)' };
+}
+
+/**
+ * DIFFICULTY-CLUSTERING RULE (Batch 212, Appendix B.4):
+ * cluster routines by OBSERVED tool-verified success rate
+ * — the personal analogue of Weaver's oracle difficulty
+ * ratio — fit per-cluster thresholds, but TEST
+ * per-cluster vs global on the pilot rather than assuming
+ * clusters help: Weaver's own 70B result shows clustering
+ * can HURT when verifier behavior is stable (Table 9:
+ * 85.8 at 1 cluster → 79.3 at 5 clusters), while it helps
+ * the 8B model (Table 10: 70.0 → 74.8, per-model
+ * thresholds → 77.0). Gold correctness / oracle
+ * difficulty as the clustering key throws — the personal
+ * key is observable, never gold.
+ */
+function weaverDifficultyClustering212(spec) {
+  if (!spec || typeof spec !== 'object') throw new Error('weaverDifficultyClustering212: spec must be an object');
+  const key = String(spec.difficultyKey || '');
+  if (key === 'gold-correctness' || key === 'oracle-difficulty' || key === 'ground-truth-correctness') {
+    throw new Error(`weaverDifficultyClustering212: REFUSED — difficulty must be an OBSERVABLE proxy (a routine's tool-verified success rate), never gold correctness / oracle difficulty (Batch 212, Appendix B.4 caveat: clustering uses oracle difficulty, unsupervised approximation is future work)`);
+  }
+  if (key !== 'tool-verified-success-rate') {
+    throw new Error(`weaverDifficultyClustering212: difficulty key must be "tool-verified-success-rate" (Batch 212), got "${key}"`);
+  }
+  return { difficultyKey: 'tool-verified-success-rate', perClusterThresholds: true, pilotTestRequired: 'per-cluster vs global thresholds — test on the pilot, do not assume clusters help (Batch 212: 70B clustering alone HURTS, 85.8 → 79.3; 8B clustering helps, 70.0 → 74.8)' };
+}
+
+/**
+ * WEAVER QUOTE GUARD (Batch 212, number hygiene):
+ * Table 5's pruning gain is +5.8 points (extreme-marginals
+ * dropped 85.2 vs no-drop 79.4) — the paper text's 12.5%
+ * claim is NOT quoted. Distillation is quoted with
+ * denominators attached: 98.2% of Weaver performance (§6)
+ * and 99.97% FLOPs saved (§6) — never collapsed into
+ * "98% at 99% savings" as if one measurement, and never
+ * mixed with the abstract's 98.7% accuracy or §5.2's
+ * 97.3% compute-savings figures. Weaver's live cost
+ * (K=100 generations, 30+ verifier calls per query,
+ * 35.35 exaFLOPs per query set) is the opposite of a
+ * live gate — that is why distillation is the bridge,
+ * and it is a sleep-job artifact.
+ */
+function assertWeaverQuote212(claim) {
+  if (!claim || typeof claim !== 'object') throw new Error('assertWeaverQuote212: claim must be an object');
+  const text = String(claim.text || claim.claim || '');
+  if (/12\.5%\s*(pruning|improvement)/i.test(text)) {
+    throw new Error('assertWeaverQuote212: REFUSED — quote Table 5, not the paper text: extreme-marginals dropped 85.2 vs no-drop 79.4 is +5.8 points (Batch 212). The text\'s 12.5% pruning claim is not the table average');
+  }
+  if (/98%\s*at\s*99%\s*savings/i.test(text) || /98\.7%.*99\.97%|99\.97%.*98\.7%/i.test(text)) {
+    throw new Error('assertWeaverQuote212: REFUSED — distillation numbers carry denominators (Batch 212): §6 = 98.2% of Weaver performance + 99.97% FLOPs saved; abstract = 98.7% accuracy; §5.2 = 97.3% compute savings. Never collapse them into one "98% at 99% savings" figure');
+  }
+  return { quoteGuarded: true, note: 'Table 5 +5.8 for pruning; §6 98.2% performance / 99.97% FLOPs for distillation, denominators attached (Batch 212)' };
+}
+
+/**
+ * PROMOTION TEST, WEAVER STAGE-0 ARM (Batch 212,
+ * amending Batch 211's three-arm test): a fourth arm to
+ * TEST — weighted + dropped ensemble (stage 0) vs raw
+ * critic flags, BEFORE the SCORE filter — within routines,
+ * with two-sided critic calibration and Batch 4 rollback
+ * triggers as the abort rule. The stage-0 arm can WIN
+ * the comparison and still not promote: Weaver's
+ * posterior is a soft label / prioritization, and only
+ * flags passing SCORE's outcome test become training
+ * data. Rollback triggers abort regardless of arm scores.
+ */
+function weaverPromotionArm212(result) {
+  if (!result || typeof result !== 'object') throw new Error('weaverPromotionArm212: result must be an object');
+  if (!result.withinRoutines) throw new Error('weaverPromotionArm212: REFUSED — the stage-0 arm comparison runs WITHIN routines (Batch 212, amending Batch 211 Q10). A pooled cross-routine win does not count');
+  const arms = result.arms || {};
+  if (typeof arms.stage0Ensemble !== 'number' || typeof arms.criticRaw !== 'number') {
+    throw new Error('weaverPromotionArm212: stage-0 arm comparison needs numbers — stage0Ensemble (weighted + dropped, before the SCORE filter) and criticRaw (Batch 212 amendment to Batch 211 Q10)');
+  }
+  const metrics = result.metrics || {};
+  if ((typeof metrics.validAt1Delta === 'number' && metrics.validAt1Delta <= -2) ||
+      (typeof metrics.execRateDelta === 'number' && metrics.execRateDelta <= -3) ||
+      (typeof metrics.p95DeltaPct === 'number' && metrics.p95DeltaPct >= 20)) {
+    return { stage0Wins: false, verdict: 'ABORT — Batch 4 rollback trigger hit (−2 valid@1 / −3 ExecRate / +20% p95); stage-0 arm refused regardless of scores (Batch 212)' };
+  }
+  if (arms.stage0Ensemble > arms.criticRaw) {
+    return { stage0Wins: true, arms, verdict: 'Stage-0 ensemble (weighted + dropped) beats raw critic flags, within routines — but the posterior is a SOFT label: only flags passing SCORE\'s outcome test become training data (Batch 212). The stage-0 win prioritizes; it does not promote by itself' };
+  }
+  return { stage0Wins: false, arms, verdict: 'Stage-0 ensemble did not beat raw critic flags within routines — the ensemble spec stays a proposal; the critic pass stays diagnostic (Batch 212)' };
+}
+
+/**
+ * WEAVER CLOSED (Batch 212): the lead is closed by the
+ * read. This replaces weaverLead211()'s carried lead with
+ * the result — read in full, built on in this section —
+ * and refuses to keep citing the abstract as an open lead.
+ */
+function weaverStatus212() {
+  return { ...WEAVER_212, citableAsEvidence: true, asLead: false, note: 'Weaver CLOSED by Batch 212 (read in full, arXiv:2506.18203v3) — no longer a lead; the stage-0 spec, drop rule, and distilled placement above are its buildable delta. The next lead must be named by a future batch, not assumed here' };
+}
+
+/**
+ * Composite offline-critic spec check (Batch 212, amending
+ * Batch 211): the Batch 211 composite PLUS the Weaver
+ * stage 0 (when an ensemble is specified), heterogeneous
+ * ensemble members, the distilled-verifier placement, and
+ * the difficulty-clustering rule — all as a SPEC.
+ * spec extends checkOfflineCriticSpec211's spec with:
+ * ensembleMembers?, stage0?, distilledPlacement?,
+ * difficultyClustering?. executed is always false: no
+ * verifier, ensemble, or distilled model was run, no label
+ * was applied to a personal trajectory, no promotion test
+ * was run, and the personal-task substitutions are all
+ * proposals, untested anywhere in this paper or this log.
+ */
+function checkOfflineCriticSpec212(spec) {
+  if (!spec || typeof spec !== 'object') throw new Error('checkOfflineCriticSpec212: spec must be an object');
+  const base = checkOfflineCriticSpec211(spec);
+  const heterogeneous = spec.ensembleMembers ? assertEnsembleHeterogeneous212(spec.ensembleMembers) : { heterogeneous: 'UNSET — ensemble members, if any, must be heterogeneous signals (Batch 212)' };
+  const stage0 = spec.stage0 ? weaverStage0_212(spec.stage0) : { stage0: 'UNSET — the stage-0 spec (normalize, binarize from 5–25 outcome-labeled routines, drop extreme marginals) runs before SCORE\'s two stages when an ensemble is used (Batch 212)' };
+  const distilled = spec.distilledPlacement ? assertDistilledVerifierPlacement212(spec.distilledPlacement) : { placement: 'UNSET — a distilled 400M-class verifier, if built, is sleep-job only (Batch 212)' };
+  const clustering = spec.difficultyClustering ? weaverDifficultyClustering212(spec.difficultyClustering) : { difficultyClustering: 'UNSET — cluster routines by observed tool-verified success rate; test per-cluster vs global on the pilot (Batch 212)' };
+  const promotionStage0 = spec.promotionStage0Result ? weaverPromotionArm212(spec.promotionStage0Result) : { stage0Wins: 'UNDECIDED — Weaver stage-0 arm (weighted + dropped vs raw, before the SCORE filter) not yet run (Batch 212 amendment to Batch 211 Q10)' };
+  return {
+    batch: 212,
+    verdict: 'SPEC OK',
+    base,
+    heterogeneous,
+    stage0,
+    distilled,
+    clustering,
+    promotionStage0,
+    weaver: weaverStatus212(),
+    executed: false,
+    note: 'Spec only — no verifier, ensemble, or distilled model was run; no label was applied to a personal trajectory; no promotion test was run. Batch 208 Decisions 1 and 3 CONFIRMED unchanged; Batch 211 filter, calibration, three-arm promotion, and decoupling rules CONFIRMED unchanged. New: Weaver stage-0 spec, mechanical drop rule, distilled sleep-job placement, stage-0 promotion arm. Personal-task substitutions are proposals, untested anywhere in this paper or this log; no 4B Weaver result exists.',
+  };
+}
+
 module.exports = {
   percentile,
   median,
@@ -4858,4 +5211,16 @@ module.exports = {
   assertEnsemblePlacement211,
   weaverLead211,
   checkOfflineCriticSpec211,
+  // Batch 212: Weaver in full — stage-0 ensemble spec, mechanical drop, distilled sleep-job placement, stage-0 promotion arm (spec, unexecuted).
+  WEAVER_212,
+  assertWeaverSubstitution212,
+  assertEnsembleHeterogeneous212,
+  weaverStage0_212,
+  weaverMechanicalDrop212,
+  assertDistilledVerifierPlacement212,
+  weaverDifficultyClustering212,
+  assertWeaverQuote212,
+  weaverPromotionArm212,
+  weaverStatus212,
+  checkOfflineCriticSpec212,
 };

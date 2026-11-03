@@ -167,6 +167,17 @@ const {
   assertEnsemblePlacement211,
   weaverLead211,
   checkOfflineCriticSpec211,
+  WEAVER_212,
+  assertWeaverSubstitution212,
+  assertEnsembleHeterogeneous212,
+  weaverStage0_212,
+  weaverMechanicalDrop212,
+  assertDistilledVerifierPlacement212,
+  weaverDifficultyClustering212,
+  assertWeaverQuote212,
+  weaverPromotionArm212,
+  weaverStatus212,
+  checkOfflineCriticSpec212,
 } = require('./plan-executor.cjs');
 
 const read = (id, dependsOn, run) => ({ id, dependsOn, kind: 'read', readOnly: true, run: run || (async () => `${id}-done`) });
@@ -2212,4 +2223,171 @@ test('Batch 211: round 12 composes with rounds 5–11 without weakening them; th
   // Round 12's own status: spec, unexecuted.
   assert.equal(SCORE_211.source.includes('arXiv:2404.17140'), true);
   assert.equal(checkOfflineCriticSpec211({ cadence: { everyNHops: 5, windowKSteps: 8 }, intervention: { kind: 'append-guidance' } }).executed, false);
+});
+
+// ------------------------------------------------------------ Batch 212
+
+test('Batch 212 substitution: Weaver generalizes by diverse external verifiers, NOT by rescuing same-model self-verification', () => {
+  assert.equal(WEAVER_212.closed, true);
+  assert.match(WEAVER_212.source, /arXiv:2506\.18203v3/);
+  assert.equal(WEAVER_212.table1Anchor.weaverAvg, 87.7);
+  assert.equal(WEAVER_212.table1Anchor.majorityVote, 72.2);
+  assert.equal(WEAVER_212.scaleDown.weaver, 70.0);
+  const ok = assertWeaverSubstitution212({ text: 'Weaver weights diverse external verifiers for the offline ensemble' });
+  assert.equal(ok.substitutionNotRescue, true);
+  assert.throws(() => assertWeaverSubstitution212({ text: 'Weaver rescues same-model self-verification' }), /NOT by rescuing same-model self-verification/);
+  assert.throws(() => assertWeaverSubstitution212({ text: 'a same-model ensemble inherits Weaver numbers' }), /NOT by rescuing same-model self-verification/);
+  assert.throws(() => assertWeaverSubstitution212({ text: 'Weaver fixes generation for rare-correct routines', fixesGeneration: true }), /ceiling is Pass@K/);
+});
+
+test('Batch 212 heterogeneity: N copies of one base do NOT inherit Weaver numbers; heterogeneous signals pass', () => {
+  assert.throws(() => assertEnsembleHeterogeneous212([{ kind: 'taxonomy critic', base: 'resident' }, { kind: 'taxonomy critic', base: 'resident' }]), /HETEROGENEOUS signals/);
+  assert.throws(() => assertEnsembleHeterogeneous212([{ kind: 'schema validator', base: 'resident' }, { kind: 'tool-result verifier', base: 'resident' }]), /N copies of one base/);
+  const ok = assertEnsembleHeterogeneous212([
+    { kind: 'schema validator', base: 'validator' },
+    { kind: 'tool-result verifier', base: 'tool-results' },
+    { kind: 'person accept/correct', base: 'person' },
+    { kind: 'taxonomy critic', base: 'resident' },
+  ]);
+  assert.equal(ok.heterogeneous, true);
+  assert.equal(ok.kinds.length, 4);
+});
+
+test('Batch 212 stage 0: robust percentiles + dev-set thresholds (5–25 routines), never min-max or fixed 0.5', () => {
+  const base = { verifiers: [{ id: 'v1', positiveRate: 0.5 }], classBalance: 0.5, devSetSize: 10, normalization: 'robust-percentile', thresholdFromDev: true };
+  const ok = weaverStage0_212(base);
+  assert.equal(ok.stage0, true);
+  assert.deepEqual(ok.kept, ['v1']);
+  assert.deepEqual(ok.dropped, []);
+  assert.match(ok.weights, /pairwise agreement/);
+  assert.throws(() => weaverStage0_212({ ...base, normalization: 'min-max' }), /ROBUST PERCENTILES/);
+  assert.throws(() => weaverStage0_212({ ...base, thresholdFromDev: false }), /never a fixed 0\.5/);
+  assert.throws(() => weaverStage0_212({ ...base, devSetSize: 0 }), /5–25 outcome-labeled routines/);
+  assert.throws(() => weaverStage0_212({ ...base, devSetSize: 100 }), /5–25 outcome-labeled routines/);
+  assert.equal(WEAVER_212.thresholdsTable4.naiveFixed05, 79.0);
+  assert.equal(WEAVER_212.thresholdsTable4.dev5pct, 87.5);
+});
+
+test('Batch 212 marginal drop: extreme verifiers drop by the paper band; 19% boundary is weight-plus-drop, not hard-drop alone', () => {
+  const out = weaverStage0_212({
+    verifiers: [
+      { id: 'always-flag', positiveRate: 0.996 },
+      { id: 'steady', positiveRate: 0.5 },
+      { id: 'boundary-firer', positiveRate: 0.19 },
+    ],
+    classBalance: 0.5, devSetSize: 10, normalization: 'robust-percentile', thresholdFromDev: true,
+  });
+  assert.equal(out.dropped.length, 1);
+  assert.equal(out.dropped[0].id, 'always-flag');
+  assert.deepEqual(out.kept, ['steady', 'boundary-firer']);
+  assert.equal(out.boundary.length, 1);
+  assert.equal(out.boundary[0].id, 'boundary-firer');
+  assert.match(out.boundary[0].reason, /weight-plus-drop/);
+  // Balance <20%: only >80% positives drop; balance >80%: only <20% positives drop.
+  const low = weaverStage0_212({ verifiers: [{ id: 'a', positiveRate: 0.9 }, { id: 'b', positiveRate: 0.1 }], classBalance: 0.1, devSetSize: 10, normalization: 'robust-percentile', thresholdFromDev: true });
+  assert.deepEqual(low.dropped.map((d) => d.id), ['a']);
+  const high = weaverStage0_212({ verifiers: [{ id: 'a', positiveRate: 0.9 }, { id: 'b', positiveRate: 0.1 }], classBalance: 0.9, devSetSize: 10, normalization: 'robust-percentile', thresholdFromDev: true });
+  assert.deepEqual(high.dropped.map((d) => d.id), ['b']);
+});
+
+test('Batch 212 mechanical drop: SWE-PRM 99.6% flagger drops outright; Table 5 gain is +5.8, never 12.5%', () => {
+  const dropped = weaverMechanicalDrop212({ flagRate: 0.996, routineSuccessBalance: 0.5 });
+  assert.equal(dropped.dropped, true);
+  assert.match(dropped.verdict, /DROPPED mechanically/);
+  const kept = weaverMechanicalDrop212({ flagRate: 0.5, routineSuccessBalance: 0.5 });
+  assert.equal(kept.dropped, false);
+  assert.equal(WEAVER_212.droppingTable5.gainOverNoDrop, 5.8);
+  assert.equal(WEAVER_212.droppingTable5.extremeMarginalsDropped, 85.2);
+  assert.equal(WEAVER_212.droppingTable5.noDrop, 79.4);
+});
+
+test('Batch 212 distilled placement: sleep job only — live and live-advisory both throw (stricter brief rule recorded)', () => {
+  assert.equal(assertDistilledVerifierPlacement212({ where: 'sleep-job' }).placement, 'sleep-job');
+  assert.equal(assertDistilledVerifierPlacement212({ where: 'sleep-job' }).perRoutine, true);
+  assert.throws(() => assertDistilledVerifierPlacement212({ where: 'live' }), /SLEEP-JOB ONLY/);
+  assert.throws(() => assertDistilledVerifierPlacement212({ where: 'live-advisory' }), /SLEEP-JOB ONLY/);
+  assert.throws(() => assertDistilledVerifierPlacement212({ where: 'resident-live-path' }), /SLEEP-JOB ONLY/);
+});
+
+test('Batch 212 difficulty clustering: observable success rate only — gold correctness throws; per-cluster vs global is a pilot test', () => {
+  assert.throws(() => weaverDifficultyClustering212({ difficultyKey: 'gold-correctness' }), /OBSERVABLE proxy/);
+  assert.throws(() => weaverDifficultyClustering212({ difficultyKey: 'oracle-difficulty' }), /OBSERVABLE proxy/);
+  const ok = weaverDifficultyClustering212({ difficultyKey: 'tool-verified-success-rate' });
+  assert.equal(ok.difficultyKey, 'tool-verified-success-rate');
+  assert.match(ok.pilotTestRequired, /do not assume clusters help/);
+});
+
+test('Batch 212 quote guard: Table 5 +5.8 (never 12.5%); distillation denominators never collapsed', () => {
+  assert.equal(assertWeaverQuote212({ text: 'extreme-marginals dropped beats no-drop by 5.8 points' }).quoteGuarded, true);
+  assert.throws(() => assertWeaverQuote212({ text: 'a 12.5% pruning improvement' }), /Table 5, not the paper text/);
+  assert.throws(() => assertWeaverQuote212({ text: '98% at 99% savings' }), /denominators/);
+  assert.equal(WEAVER_212.distillation.retainedPerf, 98.2);
+  assert.equal(WEAVER_212.distillation.flopsSavedPct, 99.97);
+});
+
+test('Batch 212 promotion stage-0 arm: weighted + dropped vs raw, before the SCORE filter; rollback aborts; win is soft, not promotion', () => {
+  const win = weaverPromotionArm212({ withinRoutines: true, arms: { stage0Ensemble: 0.66, criticRaw: 0.60 } });
+  assert.equal(win.stage0Wins, true);
+  assert.match(win.verdict, /SOFT label/);
+  const lose = weaverPromotionArm212({ withinRoutines: true, arms: { stage0Ensemble: 0.58, criticRaw: 0.60 } });
+  assert.equal(lose.stage0Wins, false);
+  const abort = weaverPromotionArm212({ withinRoutines: true, arms: { stage0Ensemble: 0.66, criticRaw: 0.60 }, metrics: { validAt1Delta: -2 } });
+  assert.equal(abort.stage0Wins, false);
+  assert.match(abort.verdict, /ABORT/);
+  assert.throws(() => weaverPromotionArm212({ withinRoutines: false, arms: { stage0Ensemble: 0.66, criticRaw: 0.60 } }), /WITHIN routines/);
+});
+
+test('Batch 212 Weaver closed: the lead is replaced by the read, not re-quoted as an open lead', () => {
+  const status = weaverStatus212();
+  assert.equal(status.closed, true);
+  assert.equal(status.asLead, false);
+  assert.equal(status.citableAsEvidence, true);
+  assert.equal(weaverLead211().citableAsEvidence, false);
+});
+
+test('Batch 212 composite: Batch 211 spec + stage 0 + heterogeneous members + sleep-job distilled + clustering, all unexecuted', () => {
+  const spec = checkOfflineCriticSpec212({
+    cadence: { everyNHops: 5, windowKSteps: 8 },
+    intervention: { kind: 'append-guidance' },
+    labels: [{ category: 'step repetition', windowSteps: ['a', 'b', 'a'], copiedEvidence: 'a', precedesVerifiedFailure: true }],
+    calibrationReport: { flagRate: 0.19, outcomeCorroboratedPrecision: 0.62, missRate: 0.41 },
+    promotionResult: { withinRoutines: true, arms: { personAlone: 0.58, criticRaw: 0.60, criticFiltered: 0.64 } },
+    ensemblePlacement: { where: 'sleep-job' },
+    ensembleMembers: [
+      { kind: 'schema validator', base: 'validator' },
+      { kind: 'tool-result verifier', base: 'tool-results' },
+      { kind: 'taxonomy critic', base: 'resident' },
+    ],
+    stage0: {
+      verifiers: [{ id: 'always-flag', positiveRate: 0.996 }, { id: 'steady', positiveRate: 0.5 }],
+      classBalance: 0.5, devSetSize: 10, normalization: 'robust-percentile', thresholdFromDev: true,
+    },
+    distilledPlacement: { where: 'sleep-job' },
+    difficultyClustering: { difficultyKey: 'tool-verified-success-rate' },
+    promotionStage0Result: { withinRoutines: true, arms: { stage0Ensemble: 0.66, criticRaw: 0.60 } },
+  });
+  assert.equal(spec.verdict, 'SPEC OK');
+  assert.equal(spec.executed, false);
+  assert.equal(spec.base.verdict, 'SPEC OK');
+  assert.equal(spec.heterogeneous.heterogeneous, true);
+  assert.deepEqual(spec.stage0.dropped.map((d) => d.id), ['always-flag']);
+  assert.equal(spec.distilled.placement, 'sleep-job');
+  assert.equal(spec.promotionStage0.stage0Wins, true);
+  assert.equal(spec.weaver.closed, true);
+  assert.throws(() => checkOfflineCriticSpec212({ cadence: { everyNHops: 5, windowKSteps: 8 }, intervention: { kind: 'append-guidance' }, distilledPlacement: { where: 'live' } }), /SLEEP-JOB ONLY/);
+  assert.throws(() => checkOfflineCriticSpec212({ cadence: { everyNHops: 5, windowKSteps: 8 }, intervention: { kind: 'append-guidance' }, ensembleMembers: [{ kind: 'taxonomy critic', base: 'resident' }, { kind: 'taxonomy critic', base: 'resident' }] }), /HETEROGENEOUS signals/);
+});
+
+test('Batch 212: round 13 composes with rounds 5–12 without weakening them; the spec is unexecuted', () => {
+  // Round 12 guards still bite.
+  assert.throws(() => assertEnsemblePlacement211({ where: 'live' }), /NEVER goes on the resident live path/);
+  assert.equal(checkOfflineCriticSpec211({ cadence: { everyNHops: 5, windowKSteps: 8 }, intervention: { kind: 'append-guidance' } }).executed, false);
+  // Round 11 guards still bite.
+  assert.throws(() => assertNoLivePeriodicCriticStage208([...detectorTimeline(), 'periodic-critic']), /no live periodic critic stage/);
+  assert.equal(checkOfflineCriticSpec208({ cadence: { everyNHops: 5, windowKSteps: 8 }, intervention: { kind: 'append-guidance' } }).executed, false);
+  // Round 10 guards still bite.
+  assert.throws(() => checkPilotSampledStepCompliance206({ design: { callsPerArm: 1, temperature: 0, freshContextPerArm: true }, aRecDelivery: { mode: 'margin-gated', hintOnEveryTask: false }, arms: [], abortBars: { validAt1Down: 0.02, execRateDown: 0.03, multiTurn: true }, report: { metrics: [] } }), /REFUSED inside the pilot/);
+  // Round 13's own status: spec, unexecuted.
+  assert.equal(WEAVER_212.source.includes('arXiv:2506.18203'), true);
+  assert.equal(checkOfflineCriticSpec212({ cadence: { everyNHops: 5, windowKSteps: 8 }, intervention: { kind: 'append-guidance' } }).executed, false);
 });

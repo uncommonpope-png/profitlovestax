@@ -51,7 +51,7 @@
  * implementation was run here. The runtime cross-SDK conformance test
  * (per (consumer, server) pair, through the actual chain) is still owed.
  *
- * EXTENSION (Batches 181, 184, 186, 188): the cancellation / abort-audit
+ * EXTENSION (Batches 181, 184, 186, 188, 190): the cancellation / abort-audit
  * section at the end of this file. It classifies abort observations and
  * decides what proof they carry; it starts no server and measures no
  * latency. Round-1 chain behaviour is untouched.
@@ -719,7 +719,7 @@ function normalizeValidation(result) {
 }
 
 /* =====================================================================
- * Cancellation / abort-audit rules (Batches 181, 184, 186, 188).
+ * Cancellation / abort-audit rules (Batches 181, 184, 186, 188, 190).
  *
  * This section is a RECORD + CLASSIFIER for abort observations, not a
  * live abort mechanism: it starts no server, opens no socket, and
@@ -1064,15 +1064,16 @@ const TS_V2_MECHANISM = Object.freeze({
   provenClaimHttpReadOnly: 'client-abandonment',
 });
 
-// --- J. Node row, RESOLVED (Batch 188) ---
+// --- J. Node row, RESOLVED (Batch 188) + Hono row, RESOLVED (Batch 190) ---
 // toNodeHandler synthesizes a per-request web AbortSignal via res
 // 'close' ONLY (not req close, not aborted, not response finish), with
 // a finished guard (close after full stream does not abort — correct,
 // nothing left to cancel). Plain/Express/Fastify mounts = signal
-// synthesized (same underlying Node req/res objects). Hono =
-// runtime-dependent, UNVERIFIED (Hono does not use toNodeHandler;
-// @hono/node-server unexamined). The Node row must read exactly that
-// split, never a blanket "Node: yes".
+// synthesized (same underlying Node req/res objects). Hono via
+// @hono/node-server serve() = signal present but LAZY (Batch 190,
+// section J2 below): the serve path hands routes a pseudo-Request,
+// not a real Request, and .signal is a lazy prototype getter. The
+// Node row must read exactly that split, never a blanket "Node: yes".
 const RUNTIME_SIGNAL_TABLE = Object.freeze([
   Object.freeze({ runtime: 'Workers', mount: null, status: 'signal-native' }),
   Object.freeze({ runtime: 'Deno', mount: null, status: 'signal-native' }),
@@ -1080,7 +1081,7 @@ const RUNTIME_SIGNAL_TABLE = Object.freeze([
   Object.freeze({ runtime: 'Node', mount: 'toNodeHandler-plain', status: 'signal-synthesized (res close only)' }),
   Object.freeze({ runtime: 'Node', mount: 'toNodeHandler-Express', status: 'signal-synthesized (res close only)' }),
   Object.freeze({ runtime: 'Node', mount: 'toNodeHandler-Fastify', status: 'signal-synthesized (res close only)' }),
-  Object.freeze({ runtime: 'Node', mount: 'Hono', status: 'runtime-dependent, UNVERIFIED' }),
+  Object.freeze({ runtime: 'Node', mount: 'Hono', status: 'signal-present but lazy (pseudo-Request, ServerResponse close on premature close)' }),
   Object.freeze({ runtime: 'legacy-sessionful', mount: null, status: 'out of scope (modern leg only)' }),
 ]);
 
@@ -1088,7 +1089,7 @@ function runtimeSignalStatus({ runtime, mount }) {
   if (runtime === 'Node' && !mount) {
     return {
       status: 'unresolved',
-      reason: 'Node row splits by mount (toNodeHandler plain/Express/Fastify = synthesized; Hono = runtime-dependent, unverified); never a blanket "Node: yes"',
+      reason: 'Node row splits by mount (toNodeHandler plain/Express/Fastify = synthesized; Hono via serve() = present but lazy); never a blanket "Node: yes"',
     };
   }
   const row = RUNTIME_SIGNAL_TABLE.find((r) => r.runtime === runtime
@@ -1100,11 +1101,14 @@ function runtimeSignalStatus({ runtime, mount }) {
 // Hand-wired toWebRequest audit rule: signal present IFF the request
 // came through toNodeHandler OR an explicit signal option. A direct
 // toWebRequest caller that omits the option gets a signal-less Request;
-// the audit must check the path, not assume.
+// the audit must check the path, not assume. Hono: signal present IFF
+// through the serve() listener path (Batch 190, pseudo-Request, lazy
+// getter) — the separate real-Request builder in src/request.ts is a
+// different claim and must not be conflated with the serve path.
 function nodeSignalPresent({ path, signalOption }) {
   if (path === 'toNodeHandler') return true;
   if (path === 'toWebRequest') return signalOption === true;
-  if (path === 'Hono') return 'unverified';
+  if (path === 'Hono') return true;
   return false;
 }
 
@@ -1116,8 +1120,121 @@ const NODE_HANDLER_EDGES = Object.freeze({
   finishedGuardNote: 'close after full stream does not abort — correct, nothing left to cancel; the signal is a live-exchange signal only',
   nodeSubGap: 'CLOSED (Batch 188, adapter source); do NOT re-open without a new adapter version',
   jsonThread: 'CLOSED end to end except spec wording (still unverified)',
-  honoSubQuestion: 'separate, new item (@hono/node-server request construction), not a reopening of the closed Node sub-gap',
+  honoSubQuestion: 'CLOSED (Batch 190, @hono/node-server source); re-open only on a new @hono/node-server version changing the listener/request wiring',
 });
+
+// --- J2. Hono row, RESOLVED (Batch 190) ---
+// honojs/node-server main branch as read Nov 2, 2026 (package version
+// 2.1.6 on that branch — main-branch source, NOT a pinned published
+// release; a deployment audit must diff its pinned version).
+// src/listener.ts + src/request.ts + src/server.ts. serve() delegates
+// through createAdaptorServer to the listener, so this IS the serve()
+// path. HONEST LIMITS (recorded, not proven behavior): NO live
+// disconnect was measured — premature-close firing is source wiring
+// plus Node response-close semantics, not a packet capture or live
+// test; the half-open socket edge (response never closes -> no abort)
+// is unmeasured, same as Batch 188.
+const HONO_SIGNAL = Object.freeze({
+  package: '@hono/node-server',
+  sourceBranch: 'main (version 2.1.6 as read Nov 2, 2026; NOT a pinned published release)',
+  sourceFiles: Object.freeze(['src/request.ts', 'src/listener.ts', 'src/server.ts']),
+  servePath: 'serve() -> createAdaptorServer -> listener (this IS the serve() path)',
+  builder: 'pseudo-Request via newRequest(): Object.create(requestPrototype) — NO AbortController at construction (global Request is expensive; only the minimum required information)',
+  signalShape: 'LAZY prototype getter: first .signal access creates the controller; a reason recorded before first access immediately aborts the new controller with that reason',
+  neverTouched: 'a handler that never touches .signal never creates a controller, but the disconnect is still RECORDED — a later .signal access returns an already-aborted signal',
+  trigger: "ServerResponse 'close' (outgoing; Http2ServerResponse for HTTP/2) — on the RESPONSE, not the request",
+  prematureOnly: 'a normally finished response does NOT trigger abort',
+  incomingErrorAbort: 'incoming message errored -> abort with the error string',
+  prematureAbortReason: 'Client connection prematurely closed.',
+  http2Branch: 'for HTTP/2, incoming.aborted (property READ inside the response-close handler) also aborts',
+  notDrivers: Object.freeze(['no separate req close listener', 'no separate req aborted listener', 'no separate socket close listener']),
+  subQuestion: 'CLOSED (Batch 190); re-open only on a new @hono/node-server version changing the listener/request wiring',
+  halfOpenSocketEdge: 'UNMEASURED (same as Batch 188): a response object that never closes yields no abort',
+  liveDisconnectMeasured: false,
+});
+
+// Convergence (Batch 190): BOTH Node adapters examined fire their
+// disconnect signal off the RESPONSE object's close, not the request's.
+// Res-close is the de-facto Node disconnect observable; future adapter
+// audits check response-close first. Differences are shape, not
+// trigger: MCP's is an eager per-request controller; Hono's is a lazy
+// getter with pre-recorded abort reasons. For an MCP handler mounted
+// under Hono: the handler registers teardown on Request.signal, and
+// that access creates the controller on the Hono path, so teardown
+// wiring works — laziness defers creation to first access, it does
+// not break it.
+const NODE_DISCONNECT_OBSERVABLE = Object.freeze({
+  observable: 'response close',
+  adapters: Object.freeze([
+    Object.freeze({ adapter: 'MCP SDK toNodeHandler (Batch 188)', trigger: "res 'close' only", shape: 'eager per-request controller' }),
+    Object.freeze({ adapter: 'Hono node-server serve() (Batch 190)', trigger: "ServerResponse 'close' on premature close", shape: 'lazy getter with pre-recorded abort reasons' }),
+  ]),
+  futureAuditRule: 'check the response-close path first',
+  mountedUnderHonoNote: 'MCP handler teardown registers on Request.signal; that access creates the Hono controller, so wiring works — laziness defers creation, it does not break it',
+});
+
+// Builder distinction (Batch 190): src/request.ts holds TWO builders.
+// The listener's serve path uses the lightweight pseudo-Request, NOT
+// the separate real-Request builder (init.signal, new Request(url,
+// init)). An audit claim about "Hono's Request signal" must say which
+// builder it means.
+function honoSignalClaim({ builder }) {
+  if (builder === 'serve-pseudo') {
+    return { claim: 'signal-present but lazy (pseudo-Request, lazy getter, pre-recorded abort)', servePath: true };
+  }
+  if (builder === 'real-request') {
+    return { claim: 'different claim — separate real-Request builder (init.signal, new Request), NOT the listener serve path', servePath: false };
+  }
+  return { claim: 'unknown builder — audit claims must name the builder', servePath: false };
+}
+
+// Executable model of the Batch 190 lazy-signal semantics, for tests
+// and for audit reasoning (not a Hono runtime — it mirrors the wiring
+// the source read describes: lazy getter + pre-recorded abort reason).
+function createHonoPseudoRequest() {
+  let controller = null;
+  let recordedReason = null;
+  const pseudo = {
+    controllerCreated() { return controller !== null; },
+    abort(reason) {
+      recordedReason = reason;
+      if (controller !== null && !controller.signal.aborted) controller.abort(reason);
+    },
+    // Teardown registration as Batch 190 states it: registered before
+    // disconnect fires normally on abort; registered after disconnect
+    // fires immediately (check-then-listen). NOTE on honesty: a RAW
+    // addEventListener on an already-aborted web signal does NOT
+    // retro-fire — the immediate-fire here is the registration
+    // pattern (aborted ? run now : listen), which is what a teardown
+    // that must run either way does. The model encodes the batch's
+    // teardown semantics, not raw listener semantics.
+    addTeardown(fn) {
+      if (pseudo.signal.aborted) fn();
+      else pseudo.signal.addEventListener('abort', fn, { once: true });
+    },
+  };
+  Object.defineProperty(pseudo, 'signal', {
+    get() {
+      if (controller === null) {
+        controller = new AbortController();
+        if (recordedReason !== null) controller.abort(recordedReason);
+      }
+      return controller.signal;
+    },
+  });
+  return pseudo;
+}
+
+// Executable model of the Batch 190 response-close handler decision:
+// abort on incoming error (with the error string), else on premature
+// close (!writableFinished), else for HTTP/2 when incoming.aborted is
+// true. A normally finished response does NOT abort.
+function honoCloseAborts({ incomingErrored, incomingError, writableFinished, http2, incomingAborted }) {
+  if (incomingErrored) return { aborts: true, reason: String(incomingError) };
+  if (!writableFinished) return { aborts: true, reason: 'Client connection prematurely closed.' };
+  if (http2 === true && incomingAborted === true) return { aborts: true, reason: 'Client connection prematurely closed.' };
+  return { aborts: false, reason: null };
+}
 
 // --- K. Gate 3 restated (Batch 181) ---
 // "abortable = PROVEN in the audit, with a class-appropriate proof":
@@ -1158,7 +1275,7 @@ module.exports = {
   isTimeoutError,
   redactPayload,
   sortMutations,
-  // Cancellation / abort audit (Batches 181, 184, 186, 188).
+  // Cancellation / abort audit (Batches 181, 184, 186, 188, 190).
   CANCELLATION_TRIPLE,
   cancellationPageSaysMustNotRespond,
   serverCancelledExpected,
@@ -1185,6 +1302,12 @@ module.exports = {
   runtimeSignalStatus,
   nodeSignalPresent,
   NODE_HANDLER_EDGES,
+  // Batch 190: Hono lazy signal + response-close convergence.
+  HONO_SIGNAL,
+  NODE_DISCONNECT_OBSERVABLE,
+  honoSignalClaim,
+  createHonoPseudoRequest,
+  honoCloseAborts,
   GATE3_UNCHANGED_COMPANIONS,
   gate3Abortable,
 };

@@ -18,9 +18,9 @@ SEP-2484 conformance — host trust judgments are not protocol-observable
 - `node WORKBENCH_COMPLETE/workbench/north-star/interceptors/interceptors.test.cjs`
 
 Test totals, each re-run by the coordinator from the assembled branch location:
-verifier 47/47, plan-executor 36/36, provenance 19/19, interceptors 40/40 —
-**142 pass, 0 fail** (round 1: 109; round 2 adds 33: plan-executor +14,
-interceptors +19).
+verifier 47/47, plan-executor 36/36, provenance 19/19, interceptors 45/45 —
+**147 pass, 0 fail** (round 1: 109; round 2 adds 33: plan-executor +14,
+interceptors +19; round 3 adds 5: interceptors +5).
 
 ## What each piece implements (mapped to batches)
 
@@ -126,6 +126,33 @@ toNodeHandler res-close synthesis (plain/Express/Fastify) with Hono
 runtime-dependent and unverified; hand-wired toWebRequest callers must be
 audited for a missing signal. JSON thread CLOSED except spec wording;
 timing still NOT-GUARANTEED.
+
+## Round 3 (Batch 190) — delta only, round-1/2 code extended not rewritten
+
+### interceptors/ — Batch 190: Hono row resolved, modern-leg table complete
+Hono on Node via `@hono/node-server` serve(): signal present but LAZY —
+the serve path hands routes a pseudo-Request (`Object.create
+(requestPrototype)`, no controller at construction) and `.signal` is a
+lazy prototype getter (first access creates the controller; a reason
+recorded before first access immediately aborts it). Disconnect wiring
+is on the RESPONSE, not the request: ServerResponse `close` on
+premature close only (incoming error → abort with the error string;
+`!writableFinished` → 'Client connection prematurely closed.'; HTTP/2
+`incoming.aborted` branch; normally finished → no abort). The
+separate real-Request builder in `src/request.ts` is a different claim
+and must not be conflated with the serve path. Convergence named:
+BOTH Node adapters examined (MCP SDK `toNodeHandler`, Batch 188; Hono
+node-server, Batch 190) fire off response close — res-close is the
+de-facto Node disconnect observable, future adapter audits check
+response-close first; shapes differ (eager vs lazy), trigger does not.
+An MCP handler mounted under Hono registers teardown on
+`Request.signal`, and that access creates the controller, so wiring
+works. Hono sub-question CLOSED (re-open only on a new
+`@hono/node-server` version changing listener/request wiring).
+Honest limits kept in code and interceptors README: main-branch source
+(version 2.1.6 as read Nov 2, 2026), NOT a pinned published release;
+no live disconnect measured; half-open socket edge unmeasured (same
+as Batch 188).
 
 ## Out of scope (watch/citation-only — NOT built, correctly)
 Fork PR watch (Degiorgio#3 / upstream #2624 two-step trigger), OATR

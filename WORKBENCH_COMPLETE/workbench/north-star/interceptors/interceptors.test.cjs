@@ -17,6 +17,8 @@ const {
   claimServerStoppedFromMessageSilence, evaluateHttpAbort,
   isProtocolObservation, JSON_SERVER_OBLIGATION, TS_V2_MECHANISM,
   runtimeSignalStatus, nodeSignalPresent, NODE_HANDLER_EDGES,
+  HONO_SIGNAL, NODE_DISCONNECT_OBSERVABLE, honoSignalClaim,
+  createHonoPseudoRequest, honoCloseAborts,
   gate3Abortable,
 } = require('./interceptors.cjs');
 
@@ -220,24 +222,92 @@ test('H: TS v2 mechanism is exchange-wide, runtime-conditioned, typedoc-provenan
   assert.match(TS_V2_MECHANISM.taskBoundary, /NOT ruled on/);
 });
 
-test('J: Node row splits by mount — never a blanket Node yes; Hono unverified', () => {
+test('J: Node row splits by mount — never a blanket Node yes; Hono lazy (Batch 190)', () => {
   assert.equal(runtimeSignalStatus({ runtime: 'Workers' }).status, 'signal-native');
   assert.equal(runtimeSignalStatus({ runtime: 'Deno' }).status, 'signal-native');
   assert.equal(runtimeSignalStatus({ runtime: 'Bun' }).status, 'signal-native');
   assert.match(runtimeSignalStatus({ runtime: 'Node', mount: 'toNodeHandler-plain' }).status, /synthesized/);
   assert.match(runtimeSignalStatus({ runtime: 'Node', mount: 'toNodeHandler-Express' }).status, /synthesized/);
   assert.match(runtimeSignalStatus({ runtime: 'Node', mount: 'toNodeHandler-Fastify' }).status, /synthesized/);
-  assert.equal(runtimeSignalStatus({ runtime: 'Node', mount: 'Hono' }).status, 'runtime-dependent, UNVERIFIED');
+  assert.match(runtimeSignalStatus({ runtime: 'Node', mount: 'Hono' }).status, /lazy/);
+  assert.match(runtimeSignalStatus({ runtime: 'Node', mount: 'Hono' }).status, /premature close/);
   assert.equal(runtimeSignalStatus({ runtime: 'Node' }).status, 'unresolved');
   assert.equal(nodeSignalPresent({ path: 'toNodeHandler' }), true);
   assert.equal(nodeSignalPresent({ path: 'toWebRequest', signalOption: true }), true);
   assert.equal(nodeSignalPresent({ path: 'toWebRequest', signalOption: false }), false);
   assert.equal(nodeSignalPresent({ path: 'toWebRequest' }), false);
-  assert.equal(nodeSignalPresent({ path: 'Hono' }), 'unverified');
+  assert.equal(nodeSignalPresent({ path: 'Hono' }), true);
   assert.match(NODE_HANDLER_EDGES.trigger, /res 'close' ONLY/);
   assert.equal(NODE_HANDLER_EDGES.halfOpenSocketAborts, false);
   assert.equal(NODE_HANDLER_EDGES.closeAfterFullStreamAborts, false);
   assert.match(NODE_HANDLER_EDGES.nodeSubGap, /CLOSED/);
+  assert.match(NODE_HANDLER_EDGES.honoSubQuestion, /CLOSED \(Batch 190/);
+});
+
+test('J2: Hono lazy signal — no controller until first access; pre-recorded abort yields already-aborted signal', () => {
+  const untouched = createHonoPseudoRequest();
+  assert.equal(untouched.controllerCreated(), false);
+  assert.equal(untouched.signal.aborted, false);
+  assert.equal(untouched.controllerCreated(), true);
+  const prerecorded = createHonoPseudoRequest();
+  prerecorded.abort('Client connection prematurely closed.');
+  assert.equal(prerecorded.controllerCreated(), false);
+  assert.equal(prerecorded.signal.aborted, true);
+  assert.equal(prerecorded.signal.reason, 'Client connection prematurely closed.');
+  assert.equal(prerecorded.controllerCreated(), true);
+});
+
+test('J2: Hono teardown — registered before disconnect fires normally; registered after fires immediately', async () => {
+  const before = createHonoPseudoRequest();
+  let beforeFired = false;
+  before.addTeardown(() => { beforeFired = true; });
+  before.abort('Client connection prematurely closed.');
+  assert.equal(beforeFired, true);
+  const after = createHonoPseudoRequest();
+  after.abort('Client connection prematurely closed.');
+  let afterFired = false;
+  after.addTeardown(() => { afterFired = true; });
+  assert.equal(afterFired, true);
+});
+
+test('J2: Hono premature-close firing — unfinished aborts, finished does not, HTTP/2 aborted branch, incoming error', () => {
+  assert.deepEqual(honoCloseAborts({ incomingErrored: false, writableFinished: false }),
+    { aborts: true, reason: 'Client connection prematurely closed.' });
+  assert.deepEqual(honoCloseAborts({ incomingErrored: false, writableFinished: true }),
+    { aborts: false, reason: null });
+  assert.deepEqual(honoCloseAborts({ incomingErrored: false, writableFinished: true, http2: true, incomingAborted: true }),
+    { aborts: true, reason: 'Client connection prematurely closed.' });
+  assert.deepEqual(honoCloseAborts({ incomingErrored: false, writableFinished: true, http2: true, incomingAborted: false }),
+    { aborts: false, reason: null });
+  assert.deepEqual(honoCloseAborts({ incomingErrored: true, incomingError: 'ECONNRESET', writableFinished: false }),
+    { aborts: true, reason: 'ECONNRESET' });
+  assert.match(HONO_SIGNAL.trigger, /ServerResponse 'close'/);
+  assert.equal(HONO_SIGNAL.prematureOnly, 'a normally finished response does NOT trigger abort');
+  assert.equal(HONO_SIGNAL.liveDisconnectMeasured, false);
+  assert.match(HONO_SIGNAL.sourceBranch, /NOT a pinned published release/);
+  assert.match(HONO_SIGNAL.subQuestion, /CLOSED \(Batch 190/);
+});
+
+test('J2: convergence — both Node adapters keyed on response close; shapes differ, trigger does not', () => {
+  assert.equal(NODE_DISCONNECT_OBSERVABLE.observable, 'response close');
+  assert.equal(NODE_DISCONNECT_OBSERVABLE.adapters.length, 2);
+  assert.match(NODE_DISCONNECT_OBSERVABLE.adapters[0].trigger, /close/);
+  assert.match(NODE_DISCONNECT_OBSERVABLE.adapters[1].trigger, /close/);
+  assert.match(NODE_DISCONNECT_OBSERVABLE.adapters[0].shape, /eager/);
+  assert.match(NODE_DISCONNECT_OBSERVABLE.adapters[1].shape, /lazy/);
+  assert.match(NODE_DISCONNECT_OBSERVABLE.futureAuditRule, /response-close path first/);
+  assert.match(NODE_DISCONNECT_OBSERVABLE.mountedUnderHonoNote, /creates the Hono controller/);
+});
+
+test('J2: builder distinction — serve pseudo-Request vs separate real-Request builder are different claims', () => {
+  const serve = honoSignalClaim({ builder: 'serve-pseudo' });
+  assert.equal(serve.servePath, true);
+  assert.match(serve.claim, /lazy/);
+  const real = honoSignalClaim({ builder: 'real-request' });
+  assert.equal(real.servePath, false);
+  assert.match(real.claim, /NOT the listener serve path/);
+  assert.notEqual(serve.claim, real.claim);
+  assert.match(HONO_SIGNAL.servePath, /createAdaptorServer/);
 });
 
 test('K: gate 3 is class-appropriate; other gates unchanged by reference only', () => {

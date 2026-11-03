@@ -71,7 +71,7 @@ Other rules enforced in code, not just documented:
   not an MCP-native method — it does not gate a local resident model,
   and this module does not implement it as one.
 
-## Cancellation / abort audit (Batches 181, 184, 186, 188)
+## Cancellation / abort audit (Batches 181, 184, 186, 188, 190)
 
 A record + classifier for abort observations, appended to
 `interceptors.cjs` without touching round-1 chain behaviour. It starts
@@ -181,18 +181,69 @@ and the functions normalize them, classify them, and decide what proof
   not aborted, not response finish), with a finished guard (close
   after full stream does not abort — correct, nothing left to
   cancel). Plain/Express/Fastify mounts = signal synthesized (same
-  underlying Node req/res objects). Hono = runtime-dependent,
-  UNVERIFIED (Hono does not use `toNodeHandler`; `@hono/node-server`
-  unexamined) — the Node row must read exactly that split, never a
-  blanket "Node: yes". Hand-wired `toWebRequest` audit rule: signal
-  present IFF the request came through `toNodeHandler` OR an
-  explicit signal option — a direct `toWebRequest` caller that omits
-  the option gets a signal-less Request, and the audit must check
-  the path, not assume. Half-open socket edge: a disconnect that
-  leaves the response object un-closed does not abort. JSON thread
-  is CLOSED end to end except spec wording (still unverified);
-  timing still NOT-GUARANTEED. Do NOT re-open the Node sub-gap
-  without a new adapter version.
+  underlying Node req/res objects). Hono via `@hono/node-server`
+  serve() = signal present but LAZY (Batch 190, below) — the Node
+  row must read exactly that split, never a blanket "Node: yes".
+  Hand-wired `toWebRequest` audit rule: signal present IFF the
+  request came through `toNodeHandler` OR an explicit signal option
+  — a direct `toWebRequest` caller that omits the option gets a
+  signal-less Request, and the audit must check the path, not
+  assume. Half-open socket edge: a disconnect that leaves the
+  response object un-closed does not abort. JSON thread is CLOSED
+  end to end except spec wording (still unverified); timing still
+  NOT-GUARANTEED. Do NOT re-open the Node sub-gap without a new
+  adapter version.
+- **Hono row resolved (190) — the last unverified row of the
+  modern-leg runtime-condition table.** Hono on Node via
+  `@hono/node-server` serve(): the Request handed to routes DOES
+  carry an AbortSignal, but it is LAZY, not eager. The default serve
+  path builds a pseudo-Request via `newRequest()` with
+  `Object.create(requestPrototype)` — no AbortController at
+  construction. `.signal` is a lazy prototype getter: first access
+  creates the controller, and if an abort reason was already
+  recorded before first access, the new controller is immediately
+  aborted with that reason. A handler that never touches `.signal`
+  never creates a controller, but the disconnect is still recorded.
+  Teardown registered before disconnect fires normally; registered
+  after fires immediately. Disconnect wiring is on the RESPONSE,
+  not the request: the listener registers `outgoing.on('close',
+  ...)` where outgoing is the ServerResponse (Http2ServerResponse
+  for HTTP/2). Abort fires on premature close only: incoming message
+  errored → abort with the error string; otherwise abort with
+  'Client connection prematurely closed.' when
+  `!outgoing.writableFinished`, OR for HTTP/2 when `incoming.aborted`
+  is true. A normally finished response does NOT trigger abort. No
+  separate req close / req aborted / socket close listener drives it
+  (`incoming.aborted` is only READ inside the HTTP/2 branch).
+  serve() delegates through `createAdaptorServer` to the listener,
+  so this IS the serve() path. Confusion to avoid, encoded in
+  `honoSignalClaim()`: `src/request.ts` also contains a separate
+  real-Request builder (`init.signal`, `new Request(url, init)`) —
+  the listener's serve path uses the lightweight pseudo-Request,
+  NOT that builder; audit claims must say which builder they mean.
+  CONVERGENCE: BOTH Node adapters examined (MCP SDK
+  `toNodeHandler`, Batch 188; Hono node-server, Batch 190) fire
+  their disconnect signal off the RESPONSE object's close, not the
+  request's — res-close is the de-facto Node disconnect observable;
+  future adapter audits check response-close first. Differences are
+  shape, not trigger: MCP's is an eager per-request controller;
+  Hono's is a lazy getter with pre-recorded abort reasons. For an
+  MCP handler mounted under Hono: the handler registers teardown on
+  `Request.signal`, and that access creates the controller on the
+  Hono path, so teardown wiring works — laziness defers creation
+  to first access, it does not break it. The Hono sub-question is
+  CLOSED, same closure rule as Batch 188's Node sub-gap: re-open
+  only on a new `@hono/node-server` version changing the
+  listener/request wiring. Modern-leg table now COMPLETE:
+  Workers/Deno/Bun signal-native; Node via `toNodeHandler` (res
+  close only); Node via Hono (lazy signal, res close on premature
+  close); legacy sessionful out of scope. HONEST LIMITS: main-branch
+  source read (package version 2.1.6 as read Nov 2, 2026), NOT a
+  pinned published release — a deployment audit must diff its
+  pinned version; NO live disconnect was measured — premature-close
+  firing is source wiring + Node response-close semantics, not a
+  packet capture or live test; the half-open socket edge (response
+  never closes → no abort) is unmeasured, same as Batch 188.
 - **Gate 3 restated (181).** "abortable = PROVEN in the audit, with a
   class-appropriate proof" — where for 2026 HTTP read-only tools
   PROVEN means the client-abandonment qualifier, and for stdio tools

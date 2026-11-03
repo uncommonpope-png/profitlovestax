@@ -140,6 +140,607 @@ function modalSelect(candidates, keyFn) {
   };
 }
 
+// --------------------------- prefix pruning for tool calls (Batch 192)
+//
+// ModeX-Lite transfer correction (Choi & Li, arXiv:2601.02535, read for
+// the Lite sections in Batch 192): ModeX-Lite prunes every T=100 tokens
+// on trajectories hundreds of tokens long (Algorithm 2: ClusterAndPrune
+// when (t+1) mod T == 0, centroid deferred to termination). That interval
+// does NOT transfer to schema-guided tool calls. A call that finishes
+// before 100 tokens sees ZERO pruning intervals: a no-op that still paid
+// N x generation. Batch 192 also records that §5.1 robustness was tested
+// only for T in {100..500} on long trajectories (never below 100), that
+// O(NL + N^2) with N << L is weaker when L is small (short calls), and
+// that Lite-vs-full is MIXED by model/task (Qwen Lite N=16 beats full on
+// summarization/code but loses math; Llama Lite loses on all three) —
+// so a north-star Lite tier must be measured on the bundled base, never
+// assumed. NO tool-call-specific early-pruning paper was found in
+// Batch 192; this tier is designed from ModeX's mechanism + tool-JSON
+// structure, not copied from a tool-call pruning result.
+//
+// The interval unit is therefore STRUCTURAL CHECKPOINTS, not tokens,
+// in emission order for a schema-guided JSON call (exact field order is
+// format-dependent; the checkpoint SET is the proposal):
+//   C0 — tool-name closure: tool identity token(s) complete.
+//   C1 — parameter-name-set closure: set of parameter names complete
+//        (values may still be streaming).
+//   C2 — value-prefix / complete call: values complete, or past a
+//        first-value boundary for long free-text args.
+//
+// DIVERSITY-PRESERVING PRUNE RULE — the single largest deviation from
+// ModeX-Lite as published (which prunes globally to "the most
+// representative subset"): at C0 and C1, prune ONLY WITHIN a cluster,
+// NEVER across clusters. Keep at least one representative per (tool)
+// cluster at C0 and per (tool, parameter-name set) cluster at C1; within
+// a cluster, prune near-duplicates (same normalized prefix) down to
+// centroid-side members. A minority tool cluster is NEVER pruned on
+// modal grounds at prefix stage: a minority tool is a competing
+// hypothesis, not an outlier error. Cross-cluster modal selection happens
+// ONLY once, at completion, via Batch 169's full-call modalSelect.
+// Pruning is duplicate-reduction, NOT early selection. ModeX §7
+// mode-collapse under early pruning is IRREVERSIBLE deletion: a pruned
+// path cannot recover even if later tokens would have corrected it.
+//
+// TWO ENFORCED INVARIANTS:
+// (a) ModeX candidates are alternative generations FOR THE SAME HOP.
+//     GAP siblings (different sub-tasks in one level) must NEVER be
+//     clustered as ModeX candidates: prefixPrune() throws when the
+//     candidates carry differing hopId values. Pruning runs per hop,
+//     inside a level's batch, independently per hop.
+// (b) Pruning does NOT repeal Batch 5's sampling-tax rule. The
+//     disputed-hop tier stays gated to disputed/high-stakes hops only.
+//     Pruning makes a gated spend cheaper; it does not make an ungated
+//     spend free (the spend is still N parallel generations up to the
+//     first checkpoint). The falsifier result carries this gate note.
+//
+// CALIBRATION SPLIT (Batch 192): full-call conductance (Batch 169's
+// original question, still open) vs prefix conductance at C0/C1 (new
+// question) take SEPARATE thresholds, never merged. A threshold
+// calibrated for full-call applied to prefix is a category error.
+// Proposed starting point, NOT a constant: calibrate C0/C1 thresholds
+// on logged disputed hops and report them separately from full-call tau.
+// This module sets no prefix threshold constant.
+//
+// COST CURVE (documented, not a constant): the earliest checkpoint saves
+// the most (pruning at C0 saves nearly the whole remaining call for
+// pruned duplicates) but carries the least information (tool name only);
+// later checkpoints are safer but save less. The staged rule respects
+// it: cheap safe duplicate-pruning early, no irreversible cross-tool
+// decision until completion.
+//
+// PREFIX SIMILARITY IS PARSED, NOT LEXICAL. ModeX's unigram/bigram/
+// trigram Jaccard on raw prefix text misleads both ways on tool JSON:
+// false merge (same tool + same first param, differing later params)
+// and false split (same multi-token tool name, mid-name). Adjacency
+// here is computed on the PARSED partial structure — tool name if
+// closed, parameter-name set if closed, normalized values where
+// present — with unclosed fields treated as UNKNOWN, not zero.
+// parsePartialToolCall() is the prerequisite partial-JSON parser: it
+// closes open strings/brackets provisionally FOR PARSING ONLY, never
+// for execution, and its cost is UNMEASURED (recorded, Batch 192).
+
+/** Sentinel for an unclosed (still-streaming) field value. Never a value. */
+const PARTIAL_UNKNOWN = Symbol('partial-unknown');
+
+/** Structural checkpoints, in emission order. */
+const PREFIX_CHECKPOINTS = ['C0', 'C1', 'C2'];
+
+const PREFIX_PRUNE_GUARDRAIL =
+  'Prefix-pruning guardrail (Batch 192): prune ONLY WITHIN a cluster, ' +
+  'NEVER across clusters. A minority tool cluster is never pruned on modal ' +
+  'grounds at prefix stage. Cross-cluster modal selection happens only at ' +
+  'completion via modalSelect. ModeX §7 mode-collapse under early pruning ' +
+  'is IRREVERSIBLE deletion: a pruned path cannot recover. Pruning is ' +
+  'duplicate-reduction, not early selection, and does NOT repeal Batch 5\'s ' +
+  'sampling-tax gate: the disputed-hop tier stays gated to disputed/' +
+  'high-stakes hops only.';
+
+/**
+ * Parse a partial schema-guided JSON tool call, FOR PARSING ONLY.
+ * Never feed the result to execution: provisionally closed strings and
+ * brackets are a parse aid, not a call.
+ *
+ * Accepts any root field order (format-dependent); looks for "tool" and
+ * "args" keys at the root. Returns:
+ * { tool, toolClosed, paramNames, paramValues, argsClosed, rootClosed }
+ * - tool: string or null (null when absent or its string is unclosed).
+ * - toolClosed: true only when the tool string terminated.
+ * - paramNames: parameter names observed so far, in emission order.
+ * - paramValues: name -> parsed value for closed values, PARTIAL_UNKNOWN
+ *   for values still streaming (unclosed string, missing value, or a
+ *   container still open). Unclosed fields are UNKNOWN, not zero.
+ * - argsClosed / rootClosed: the corresponding object terminated.
+ * Throws on input that is not a string.
+ */
+function parsePartialToolCall(text) {
+  if (typeof text !== 'string') throw new Error('parsePartialToolCall: text must be a string');
+  let i = 0;
+  const n = text.length;
+  const skipWs = () => { while (i < n && /\s/.test(text[i])) i++; };
+  // Read a JSON string starting at text[i] === '"'. Returns
+  // { value, closed, end } where end is past the closing quote (or n).
+  function readString() {
+    let out = '';
+    i++; // opening quote
+    while (i < n) {
+      const ch = text[i];
+      if (ch === '\\' && i + 1 < n) { out += text[i + 1]; i += 2; continue; }
+      if (ch === '"') { i++; return { value: out, closed: true, end: i }; }
+      out += ch;
+      i++;
+    }
+    return { value: out, closed: false, end: i };
+  }
+  // Read a JSON literal (number/true/false/null) up to a delimiter or end.
+  // A literal cut off by end-of-text is unclosed (its value is UNKNOWN).
+  function readLiteral() {
+    const start = i;
+    while (i < n && !/[\s,\]}]/.test(text[i])) i++;
+    const raw = text.slice(start, i);
+    const hitEnd = i >= n;
+    let value = raw;
+    if (raw === 'true') value = true;
+    else if (raw === 'false') value = false;
+    else if (raw === 'null') value = null;
+    else if (raw !== '' && !Number.isNaN(Number(raw))) value = Number(raw);
+    return { value, closed: !hitEnd, end: i };
+  }
+  // Parse any JSON value. Returns { value, closed } where closed is false
+  // when the value was cut off by end-of-text (its content is UNKNOWN for
+  // clustering: callers must check closed before trusting value).
+  function readValue() {
+    skipWs();
+    if (i >= n) return { value: PARTIAL_UNKNOWN, closed: false };
+    const ch = text[i];
+    if (ch === '"') {
+      const s = readString();
+      return s.closed ? { value: s.value, closed: true } : { value: PARTIAL_UNKNOWN, closed: false };
+    }
+    if (ch === '{') return readObject();
+    if (ch === '[') return readArray();
+    return readLiteral();
+  }
+  function readArray() {
+    i++; // '['
+    const items = [];
+    let closed = false;
+    for (;;) {
+      skipWs();
+      if (i >= n) break;
+      if (text[i] === ']') { i++; closed = true; break; }
+      if (text[i] === ',') { i++; continue; }
+      const v = readValue();
+      items.push(v.value);
+      if (!v.closed) break;
+    }
+    return { value: items, closed };
+  }
+  // Parse an object, collecting entries as { key, value, valueClosed,
+  // keyClosed }. A dangling key (no colon/value yet) is recorded with
+  // value PARTIAL_UNKNOWN so its NAME is observed but its value is not.
+  function readObject() {
+    i++; // '{'
+    const entries = [];
+    let closed = false;
+    for (;;) {
+      skipWs();
+      if (i >= n) break;
+      if (text[i] === '}') { i++; closed = true; break; }
+      if (text[i] === ',') { i++; continue; }
+      if (text[i] !== '"') { i++; continue; } // tolerate stray characters
+      const key = readString();
+      if (!key.closed) { entries.push({ key: key.value, value: PARTIAL_UNKNOWN, valueClosed: false, keyClosed: false }); break; }
+      skipWs();
+      if (i >= n || text[i] !== ':') {
+        entries.push({ key: key.value, value: PARTIAL_UNKNOWN, valueClosed: false, keyClosed: true });
+        break;
+      }
+      i++; // ':'
+      const v = readValue();
+      entries.push({ key: key.value, value: v.value, valueClosed: v.closed, keyClosed: true });
+      if (!v.closed) break;
+    }
+    return { value: entries, closed };
+  }
+  skipWs();
+  const out = {
+    tool: null, toolClosed: false, paramNames: [], paramValues: {},
+    argsClosed: false, rootClosed: false,
+  };
+  if (i >= n || text[i] !== '{') return out;
+  const root = readObject();
+  out.rootClosed = root.closed;
+  for (const e of root.value) {
+    if (e.key === 'tool' && typeof e.value === 'string') { out.tool = e.value; out.toolClosed = e.valueClosed; }
+    if (e.key === 'args' && Array.isArray(e.value)) {
+      // valueClosed on the args entry IS the args object's own closed
+      // flag (readObject returns { value: entries, closed }).
+      out.argsClosed = e.valueClosed;
+      out.paramNames = e.value.filter((a) => a.keyClosed).map((a) => a.key);
+      for (const a of e.value) {
+        if (a.keyClosed) out.paramValues[a.key] = a.valueClosed ? a.value : PARTIAL_UNKNOWN;
+      }
+    }
+  }
+  return out;
+}
+
+/**
+ * Default value normalization for prefix keys: casefold strings
+ * (Batch 10's cheapest rule). Full Batch 10 per-argument rules (number
+ * tolerance, date parse, enum alias, documented defaults, ignored args)
+ * are caller-supplied via opts.normalizeFn — the default does NOT claim
+ * them. Keys are sorted so argument order never splits a cluster.
+ */
+function defaultNormalizeArgs(args) {
+  if (args === null || typeof args !== 'object' || Array.isArray(args)) return args;
+  const norm = {};
+  for (const k of Object.keys(args).sort()) {
+    const v = args[k];
+    norm[k] = typeof v === 'string' ? v.toLowerCase() : v;
+  }
+  return norm;
+}
+
+function normalizeValueForKey(value, normalizeFn) {
+  if (value === PARTIAL_UNKNOWN) return null; // handled by caller, never keyed as a value
+  if (typeof normalizeFn === 'function') return normalizeFn(value);
+  return typeof value === 'string' ? value.toLowerCase() : value;
+}
+
+/**
+ * Cluster key for one parsed prefix at a checkpoint.
+ * - C0: tool name only. Unclosed tool => null (UNKNOWN singleton: the
+ *   candidate cannot join any tool cluster yet — this is what prevents
+ *   the lexical false split on a mid-name tool).
+ * - C1: (tool, parameter-name multiset, Batch 10-normalized names as
+ *   observed). Requires a closed tool; the caller supplies a C1 prefix,
+ *   i.e. asserts the observed name set is complete.
+ * - C2: (tool, normalized args prefix): closed values normalized, unclosed
+ *   fields contribute their NAME only (value UNKNOWN, never zero). Two
+ *   candidates sharing closed values and unclosed field names merge at
+ *   C2 — the falsifier's prune-regret metric is what prices that merge.
+ * Returns null when the checkpoint's required field is unclosed/absent.
+ */
+function prefixClusterKey(parsed, checkpoint, opts = {}) {
+  if (!parsed || !PREFIX_CHECKPOINTS.includes(checkpoint)) return null;
+  if (!parsed.toolClosed || !parsed.tool) return null;
+  const normalizeFn = opts.normalizeFn;
+  if (checkpoint === 'C0') return `tool:${parsed.tool}`;
+  const names = [...parsed.paramNames].sort();
+  if (checkpoint === 'C1') return `tool:${parsed.tool}|params:${names.join(',')}`;
+  // C2
+  const parts = [];
+  for (const name of names) {
+    const v = parsed.paramValues[name];
+    if (v === PARTIAL_UNKNOWN) parts.push(`${name}:UNKNOWN`);
+    else parts.push(`${name}:${JSON.stringify(normalizeValueForKey(v, normalizeFn))}`);
+  }
+  return `tool:${parsed.tool}|args:${parts.join(';')}`;
+}
+
+/**
+ * Canonical serialization of a completed tool call, for replay prefixes.
+ * Fixed field order (tool, then args with sorted keys) so checkpoint
+ * offsets are deterministic. Format-dependent: a product format with a
+ * different field order needs its own serializer, not this one.
+ */
+function canonicalToolCallJson(call) {
+  const args = call.args && typeof call.args === 'object' && !Array.isArray(call.args)
+    ? Object.fromEntries(Object.keys(call.args).sort().map((k) => [k, call.args[k]]))
+    : call.args;
+  return JSON.stringify({ tool: call.tool, args });
+}
+
+/**
+ * Prefix text of a completed call at a checkpoint, for falsifier replay.
+ * - C0: through the end of the tool-name string.
+ * - C1: through the colon after the LAST parameter name (all names
+ *   emitted; values may still stream). Empty args: through the args
+ *   object's opening brace (the name set is trivially complete).
+ * - C2: the complete call.
+ * Returns the full text for C2, and for C0/C1 the sliced prefix.
+ */
+function checkpointPrefix(canonicalJson, checkpoint) {
+  if (checkpoint === 'C2') return canonicalJson;
+  if (checkpoint === 'C0') {
+    const m = /"tool"\s*:\s*"/.exec(canonicalJson);
+    if (!m) return canonicalJson;
+    let j = m.index + m[0].length;
+    while (j < canonicalJson.length) {
+      if (canonicalJson[j] === '\\') { j += 2; continue; }
+      if (canonicalJson[j] === '"') return canonicalJson.slice(0, j + 1);
+      j++;
+    }
+    return canonicalJson;
+  }
+  if (checkpoint === 'C1') {
+    const argsAt = canonicalJson.indexOf('"args":');
+    if (argsAt === -1) return canonicalJson;
+    const open = canonicalJson.indexOf('{', argsAt);
+    if (open === -1) return canonicalJson;
+    // Scan args-object keys; the last key's closing quote + colon ends C1.
+    let j = open + 1;
+    let lastColonEnd = open + 1; // empty-args fallback: through '{'
+    let inStr = false;
+    let esc = false;
+    let strStart = -1;
+    let depth = 1;
+    let sawKey = false;
+    while (j < canonicalJson.length && depth > 0) {
+      const ch = canonicalJson[j];
+      if (inStr) {
+        if (esc) { esc = false; j++; continue; }
+        if (ch === '\\') { esc = true; j++; continue; }
+        if (ch === '"') {
+          inStr = false;
+          // A string at args-object depth 1 followed by ':' is a key.
+          let k = j + 1;
+          while (k < canonicalJson.length && /\s/.test(canonicalJson[k])) k++;
+          if (depth === 1 && canonicalJson[k] === ':') { lastColonEnd = k + 1; sawKey = true; }
+          j++;
+          continue;
+        }
+        j++;
+        continue;
+      }
+      if (ch === '"') { inStr = true; strStart = j; j++; continue; }
+      if (ch === '{' || ch === '[') depth++;
+      if (ch === '}' || ch === ']') depth--;
+      j++;
+    }
+    void strStart;
+    void sawKey;
+    return canonicalJson.slice(0, lastColonEnd);
+  }
+  return canonicalJson;
+}
+
+/**
+ * Diversity-preserving prefix prune for ONE hop's candidates.
+ * candidates: [{ id, hopId?, prefixText }] where prefixText is the
+ * partial call text at `checkpoint` (see candidatesAtCheckpoint, or
+ * caller-supplied streaming prefixes). opts: { normalizeFn }.
+ *
+ * Rules, enforced: (1) cluster by prefixClusterKey; null-keyed
+ * candidates are UNKNOWN singletons, never merged, never pruned.
+ * (2) Within a cluster, prune ONLY near-duplicates: candidates sharing
+ * the same normalized prefix key keep their first member (the
+ * centroid-side member under exact adjacency, as in modalSelect) and
+ * prune the rest. (3) At least one representative per cluster ALWAYS
+ * survives — a minority tool cluster is never pruned on modal grounds.
+ *
+ * AMBIGUITY RECORDED (Batch 192's wording, read literally): at C0 the
+ * observed prefix is the tool name only, so same-tool candidates are
+ * observed-identical and collapse to one survivor per tool cluster —
+ * even though their unemitted argument sets may differ. That collapse
+ * is a bet on unemitted values, not a proven duplicate removal, and it
+ * is EXACTLY what the falsifier's prune-regret metric prices: if a
+ * collapsed candidate would have been the final centroid or the
+ * person-accepted call, regret > 0 and C0 is not adoptable. Do not
+ * "fix" this by silently keeping all same-tool candidates at C0 — that
+ * would make C0 prune nothing and hide the question the falsifier
+ * exists to answer. The safer reading (keep all same-tool candidates
+ * until C1 splits them by parameter set) is the fallback if regret
+ * condemns C0, and it is named here so a later round can adopt it
+ * without re-deriving the choice.
+ * (4) GAP-sibling guard: if candidates carry hopId values and they
+ * differ, throw — siblings are different sub-tasks, not candidates.
+ * Returns { checkpoint, kept, pruned, clusters, guardrail } with ids.
+ */
+function prefixPrune(candidates, checkpoint, opts = {}) {
+  if (!PREFIX_CHECKPOINTS.includes(checkpoint)) throw new Error(`prefixPrune: unknown checkpoint "${checkpoint}"`);
+  if (!Array.isArray(candidates)) throw new Error('prefixPrune: candidates must be an array');
+  const hopIds = new Set(candidates.filter((c) => c && c.hopId !== undefined).map((c) => c.hopId));
+  if (hopIds.size > 1) {
+    throw new Error('prefixPrune: GAP siblings must never be clustered as ModeX candidates — ' +
+      'candidates carry differing hopId values; prune per hop, independently per hop');
+  }
+  const clusters = new Map(); // cluster key -> [{ candidate, parsed, prefixKey }]
+  const singletons = [];
+  for (const c of candidates) {
+    if (!c || typeof c.id !== 'string' || typeof c.prefixText !== 'string') {
+      throw new Error('prefixPrune: every candidate needs a string id and prefixText');
+    }
+    const parsed = parsePartialToolCall(c.prefixText);
+    const key = prefixClusterKey(parsed, checkpoint, opts);
+    if (key === null) { singletons.push(c); continue; }
+    if (!clusters.has(key)) clusters.set(key, []);
+    clusters.get(key).push({ candidate: c, parsed, prefixKey: key });
+  }
+  const kept = [];
+  const pruned = [];
+  const clusterOut = [];
+  for (const [key, members] of clusters) {
+    // Within-cluster duplicate reduction: one kept member per distinct
+    // normalized prefix key. At C0/C1 the cluster key IS the prefix key
+    // (tool / tool+paramset), so a cluster keeps exactly one member only
+    // when members share that key — which they do by construction. The
+    // finer split below uses the C2-style key so that members differing
+    // in closed values are NOT treated as duplicates.
+    const byPrefix = new Map();
+    for (const m of members) {
+      const fine = prefixClusterKey(m.parsed, 'C2', opts);
+      const fk = fine === null ? `singleton:${m.candidate.id}` : fine;
+      if (!byPrefix.has(fk)) byPrefix.set(fk, []);
+      byPrefix.get(fk).push(m.candidate.id);
+    }
+    const keptIds = [];
+    const prunedIds = [];
+    for (const ids of byPrefix.values()) {
+      keptIds.push(ids[0]); // centroid-side member under exact adjacency
+      prunedIds.push(...ids.slice(1));
+    }
+    kept.push(...keptIds);
+    pruned.push(...prunedIds);
+    clusterOut.push({ key, keptIds, prunedIds });
+  }
+  for (const c of singletons) kept.push(c.id);
+  return { checkpoint, kept, pruned, clusters: clusterOut, guardrail: PREFIX_PRUNE_GUARDRAIL };
+}
+
+/**
+ * Candidates at a checkpoint, from completed calls.
+ * completed: [{ id, hopId?, tool, args }]. Returns candidates with
+ * prefixText computed by checkpointPrefix over the canonical JSON.
+ */
+function candidatesAtCheckpoint(completed, checkpoint) {
+  if (!PREFIX_CHECKPOINTS.includes(checkpoint)) throw new Error(`candidatesAtCheckpoint: unknown checkpoint "${checkpoint}"`);
+  return (completed || []).map((c) => ({
+    id: c.id, hopId: c.hopId, tool: c.tool, args: c.args,
+    prefixText: checkpointPrefix(canonicalToolCallJson(c), checkpoint),
+    fullText: canonicalToolCallJson(c),
+  }));
+}
+
+/** Token proxy: word/punctuation token count. NOT a model tokenizer —
+ *  falsifier token counts are proxy counts, labelled as such. */
+function proxyTokens(text) {
+  if (typeof text !== 'string') return 0;
+  const m = text.match(/[A-Za-z0-9_]+|[^\sA-Za-z0-9_]/g);
+  return m ? m.length : 0;
+}
+
+function distributionSummary(lengths) {
+  if (!lengths.length) return { n: 0, min: null, p50: null, max: null, fracUnder100: null };
+  const sorted = [...lengths].sort((a, b) => a - b);
+  const p50 = sorted[Math.floor((sorted.length - 1) / 2)];
+  return {
+    n: lengths.length,
+    min: sorted[0],
+    p50,
+    max: sorted[sorted.length - 1],
+    fracUnder100: sorted.filter((x) => x < 100).length / sorted.length,
+  };
+}
+
+const PREFIX_GATE_NOTE =
+  'Batch 5 sampling-tax gate (Batch 192 interaction b): the disputed-hop ' +
+  'tier stays gated to disputed/high-stakes hops only. Pruning makes a ' +
+  'gated spend cheaper; it does not make an ungated spend free. This ' +
+  'offline replay does not authorize live ungated sampling.';
+
+/**
+ * Falsifier harness for prefix pruning (Batch 192, fully specified there).
+ * hops: [{ hopId, disputed?, candidates: [{ id, tool, args,
+ * accepted? }] }] — completed candidates per hop, k each.
+ * opts: { keyFn (full-call normalized-AST key, default JSON tool+args),
+ * normalizeFn (prefix value normalization) }.
+ *
+ * Per hop and checkpoint it reports:
+ * (a) agreement: prefix modal cluster's checkpoint-granularity key equals
+ *     the final centroid's key at that granularity (C0: tool; C1:
+ *     tool+paramset; C2: full normalized args — 1 by construction at
+ *     completion, reported as such, not as evidence).
+ * (b) prune regret: among candidates the rule would have pruned, the
+ *     fraction that were the final centroid or person-accepted.
+ * (c) tokens saved per hop at each checkpoint: proxy-token length of
+ *     (full call minus checkpoint prefix), summed over pruned candidates.
+ * Also: the tool-call token-length distribution (proxy tokens) over all
+ * completed candidates — the distribution, not an assumed length, is
+ * what proves a T=100 token interval would have been a no-op.
+ *
+ * PASS for adopting a checkpoint requires prune regret ≈ 0 (here:
+ * regretCount === 0) AND agreement rising monotonically C0→C1→C2.
+ * On synthetic fixtures the harness proves the HARNESS (mechanics,
+ * monotone check, regret≈0 gate) — NOT the design. Tests state this
+ * plainly; no agreement/regret number here is a finding about real
+ * disputed hops, because NO real logged disputed hops exist yet.
+ */
+function falsifierReplay(hops, opts = {}) {
+  if (!Array.isArray(hops)) throw new Error('falsifierReplay: hops must be an array');
+  const keyFn = typeof opts.keyFn === 'function'
+    ? opts.keyFn
+    : (c) => JSON.stringify({ tool: c.tool, args: defaultNormalizeArgs(c.args) });
+  const perCheckpoint = {};
+  const allFullLengths = [];
+  let totalPruned = 0;
+  let totalRegret = 0;
+  const hopResults = [];
+  for (const hop of hops) {
+    const completed = hop.candidates || [];
+    for (const c of completed) allFullLengths.push(proxyTokens(canonicalToolCallJson(c)));
+    const final = modalSelect(completed, keyFn);
+    const finalCentroidId = final.selected ? final.selected.id : null;
+    const acceptedIds = new Set(completed.filter((c) => c.accepted === true).map((c) => c.id));
+    const hopEntry = { hopId: hop.hopId, disputed: hop.disputed === true, finalCentroidId, checkpoints: {} };
+    for (const cp of PREFIX_CHECKPOINTS) {
+      const atCp = candidatesAtCheckpoint(completed, cp);
+      const prune = prefixPrune(atCp, cp, opts);
+      // Prefix modal cluster: largest cluster by kept+pruned members;
+      // tie -> first encountered (same rule as modalSelect).
+      let modalKey = null;
+      let modalSize = 0;
+      for (const cl of prune.clusters) {
+        const size = cl.keptIds.length + cl.prunedIds.length;
+        if (size > modalSize) { modalSize = size; modalKey = cl.key; }
+      }
+      // Final centroid's key at this checkpoint's granularity.
+      const centroidCand = completed.find((c) => c.id === finalCentroidId);
+      let centroidKey = null;
+      if (centroidCand) {
+        const cpCand = atCp.find((c) => c.id === finalCentroidId);
+        centroidKey = prefixClusterKey(parsePartialToolCall(cpCand.prefixText), cp, opts);
+      }
+      const agreement = modalKey !== null && centroidKey !== null && modalKey === centroidKey;
+      const regretIds = prune.pruned.filter((id) => id === finalCentroidId || acceptedIds.has(id));
+      const saved = prune.pruned.reduce((sum, id) => {
+        const cand = atCp.find((c) => c.id === id);
+        return sum + (proxyTokens(cand.fullText) - proxyTokens(cand.prefixText));
+      }, 0);
+      hopEntry.checkpoints[cp] = {
+        agreement, pruned: prune.pruned, regretIds, tokensSavedProxy: saved,
+      };
+      if (!perCheckpoint[cp]) perCheckpoint[cp] = { hops: 0, agreements: 0, pruned: 0, regret: 0, tokensSavedProxy: 0 };
+      const acc = perCheckpoint[cp];
+      acc.hops++;
+      if (agreement) acc.agreements++;
+      acc.pruned += prune.pruned.length;
+      acc.regret += regretIds.length;
+      acc.tokensSavedProxy += saved;
+      totalPruned += prune.pruned.length;
+      totalRegret += regretIds.length;
+    }
+    hopResults.push(hopEntry);
+  }
+  const summary = {};
+  for (const cp of PREFIX_CHECKPOINTS) {
+    const acc = perCheckpoint[cp] || { hops: 0, agreements: 0, pruned: 0, regret: 0, tokensSavedProxy: 0 };
+    summary[cp] = {
+      hops: acc.hops,
+      agreementRate: acc.hops ? acc.agreements / acc.hops : null,
+      pruned: acc.pruned,
+      regretCount: acc.regret,
+      regretRate: acc.pruned ? acc.regret / acc.pruned : 0,
+      tokensSavedPerHopProxy: acc.hops ? acc.tokensSavedProxy / acc.hops : 0,
+    };
+  }
+  const monotone = summary.C0.agreementRate !== null && summary.C1.agreementRate !== null && summary.C2.agreementRate !== null
+    && summary.C0.agreementRate <= summary.C1.agreementRate && summary.C1.agreementRate <= summary.C2.agreementRate;
+  const adoptable = {};
+  for (const cp of PREFIX_CHECKPOINTS) {
+    // Per-checkpoint adoption requires regret ≈ 0 on THIS checkpoint and
+    // the monotone chain holding overall; C2 agreement is 1 by
+    // construction at completion and is never cited as evidence alone.
+    adoptable[cp] = summary[cp].regretCount === 0 && monotone;
+  }
+  return {
+    hops: hopResults,
+    summary,
+    monotoneAgreement: monotone,
+    adoptable,
+    tokenLengthDistributionProxy: distributionSummary(allFullLengths),
+    totalPruned,
+    totalRegret,
+    gateNote: PREFIX_GATE_NOTE,
+    guardrail: PREFIX_PRUNE_GUARDRAIL,
+    provenanceNote: 'Synthetic fixtures prove the harness mechanics only. ' +
+      'No real logged disputed hops exist yet; no agreement/regret number ' +
+      'from a fixture run is a finding about the design. Token counts are ' +
+      'proxy counts, not model-tokenizer counts.',
+  };
+}
+
 // ------------------------------------------- per-tool latency / hedging
 
 /**
@@ -1335,4 +1936,16 @@ module.exports = {
   PROVABILITY_CLASSES,
   AbortAudit,
   abortAuditRescueAvailable,
+  // Batch 192: ModeX-Lite transfer correction, disputed-hop prefix tier.
+  PARTIAL_UNKNOWN,
+  PREFIX_CHECKPOINTS,
+  PREFIX_PRUNE_GUARDRAIL,
+  parsePartialToolCall,
+  prefixClusterKey,
+  canonicalToolCallJson,
+  checkpointPrefix,
+  candidatesAtCheckpoint,
+  prefixPrune,
+  proxyTokens,
+  falsifierReplay,
 };

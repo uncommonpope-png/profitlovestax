@@ -19,6 +19,17 @@ const {
   bimodalityByPooledRatio,
   AbortAudit,
   abortAuditRescueAvailable,
+  PARTIAL_UNKNOWN,
+  PREFIX_CHECKPOINTS,
+  PREFIX_PRUNE_GUARDRAIL,
+  parsePartialToolCall,
+  prefixClusterKey,
+  canonicalToolCallJson,
+  checkpointPrefix,
+  candidatesAtCheckpoint,
+  prefixPrune,
+  proxyTokens,
+  falsifierReplay,
 } = require('./plan-executor.cjs');
 
 const read = (id, dependsOn, run) => ({ id, dependsOn, kind: 'read', readOnly: true, run: run || (async () => `${id}-done`) });
@@ -614,4 +625,203 @@ test('modal selection picks the largest normalized-AST equivalence class, with t
   assert.equal(out.clusterSize, 3);
   assert.ok(out.warning.includes('NEVER replaces'));
   assert.equal(out.warning, MODAL_SELECTION_GUARDRAIL);
+});
+
+// ------------------------------------------- Batch 192: prefix pruning
+// HONEST-LIMITS HEADER FOR THIS WHOLE SECTION: every falsifier test
+// below runs on SYNTHETIC fixtures. They prove the HARNESS (agreement /
+// regret / token-saved computation, the monotone check, the regret≈0
+// gate, the per-hop and minority-cluster guards) — NOT the design.
+// No real logged disputed hops exist yet, so no number below is a
+// finding about real tool calls. Token counts are proxy counts, not
+// model-tokenizer counts.
+
+test('Batch 192: partial parser closes strings/brackets for parsing only, never for execution', () => {
+  const p = parsePartialToolCall('{"tool":"search","args":{"q":"cats');
+  assert.equal(p.tool, 'search');
+  assert.equal(p.toolClosed, true);
+  assert.deepEqual(p.paramNames, ['q']);
+  assert.equal(p.paramValues.q, PARTIAL_UNKNOWN); // unclosed value is UNKNOWN, not zero
+  assert.equal(p.argsClosed, false);
+  assert.equal(p.rootClosed, false);
+  const full = parsePartialToolCall('{"tool":"search","args":{"q":"cats","limit":5}}');
+  assert.equal(full.toolClosed, true);
+  assert.equal(full.argsClosed, true);
+  assert.equal(full.rootClosed, true);
+  assert.equal(full.paramValues.limit, 5);
+  assert.throws(() => parsePartialToolCall(42), /string/);
+});
+
+test('Batch 192: parsed adjacency avoids the lexical false split (mid-name tool is UNKNOWN singleton)', () => {
+  // Same multi-token tool name, one candidate mid-name: lexical Jaccard
+  // would split them into different-looking prefixes. Parsed, the
+  // mid-name candidate has no closed tool, so it is a singleton that
+  // can neither merge nor be pruned — never a false split cluster.
+  const closed = { id: 'a', prefixText: '{"tool":"search_all"' };
+  const mid = { id: 'b', prefixText: '{"tool":"search_a' };
+  assert.equal(prefixClusterKey(parsePartialToolCall(closed.prefixText), 'C0'), 'tool:search_all');
+  assert.equal(prefixClusterKey(parsePartialToolCall(mid.prefixText), 'C0'), null);
+  const out = prefixPrune([closed, mid], 'C0');
+  assert.deepEqual(out.kept.sort(), ['a', 'b']);
+  assert.deepEqual(out.pruned, []);
+});
+
+test('Batch 192: parsed adjacency avoids the lexical false merge (same tool + first param, differing later params)', () => {
+  // Lexical prefix n-grams would call these near-identical. Parsed at
+  // C1, their parameter-name sets differ, so they are separate clusters
+  // and neither is pruned.
+  const a = { id: 'a', prefixText: '{"tool":"search","args":{"q":"cats","limit":' };
+  const b = { id: 'b', prefixText: '{"tool":"search","args":{"q":"cats"' };
+  assert.notEqual(
+    prefixClusterKey(parsePartialToolCall(a.prefixText), 'C1'),
+    prefixClusterKey(parsePartialToolCall(b.prefixText), 'C1'));
+  const out = prefixPrune([a, b], 'C1');
+  assert.deepEqual(out.kept.sort(), ['a', 'b']);
+  assert.deepEqual(out.pruned, []);
+});
+
+test('Batch 192: minority tool cluster is NEVER pruned on modal grounds at C0', () => {
+  const cands = candidatesAtCheckpoint([
+    { id: 'a1', hopId: 'h', tool: 'search', args: { q: 'cats' } },
+    { id: 'a2', hopId: 'h', tool: 'search', args: { q: 'cats' } },
+    { id: 'a3', hopId: 'h', tool: 'search', args: { q: 'cats' } },
+    { id: 'm1', hopId: 'h', tool: 'refund', args: { id: 'x' } },
+  ], 'C0');
+  const out = prefixPrune(cands, 'C0');
+  // Modal tool collapses to one survivor; the minority tool survives
+  // untouched — pruning is within-cluster only, never across clusters.
+  assert.deepEqual(out.kept.sort(), ['a1', 'm1']);
+  assert.deepEqual(out.pruned.sort(), ['a2', 'a3']);
+  assert.ok(out.guardrail.includes('NEVER across clusters'));
+  assert.ok(out.guardrail.includes('IRREVERSIBLE'));
+});
+
+test('Batch 192: C1 keeps same-tool candidates that differ in closed values (not duplicates)', () => {
+  // Multi-param case: the C1 prefix ends after the LAST param name's
+  // colon, so an EARLIER param's value is already closed in the prefix
+  // and splits the cluster. (A single-param value has NOT streamed at
+  // C1, so it cannot split — that is the checkpoint's information limit,
+  // and the falsifier prices it via regret.)
+  const cands = candidatesAtCheckpoint([
+    { id: 'a', hopId: 'h', tool: 'search', args: { q: 'cats', limit: 5 } },
+    { id: 'b', hopId: 'h', tool: 'search', args: { q: 'cats', limit: 9 } },
+    { id: 'c', hopId: 'h', tool: 'search', args: { q: 'cats', limit: 5 } },
+  ], 'C1');
+  const out = prefixPrune(cands, 'C1');
+  assert.deepEqual(out.kept.sort(), ['a', 'b']); // c duplicates a; b differs in a closed value
+  assert.deepEqual(out.pruned, ['c']);
+});
+
+test('Batch 192: GAP siblings are refused, not clustered (invariant a)', () => {
+  const cands = [
+    { id: 'a', hopId: 'hop-1', prefixText: '{"tool":"search"' },
+    { id: 'b', hopId: 'hop-2', prefixText: '{"tool":"search"' },
+  ];
+  assert.throws(() => prefixPrune(cands, 'C0'), /GAP siblings/);
+});
+
+test('Batch 192: C2 key treats an unclosed free-text value as name-only UNKNOWN', () => {
+  const a = parsePartialToolCall('{"tool":"note","args":{"body":"hello world');
+  const b = parsePartialToolCall('{"tool":"note","args":{"body":"hello there');
+  // Both have the same closed structure and one unclosed field: they
+  // merge at C2 on (tool, body:UNKNOWN). The falsifier prices this
+  // merge via prune regret; the parser does not pretend to know the tail.
+  assert.equal(
+    prefixClusterKey(a, 'C2'),
+    prefixClusterKey(b, 'C2'));
+  assert.equal(a.paramValues.body, PARTIAL_UNKNOWN);
+});
+
+test('Batch 192: checkpoint prefixes slice at tool closure, last param name, completion', () => {
+  const full = canonicalToolCallJson({ tool: 'search', args: { q: 'cats', limit: 5 } });
+  assert.equal(checkpointPrefix(full, 'C0'), '{"tool":"search"');
+  // Canonical order sorts args keys: limit, then q — C1 ends after q's colon.
+  assert.equal(checkpointPrefix(full, 'C1'), '{"tool":"search","args":{"limit":5,"q":');
+  assert.equal(checkpointPrefix(full, 'C2'), full);
+  assert.deepEqual(PREFIX_CHECKPOINTS, ['C0', 'C1', 'C2']);
+});
+
+test('Batch 192: falsifier harness — agreement rises monotonically, regret 0, cost curve holds (FIXTURE, not a finding)', () => {
+  // Hop 1: C0 modal tie broken toward the wrong tool (first encountered),
+  // C1 splits by parameter set and recovers the final modal cluster.
+  // Hop 2: clean modal agreement at every checkpoint.
+  // Accepted call = final centroid in both hops, so regret must be 0.
+  const hops = [
+    {
+      hopId: 'h1', disputed: true,
+      candidates: [
+        { id: 'a1', tool: 'search', args: { q: 'cats' } },
+        { id: 'a2', tool: 'search', args: { q: 'cats', limit: 5 } },
+        { id: 'b1', tool: 'fetch', args: { q: 'cats' }, accepted: true },
+        { id: 'b2', tool: 'fetch', args: { q: 'cats' } },
+      ],
+    },
+    {
+      hopId: 'h2', disputed: true,
+      candidates: [
+        { id: 'c1', tool: 'search', args: { q: 'dogs' }, accepted: true },
+        { id: 'c2', tool: 'search', args: { q: 'dogs' } },
+        { id: 'd1', tool: 'fetch', args: { q: 'dogs' } },
+      ],
+    },
+  ];
+  const out = falsifierReplay(hops);
+  // Hop 1: final modal = fetch (b1,b2); C0 tie 2v2 -> first = search -> miss;
+  // C1: fetch/{q} size 2 is modal -> hit; C2: full args -> hit.
+  assert.equal(out.hops[0].checkpoints.C0.agreement, false);
+  assert.equal(out.hops[0].checkpoints.C1.agreement, true);
+  assert.equal(out.hops[0].checkpoints.C2.agreement, true);
+  assert.equal(out.summary.C0.agreementRate, 0.5);
+  assert.equal(out.summary.C1.agreementRate, 1);
+  assert.equal(out.summary.C2.agreementRate, 1);
+  assert.equal(out.monotoneAgreement, true);
+  assert.equal(out.totalRegret, 0);
+  assert.equal(out.adoptable.C0, true); // regret 0 + monotone chain holds
+  assert.equal(out.adoptable.C1, true);
+  // Cost curve: earlier checkpoint saves at least as much per hop.
+  assert.ok(out.summary.C0.tokensSavedPerHopProxy >= out.summary.C1.tokensSavedPerHopProxy);
+  assert.ok(out.summary.C1.tokensSavedPerHopProxy >= out.summary.C2.tokensSavedPerHopProxy);
+  assert.equal(out.summary.C2.tokensSavedPerHopProxy, 0); // completion saves nothing
+  assert.ok(out.gateNote.includes('Batch 5'));
+  assert.ok(out.provenanceNote.includes('prove the harness mechanics only'));
+});
+
+test('Batch 192: falsifier harness — prune regret condemns a checkpoint when the accepted call would be pruned (FIXTURE)', () => {
+  // The person-accepted call is the SECOND duplicate: the rule keeps the
+  // first (centroid-side) member and prunes the accepted one. Regret > 0
+  // must block adoption at every checkpoint that prunes it.
+  const hops = [{
+    hopId: 'h', disputed: true,
+    candidates: [
+      { id: 'x1', tool: 'search', args: { q: 'cats' } },
+      { id: 'x2', tool: 'search', args: { q: 'cats' }, accepted: true },
+    ],
+  }];
+  const out = falsifierReplay(hops);
+  assert.ok(out.summary.C0.regretCount > 0);
+  assert.equal(out.adoptable.C0, false);
+  assert.equal(out.adoptable.C1, false);
+  assert.equal(out.adoptable.C2, false);
+  assert.ok(out.hops[0].checkpoints.C0.regretIds.includes('x2'));
+});
+
+test('Batch 192: falsifier harness — token-length distribution is reported, not assumed (FIXTURE)', () => {
+  const hops = [{
+    hopId: 'h', disputed: true,
+    candidates: [
+      { id: 's', tool: 'search', args: { q: 'cats' } },
+      { id: 'l', tool: 'note', args: { body: 'a fairly long free text value for the note body field' } },
+    ],
+  }];
+  const out = falsifierReplay(hops);
+  const d = out.tokenLengthDistributionProxy;
+  assert.equal(d.n, 2);
+  assert.ok(d.min > 0 && d.max >= d.min);
+  assert.ok(d.p50 >= d.min && d.p50 <= d.max);
+  // Both fixture calls finish far below 100 proxy tokens: on THESE
+  // fixtures a T=100 interval would fire zero times. That is a fixture
+  // property, not a product measurement — the product distribution is
+  // still unmeasured and the harness exists to measure it.
+  assert.equal(d.fracUnder100, 1);
+  assert.ok(proxyTokens('{"tool":"search"') > 0);
 });

@@ -18,9 +18,10 @@ SEP-2484 conformance — host trust judgments are not protocol-observable
 - `node WORKBENCH_COMPLETE/workbench/north-star/interceptors/interceptors.test.cjs`
 
 Test totals, each re-run by the coordinator from the assembled branch location:
-verifier 47/47, plan-executor 36/36, provenance 19/19, interceptors 45/45 —
-**147 pass, 0 fail** (round 1: 109; round 2 adds 33: plan-executor +14,
-interceptors +19; round 3 adds 5: interceptors +5).
+verifier 47/47, plan-executor 47/47, provenance 19/19, interceptors 45/45 —
+**158 pass, 0 fail** (round 1: 109; round 2 adds 33: plan-executor +14,
+interceptors +19; round 3 adds 5: interceptors +5; round 4 adds 11:
+plan-executor +11).
 
 ## What each piece implements (mapped to batches)
 
@@ -43,7 +44,7 @@ records separate from negotiation (source + source date; stale flagged).
 Coexisting identifiers independent. Session taint segments keyed on the full
 tuple; mid-session change closes with a break marker, old attributions frozen.
 
-### plan-executor/ — level-wise plan executor (Batches 169, 171, 173, 175, 177)
+### plan-executor/ — level-wise plan executor (Batches 169, 171, 173, 175, 177, 179, 192)
 DAG level computation (longest-path depth, siblings parallel). Level-wise
 prefix accumulation: each level sees only completed levels' joint observation.
 Replan ONLY at level/iteration boundaries on completed joint observation;
@@ -153,6 +154,37 @@ Honest limits kept in code and interceptors README: main-branch source
 (version 2.1.6 as read Nov 2, 2026), NOT a pinned published release;
 no live disconnect measured; half-open socket edge unmeasured (same
 as Batch 188).
+
+## Round 4 (Batch 192) — delta only, round-1/2/3 code extended not rewritten
+
+### plan-executor/ — Batch 192: ModeX-Lite transfer correction, disputed-hop prefix tier
+Token intervals do NOT transfer: ModeX-Lite's T=100 interval fires zero
+times on a schema-guided tool call finishing before 100 tokens, §5.1
+robustness covers T in {100..500} on long trajectories only, and
+Lite-vs-full is mixed by model/task — a Lite tier must be measured on
+the bundled base, never assumed. Interval unit replaced by structural
+checkpoints C0 (tool-name closure), C1 (parameter-name-set closure),
+C2 (value-prefix / complete call), with parsed-prefix adjacency
+(partial-JSON parser, parse-only, never execution; unclosed fields
+UNKNOWN, not zero) instead of lexical Jaccard. Diversity-preserving
+prune rule: prune ONLY WITHIN a cluster, NEVER across clusters; a
+minority tool cluster is never pruned on modal grounds; cross-cluster
+modal selection happens ONLY at completion via Batch 169's
+`modalSelect()`; ModeX §7 mode-collapse under early pruning is
+irreversible deletion. Two invariants enforced: GAP siblings refused
+(`hopId` mismatch throws — pruning runs per hop, independently per
+hop), and pruning does NOT repeal Batch 5's sampling-tax gate
+(disputed/high-stakes hops only). Calibration split: full-call vs
+prefix conductance thresholds are separate, never merged; no prefix
+threshold constant is set. Falsifier harness (`falsifierReplay()`)
+reports agreement rate, prune regret, and tokens saved per hop per
+checkpoint, plus the tool-call token-length distribution (proxy
+tokens); adoption requires regret ≈ 0 AND monotone agreement
+C0→C1→C2. HONEST LIMIT: the harness is proven on synthetic fixtures
+only — NOT the design. No real logged disputed hops exist yet, no
+fixture number is a finding, parser cost is unmeasured, and the
+Chen / Sun / Hong leads were not read in full and are not cited or
+built on. Full-call `modalSelect()` untouched.
 
 ## Out of scope (watch/citation-only — NOT built, correctly)
 Fork PR watch (Degiorgio#3 / upstream #2624 two-step trigger), OATR

@@ -3,7 +3,7 @@
 Node.js, CommonJS, zero dependencies. Runs with plain `node`.
 
 ```sh
-node plan-executor.test.cjs   # 36 tests, exit 0 on pass
+node plan-executor.test.cjs   # 47 tests, exit 0 on pass
 ```
 
 ## What it implements
@@ -43,6 +43,14 @@ executor }`. `prefix` is the list of completed levels only.
 | Abortable as a three-state field per tool: UNKNOWN (no declaration, no observation — rescue unavailable) → DECLARED (mechanism claimed — rescue STILL unavailable) → PROVEN (at least one abort issued and its effect observed — rescue available) or DISPROVEN (abort issued and work observably continued — rescue disabled). Disproof is STICKY: re-declaration alone never restores rescue; restoration requires re-declare AND re-prove | 179 Part 2 | `AbortAudit` (`declare()`, `recordPositiveProof()`, `recordNegativeProof()`, `recordDisproof()`) |
 | Provability classes: HARD (process kill, thread cancel, handle close, connection close where the implementation dies with it — one observed kill suffices, stays proven across versions unless the mechanism changes); COOPERATIVE (cancellation token / AbortSignal / context.Context — proof is an observed early exit attributable to the signal, version-sensitive, re-proven per version); PROTOCOL (MCP notifications/cancelled, Streamable HTTP stream close — proof is NEGATIVE ONLY, recorded as "proven-negatively, window W, n observations", sufficient for read-only tools alone; for non-read-only tools protocol abort is NEVER sufficient for rescue, consistent with never-hedge-commits) | 179 Part 2 | `AbortAudit` (`noteVersion()`, `noteMechanismChange()`, `rescueAvailable()`, `toRecord()`), `abortAuditRescueAvailable()` |
 | Rescue gate 3 restated: "abortable = PROVEN in the audit, with a class-appropriate proof." Other gates unchanged (read-only + idempotent, zero progress, single re-issue, budget fit, separate rescue-rate metric). Proof accrues from real stuck-call rescues and real user cancels, not from declarations. A sacrificial probe is legitimate ONLY for a HARD mechanism (bounded cost, definitive result); never for a cooperative mechanism on a stateful tool | 179 Part 2 | `evaluateStuckRescue({ abortAudit })` (audit canonical when supplied; boolean `abortAvailable`/`abortProven` path kept for Batch 177 compatibility), `AbortAudit.sacrificialProbeLegitimate()` |
+| TOKEN INTERVALS DO NOT TRANSFER to tool calls: ModeX-Lite's T=100 interval fires zero times on a call finishing before 100 tokens (a no-op that still paid N× generation); §5.1 robustness covers T in {100..500} on long trajectories only; O(NL + N²) with N≪L is weaker for short calls; Lite-vs-full is mixed by model/task, so a Lite tier must be measured on the bundled base, never assumed | 192 (Choi & Li, arXiv:2601.02535, Lite sections) | Header comment; `PREFIX_CHECKPOINTS` |
+| Structural checkpoints replace token intervals: C0 tool-name closure (key = tool only), C1 parameter-name-set closure (key = tool + param-name multiset), C2 value-prefix / complete call (key = tool + normalized args prefix) | 192 | `checkpointPrefix()`, `candidatesAtCheckpoint()`, `prefixClusterKey()` |
+| Parsed-prefix adjacency, not lexical Jaccard: false merge (same tool + first param, differing later params) and false split (same multi-token tool name, mid-name) both avoided by parsing; unclosed fields are UNKNOWN, never zero; partial-JSON parser closes strings/brackets provisionally FOR PARSING ONLY, never for execution; parser cost unmeasured | 192 | `parsePartialToolCall()`, `PARTIAL_UNKNOWN` |
+| Diversity-preserving prune rule: prune ONLY WITHIN a cluster, NEVER across clusters; ≥1 representative per tool cluster (C0) and per (tool, param-set) cluster (C1); within a cluster, prune near-duplicates (same normalized prefix) to centroid-side members; a minority tool cluster is NEVER pruned on modal grounds; cross-cluster modal selection happens ONLY at completion via `modalSelect()`; ModeX §7 mode-collapse under early pruning is IRREVERSIBLE deletion | 192 | `prefixPrune()`, `PREFIX_PRUNE_GUARDRAIL` |
+| Two enforced invariants: (a) ModeX candidates are alternative generations FOR THE SAME HOP — GAP siblings refused, never clustered (`hopId` mismatch throws); pruning runs per hop, independently per hop. (b) Pruning does NOT repeal Batch 5's sampling-tax gate — disputed-hop tier stays gated to disputed/high-stakes hops; pruning makes a gated spend cheaper, not an ungated spend free | 192 | `prefixPrune()` hopId guard; `falsifierReplay()` gate note |
+| Calibration split: full-call conductance (Batch 169, still open) vs prefix conductance at C0/C1 are SEPARATE thresholds, never merged; no prefix threshold constant is set — calibrate C0/C1 on logged disputed hops, report separately from full-call τ | 192 | `falsifierReplay()` per-checkpoint summary (the calibration input) |
+| Falsifier harness: on logged disputed hops with k completed candidates, replay prefix by prefix; report (a) agreement rate (prefix modal cluster == final full-call modal cluster, at checkpoint granularity), (b) prune regret (fraction of pruned candidates that were the final centroid or person-accepted), (c) tokens saved per hop per checkpoint; PASS requires regret ≈ 0 AND agreement monotone C0→C1→C2; also measures the tool-call token-length distribution (proxy tokens) — the distribution, not an assumed length, proves a token interval would have been a no-op | 192 | `falsifierReplay()`, `proxyTokens()` |
+| Cost curve (documented, not a constant): earliest checkpoint saves most, carries least information; staged rule = cheap safe duplicate-pruning early, no irreversible cross-tool decision until completion | 192 | `falsifierReplay()` tokens-saved-per-hop output |
 
 ### Signal convention
 
@@ -122,3 +130,27 @@ otherwise, and the Batch 16 three-class split is untouched here.
   reading (upward re-freeze as a recorded sleep-job decision, never
   automatic) is not enforced by this function; callers that want it
   should gate upward re-freezes on a recorded decision.
+- **Prefix tier is harness-proven, NOT design-proven (Batch 192).**
+  All falsifier tests run on synthetic fixtures: they prove the
+  harness mechanics (agreement / regret / token-saved computation,
+  monotone check, regret≈0 gate, per-hop and minority-cluster guards),
+  not that C0/C1 pruning is safe on real calls. NO real logged
+  disputed hops exist yet, so no agreement/regret number from a
+  fixture run is a finding. Token counts are proxy counts (word /
+  punctuation tokens), not model-tokenizer counts, and the product's
+  own tool-call token-length distribution, field order, and
+  multi-token tool-name behavior are still unmeasured. The
+  partial-JSON parser's cost and provisional-closing correctness are
+  unmeasured; it is parse-only and must never feed execution.
+  The C0 collapse reading is recorded in code: at C0 the observed
+  prefix is the tool name only, so same-tool candidates collapse to
+  one survivor per tool cluster, and prune regret is the arbiter of
+  whether that bet is safe. If regret condemns C0, the named fallback
+  is keeping all same-tool candidates until C1 splits them by
+  parameter set. No tool-call-specific early-pruning paper was found
+  in Batch 192; the Chen (arXiv:2606.16364) and Sun/Hong related-work
+  leads were NOT read in full and their numbers are NOT cited or
+  built on here. Default value normalization is casefold + sorted
+  keys only; full Batch 10 per-argument rules (number tolerance, date
+  parse, enum alias, defaults, ignored args) are caller-supplied via
+  `normalizeFn`, not claimed by the default.

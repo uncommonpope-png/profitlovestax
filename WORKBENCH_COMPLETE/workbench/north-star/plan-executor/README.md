@@ -3,7 +3,7 @@
 Node.js, CommonJS, zero dependencies. Runs with plain `node`.
 
 ```sh
-node plan-executor.test.cjs   # 47 tests, exit 0 on pass
+node plan-executor.test.cjs   # 59 tests, exit 0 on pass
 ```
 
 ## What it implements
@@ -51,6 +51,12 @@ executor }`. `prefix` is the list of completed levels only.
 | Calibration split: full-call conductance (Batch 169, still open) vs prefix conductance at C0/C1 are SEPARATE thresholds, never merged; no prefix threshold constant is set — calibrate C0/C1 on logged disputed hops, report separately from full-call τ | 192 | `falsifierReplay()` per-checkpoint summary (the calibration input) |
 | Falsifier harness: on logged disputed hops with k completed candidates, replay prefix by prefix; report (a) agreement rate (prefix modal cluster == final full-call modal cluster, at checkpoint granularity), (b) prune regret (fraction of pruned candidates that were the final centroid or person-accepted), (c) tokens saved per hop per checkpoint; PASS requires regret ≈ 0 AND agreement monotone C0→C1→C2; also measures the tool-call token-length distribution (proxy tokens) — the distribution, not an assumed length, proves a token interval would have been a no-op | 192 | `falsifierReplay()`, `proxyTokens()` |
 | Cost curve (documented, not a constant): earliest checkpoint saves most, carries least information; staged rule = cheap safe duplicate-pruning early, no irreversible cross-tool decision until completion | 192 | `falsifierReplay()` tokens-saved-per-hop output |
+| Select is ADVISORY-ONLY: Batch 3's Select step must NOT be constrained rescoring / teacher-forced name selection — at AST level (name + arguments) that protocol loses −19.1 pts pooled to free generation, and even forcing the GOLD name scores below free generation per model (0.24/0.44/0.55 vs 0.28/0.67/0.77). The only Select behavior is a soft advisory hint into a FREE generation of the whole call (pooled AST +1.8, McNemar p=0.06, n.s. — at-worst-neutral, never a deployment win), or a gated dispute-tier re-check that re-generates freely with the hint. Any forced-prefix spec throws | 194 (Chen, arXiv:2606.16364) | `advisoryHint()`, `assertAdvisoryOnlySelect()`, `selectAdvisory()`, `SELECT_ADVISORY_ONLY_GUARDRAIL` |
+| Attention-segment selector is SINGLE-HOP ONLY: its gains (+11.9 BFCL / +14.9 Seal-Tools) are name-only, single-call results under a protocol that loses at AST — quoting them as end-to-end call-accuracy gain is a misquote. Multi-turn transfer fails (−27 pts on the τ-bench probe; gate AUROC 0.48/0.73), so multi-turn use is refused until re-validated in a real multi-turn loop; raw ungated selection regresses on 3B (−4.7), so the logprob-margin gate is load-bearing | 194 | `assertSingleHopScope()`, `CHEN_194_FINDINGS` |
+| Eager-attention deployment constraint: HAA requires HuggingFace eager attention with output_attentions on; vLLM cannot expose attention weights. The bundled runner must either serve the disputed hop in eager mode (a separate slow path) or forgo attention-segment signals entirely. The 1.2× selector cost is measured against an eager baseline, NOT against an optimized FlashAttention/vLLM path | 194 | `selectorServingPath()`, `EAGER_ATTENTION_DEPLOYMENT_CONSTRAINT` |
+| Selector and ModeX are ALTERNATIVES for a disputed hop, not votes: no vote/ensemble path exists — the paper's panel-vote variant loses 32 points. Exactly one tier must be named | 194 | `chooseDisputedHopTier()` |
+| Core finding + Correction 2: on 198 real BFCL live_multiple failures, per-candidate attention argmax points to the gold tool on 80% (per-model 0.71/0.86/0.80) vs 21% chance — failure at the readout, not the harness. Input-side repairs recover ≤23% (reorder 18.2%, duplicate 16.7%); the wrong-tool budget goes to readout-side mechanisms (advisory hint, calibrated steering, retraining) and logging the failure as a counterfactual trace for the sleep job. Steering fixes WHICH function is named, never its arguments (calibrated δ=+2: name 0.67/0.04, arguments net-zero 0.13/0.13; δ=+8 under free generation collapses name 0.929→0.20) | 194 | `wrongToolBudgetAllows()`, `CHEN_194_FINDINGS` |
+| Round-5 constraint composes with round 4, does not replace it: the C0/C1/C2 diversity-preserving prefix tier STANDS untouched; the advisory hint never deletes a tool identity, so prune (duplicates only) → hint (advice only) → free generation | 194 | `selectAdvisory()` over `prefixPrune()` survivors (test) |
 
 ### Signal convention
 
@@ -130,6 +136,19 @@ otherwise, and the Batch 16 three-class split is untouched here.
   reading (upward re-freeze as a recorded sleep-job decision, never
   automatic) is not enforced by this function; callers that want it
   should gate upward re-freezes on a recorded decision.
+- **Round-5 numbers are the paper's, not the product's (Batch 194).**
+  Every Chen figure in `CHEN_194_FINDINGS` (80% attention argmax,
+  −19.1 AST, +1.8 advisory, +11.9/+14.9 name-only, −27 multi-turn,
+  1.2× eager-baseline cost) is the paper's on its benchmarks (BFCL
+  live_multiple 300/model, Seal-Tools 294/model, scripted τ-bench
+  probe), NOT on the north-star tool pool or the bundled base. No
+  live model run, no attention measured, no product gate verified, no
+  SEP conformance claimed. The +1.8 advisory figure is within noise
+  (p=0.06) and must never be quoted as a deployment win; the
+  +11.9/+14.9 figures must never be quoted as end-to-end
+  call-accuracy gain. Whether a soft advisory hint helps on the
+  person's own repeated tasks, and whether eager-mode disputed hops
+  are affordable on the target machine, are both untested.
 - **Prefix tier is harness-proven, NOT design-proven (Batch 192).**
   All falsifier tests run on synthetic fixtures: they prove the
   harness mechanics (agreement / regret / token-saved computation,
@@ -148,9 +167,12 @@ otherwise, and the Batch 16 three-class split is untouched here.
   whether that bet is safe. If regret condemns C0, the named fallback
   is keeping all same-tool candidates until C1 splits them by
   parameter set. No tool-call-specific early-pruning paper was found
-  in Batch 192; the Chen (arXiv:2606.16364) and Sun/Hong related-work
-  leads were NOT read in full and their numbers are NOT cited or
-  built on here. Default value normalization is casefold + sorted
+  in Batch 192; the Sun/Hong related-work leads were NOT read in full
+  and their numbers are NOT cited or built on here. Chen
+  (arXiv:2606.16364) WAS read in full in Batch 194 and is built on in
+  the round-5 section above (main text only — appendix tables were
+  not re-read, so no appendix-only number is quoted). Default value
+  normalization is casefold + sorted
   keys only; full Batch 10 per-argument rules (number tolerance, date
   parse, enum alias, defaults, ignored args) are caller-supplied via
   `normalizeFn`, not claimed by the default.

@@ -18,10 +18,10 @@ SEP-2484 conformance — host trust judgments are not protocol-observable
 - `node WORKBENCH_COMPLETE/workbench/north-star/interceptors/interceptors.test.cjs`
 
 Test totals, each re-run by the coordinator from the assembled branch location:
-verifier 47/47, plan-executor 47/47, provenance 19/19, interceptors 45/45 —
-**158 pass, 0 fail** (round 1: 109; round 2 adds 33: plan-executor +14,
+verifier 47/47, plan-executor 59/59, provenance 19/19, interceptors 45/45 —
+**170 pass, 0 fail** (round 1: 109; round 2 adds 33: plan-executor +14,
 interceptors +19; round 3 adds 5: interceptors +5; round 4 adds 11:
-plan-executor +11).
+plan-executor +11; round 5 adds 12: plan-executor +12).
 
 ## What each piece implements (mapped to batches)
 
@@ -44,7 +44,7 @@ records separate from negotiation (source + source date; stale flagged).
 Coexisting identifiers independent. Session taint segments keyed on the full
 tuple; mid-session change closes with a break marker, old attributions frozen.
 
-### plan-executor/ — level-wise plan executor (Batches 169, 171, 173, 175, 177, 179, 192)
+### plan-executor/ — level-wise plan executor (Batches 169, 171, 173, 175, 177, 179, 192, 194)
 DAG level computation (longest-path depth, siblings parallel). Level-wise
 prefix accumulation: each level sees only completed levels' joint observation.
 Replan ONLY at level/iteration boundaries on completed joint observation;
@@ -186,6 +186,45 @@ fixture number is a finding, parser cost is unmeasured, and the
 Chen / Sun / Hong leads were not read in full and are not cited or
 built on. Full-call `modalSelect()` untouched.
 
+## Round 5 (Batch 194) — delta only, round-1/2/3/4 code extended not rewritten
+
+### plan-executor/ — Batch 194: Chen advisory-only Select constraint
+CORRECTION 1, the main constraint: Batch 3's Select step must NOT be
+constrained rescoring / teacher-forced name selection. At AST level
+that protocol loses −19.1 pts pooled to free generation, and even
+forcing the GOLD name scores below free generation per model
+(0.24/0.44/0.55 vs 0.28/0.67/0.77). The only Select behavior is a soft
+advisory hint into a FREE generation of the whole call (pooled AST
++1.8, McNemar p=0.06, n.s. — at-worst-neutral, never a deployment
+win), or a gated dispute-tier re-check that re-generates freely with
+the hint; any forced-prefix spec throws. CORRECTION 2: on 198 real
+BFCL live_multiple failures, per-candidate attention argmax points to
+the gold tool on 80% (per-model 0.71/0.86/0.80) vs 21% chance —
+failure at the readout, not the harness — so the wrong-tool budget
+goes to readout-side mechanisms and counterfactual-trace logging for
+the sleep job, never to harness reordering (18.2%) or duplication
+(16.7%, bound ≤23%). The attention-segment selector is SINGLE-HOP
+ONLY: its +11.9 BFCL / +14.9 Seal-Tools gains are name-only,
+single-call results (quoting them as end-to-end call-accuracy gain is
+a misquote) and it loses −27 pts multi-turn on the τ-bench probe
+(gate AUROC 0.48/0.73), so multi-turn use is refused until
+re-validated in a real loop. Eager-attention deployment constraint:
+HAA needs HuggingFace eager attention with output_attentions on;
+vLLM cannot expose attention weights, so the bundled runner must
+serve a disputed hop in eager mode (a separate slow path) or forgo
+attention-segment signals entirely, and the 1.2× selector cost is
+against an eager baseline, never against a FlashAttention/vLLM path.
+Selector and ModeX are alternatives for a disputed hop, not votes —
+the panel-vote variant loses 32 points, and no vote/ensemble path
+exists. Steering fixes WHICH function is named, never its arguments.
+Round 4's C0/C1/C2 diversity-preserving prefix tier STANDS untouched;
+the advisory hint never deletes a tool identity, so prune → hint →
+free generation compose. HONEST LIMIT: every Chen figure is the
+paper's on its benchmarks (main text only — appendix tables were not
+re-read, so no appendix-only number is quoted), NOT on the
+north-star tool pool or the bundled base; no live model run, no
+attention measured, no product gate verified.
+
 ## Out of scope (watch/citation-only — NOT built, correctly)
 Fork PR watch (Degiorgio#3 / upstream #2624 two-step trigger), OATR
 registry post-expiry checks, WAG/SEP watch items, SEP-1913 successor watch,
@@ -210,5 +249,10 @@ not code, and no code was built for them.
   real tool timing has been collected; no model/tool integration.
 - **No wiring**: nothing here is imported by the workbench, launcher, or any
   server. Activation is a separate decision.
+- **Round-5 validations owed**: advisory-hint test design on the person's own
+  repeated tasks (hint vs free generation, AST-scored, not name-scored);
+  eager-mode disputed-hop affordability on the target machine; attention-segment
+  selector re-validation in a real multi-turn loop (single-hop only until then);
+  falsifier execution on real logged disputed hops (none exist yet).
 - Test fixtures in `interceptors.test.cjs` use obvious dummy placeholders
   (`'hunter2'`, `'sk-123'`) as redaction fixtures only — no real secrets.

@@ -1915,6 +1915,344 @@ class PlanExecutor {
   }
 }
 
+// ------------------- Batch 194: Chen advisory-only Select (arXiv:2606.16364)
+//
+// CORRECTION 1 (the main constraint): Batch 3's Plan–Retrieve–Select
+// stage must NOT be implemented as constrained rescoring /
+// teacher-forced name selection. At AST level (name + arguments, the
+// official BFCL metric) the constrained-rescoring protocol LOSES to
+// free generation outright (−19.1 pts pooled), and the deficit is
+// selector-independent: even forcing the GOLD name scores below free
+// generation per model (0.24/0.44/0.55 vs 0.28/0.67/0.77).
+// Teacher-forcing name( pulls the model out of its native call format
+// and costs more argument accuracy than perfect name selection buys
+// back. The compliant delivery is a SOFT ADVISORY hint fed into a
+// FREE generation of the whole call (pooled AST +1.8 pts, McNemar
+// p=0.06, NOT SIGNIFICANT — recorded here as at-worst-neutral, never
+// as a deployment win), OR a gated dispute-tier re-check that
+// re-generates freely with the hint, never a forced prefix. There is
+// NO forced-prefix Select path in this module: assertAdvisoryOnlySelect
+// throws on any forced-prefix / teacher-forced / constrained-rescoring
+// spec, and advisoryHint() throws when handed a forced prefix.
+//
+// This delta CONSTRAINS the Select stage; it does NOT replace Round 4's
+// prefix tier (C0/C1/C2, diversity-preserving prune), which STANDS
+// untouched. The prefix tier prunes duplicates within a cluster; the
+// advisory hint never deletes a tool identity, so the two compose:
+// prune first (duplicates only), hint second (advice only), generate
+// freely third.
+//
+// CORE FINDING (CORRECTION 2 + README): on 198 real BFCL
+// live_multiple failures, the per-candidate attention argmax points to
+// the gold tool on 80% (per-model 0.71/0.86/0.80) vs 21% chance; the
+// gold is the literally under-attended segment on only 10%, and in
+// ~90% of failures it out-attends the wrongly-picked tool pairwise.
+// Failure is at the READOUT, not the harness. Input-side repairs
+// recover ≤23% (reorder gold-first 18.2%, duplicate gold 16.7% — the
+// abstract's "at most 23%" is the summary bound, not a table row).
+// The wrong-tool budget therefore goes to readout-side mechanisms
+// (advisory hint, calibrated steering, or retraining) and, per Batch
+// 5's ladder, to logging the failure as a counterfactual trace for
+// the sleep job. Do NOT spend budget on harness reordering or
+// duplication — wrongToolBudgetAllows() enforces that split.
+//
+// SCOPE LIMIT (misquote guard): the attention-segment selector's
+// gains (+11.9 BFCL / +14.9 Seal-Tools, 5-model pooled +11.2) are
+// NAME-ONLY, SINGLE-CALL results under a protocol that loses at AST.
+// Quoting them as end-to-end call-accuracy gain is a MISQUOTE. They
+// do NOT transfer multi-turn: −27 pts on the τ-bench probe, whose
+// gate signal is near-chance multi-step (AUROC 0.48/0.73). The
+// selector is therefore SINGLE-HOP ONLY until re-validated in a real
+// multi-turn loop — assertSingleHopScope() refuses multi-turn use.
+// Its gate (logprob margin) is free logits, converging with Batch 5's
+// perplexity/logprob-first proxy rule; raw ungated selection REGRESSES
+// on 3B (−4.7), so the gate is load-bearing, not decoration.
+//
+// DEPLOYMENT CONSTRAINT: HAA requires HuggingFace eager attention with
+// output_attentions on; vLLM cannot expose attention weights. The
+// bundled runner must either serve the disputed hop in eager mode (a
+// separate slow path) or forgo attention-segment signals entirely.
+// The 1.2× selector cost is measured against an EAGER baseline, NOT
+// against an optimized FlashAttention/vLLM path — never quote it as
+// the cost of adding the selector to a vLLM-served model.
+//
+// ALTERNATIVE, NOT VOTE: if both the attention-segment selector and
+// the ModeX tier exist, they are ALTERNATIVES for a disputed hop, not
+// votes. Do NOT ensemble by boosting candidates and voting — the
+// paper's panel-vote variant loses 32 points. chooseDisputedHopTier()
+// throws when given more than one tier or any vote/ensemble flag.
+//
+// STEERING SCOPE: attention-segment steering fixes WHICH function is
+// named, never its arguments. Calibrated δ=+2 in free generation
+// recovers name selection (0.67 recovery / 0.04 damage) but
+// argument-level recovery is net-zero (0.13/0.13); the constrained
+// sweet-spot δ=+8 OVER-boosts under free generation and collapses
+// name accuracy (0.929→0.20). Arguments come from the query and
+// reasoning, not from the steering knob.
+//
+// HARNESS-VS-PRODUCT DISTINCTION (kept, as in every round): product
+// candidates only, no product gate verified, no SEP conformance
+// claimed, no live model run, no attention measured. EVERY number in
+// CHEN_194_FINDINGS is the paper's, on its benchmarks (BFCL
+// live_multiple 300/model, Seal-Tools 294/model, synthetic confusable
+// tasks, scripted τ-bench probe), NOT on the north-star tool pool or
+// the bundled base. Appendix tables were NOT re-read; no
+// appendix-only number is quoted here.
+
+const SELECT_ADVISORY_ONLY_GUARDRAIL =
+  'Select advisory-only guardrail (Batch 194, Chen arXiv:2606.16364): ' +
+  'Select NEVER forces a tool name as a prefix and NEVER rescores under ' +
+  'a constrained protocol. Its output is a soft advisory hint fed into ' +
+  'a FREE generation of the whole call, or a gated dispute-tier re-check ' +
+  'that re-generates freely with the hint. Hard name-forcing loses ' +
+  '−19.1 AST points pooled even with a perfect name; the advisory ' +
+  'delivery is +1.8 AST pooled, McNemar p=0.06, NOT SIGNIFICANT — ' +
+  'at-worst-neutral, never a deployment win.';
+
+const EAGER_ATTENTION_DEPLOYMENT_CONSTRAINT =
+  'Eager-attention deployment constraint (Batch 194): HAA requires ' +
+  'HuggingFace eager attention with output_attentions on; vLLM cannot ' +
+  'expose attention weights. The bundled runner must either serve the ' +
+  'disputed hop in eager mode (a separate slow path) or forgo ' +
+  'attention-segment signals entirely. The 1.2× selector cost is ' +
+  'measured against an eager baseline, NOT against an optimized ' +
+  'FlashAttention/vLLM path.';
+
+/** Paper figures, recorded exactly as Batch 194 verified them (main text only). */
+const CHEN_194_FINDINGS = {
+  paper: 'Chen, "Looking Is Not Picking," arXiv:2606.16364',
+  coreFinding: {
+    failuresExamined: 198,
+    attentionArgmaxPointsToGold: 0.80,
+    perModel: [0.71, 0.86, 0.80],
+    chance: 0.21,
+    goldLiterallyUnderAttended: 0.10,
+    goldOutAttendsWrongPickPairwise: '~0.90',
+    reading: 'failure at the readout, not the harness',
+  },
+  inputSideRepairs: {
+    reorderGoldFirst: 0.182,
+    duplicateGold: 0.167,
+    summaryBound: '<=0.23',
+    note: 'abstract "at most 23%" is the summary bound, not a table row',
+  },
+  astLevel: {
+    constrainedRescoringVsFreeGenerationPooled: -19.1,
+    goldForcedPerModel: [0.24, 0.44, 0.55],
+    freeGenerationPerModel: [0.28, 0.67, 0.77],
+    advisoryHintPooled: 1.8,
+    advisoryHintMcNemarP: 0.06,
+    advisoryHintSignificant: false,
+    advisoryHintReading: 'at-worst-neutral, never a deployment win',
+    advisoryHintWeakestModel: { model: 'Qwen2.5-1.5B', gain: 6.0 },
+    hardNameForcingSameRows: -18.3,
+    gatedPipelineVsForcedNameBaseline: { bfcl: 5.2, sealTools: 8.7, note: 'a win over a broken protocol, not over free generation' },
+  },
+  selectorNameOnlySingleCall: {
+    bfcl: 11.9,
+    sealTools: 14.9,
+    fiveModelPooled: 11.2,
+    scope: 'name-only, single-call; NOT end-to-end call accuracy',
+    misquoteWarning: 'quoting +11.9/+14.9 as end-to-end call-accuracy gain is a misquote',
+    rawUngatedOn3B: -4.7,
+    panelVoteVariant: -32,
+  },
+  multiTurnNonTransfer: {
+    tauBenchProbe: -27,
+    gateSignalAuroc: [0.48, 0.73],
+    gateSignalReading: 'near-chance multi-step',
+    scope: 'single-hop only until re-validated in a real multi-turn loop',
+  },
+  steeringScope: {
+    fixes: 'WHICH function is named, never its arguments',
+    calibratedDelta2FreeGeneration: { nameRecovery: 0.67, nameDamage: 0.04, argumentRecovery: 0.13, argumentDamage: 0.13, argumentReading: 'net-zero' },
+    constrainedDelta8UnderFreeGeneration: { nameAccuracyFrom: 0.929, nameAccuracyTo: 0.20, reading: 'over-boosts and collapses' },
+  },
+  costAndServing: {
+    selectorCostVsEagerBaseline: '1.2x',
+    costBasisWarning: 'measured against an eager baseline, NOT against an optimized FlashAttention/vLLM path',
+    attentionRequirement: 'HuggingFace eager attention with output_attentions on; vLLM cannot expose attention weights',
+  },
+  scopeNote: 'All figures are the paper\'s, on its benchmarks — NOT on the north-star tool pool or the bundled base. No live model run, no attention measured here.',
+};
+
+/**
+ * Build a soft advisory hint for a disputed hop. The hint is advice
+ * carried into a FREE generation of the whole call; it is never a
+ * forced prefix, never a constrained rescore, and never deletes a
+ * candidate. opts.forcedPrefix / opts.teacherForcedName /
+ * opts.constrainedRescoring are refused loudly, never silently dropped.
+ * Returns { kind: 'advisory-hint', recommendedTool, hint, freeGeneration,
+ * forcedPrefix: null, astNote, guardrail }.
+ */
+function advisoryHint(recommendedTool, opts = {}) {
+  if (typeof recommendedTool !== 'string' || recommendedTool.length === 0) {
+    throw new Error('advisoryHint: recommendedTool must be a non-empty string');
+  }
+  if (opts.forcedPrefix !== undefined && opts.forcedPrefix !== null) {
+    throw new Error('advisoryHint: forced prefix refused — Select is advisory-only (Batch 194); a forced prefix loses −19.1 AST points pooled even with a perfect name');
+  }
+  if (opts.teacherForcedName === true || opts.constrainedRescoring === true) {
+    throw new Error('advisoryHint: teacher-forced / constrained-rescoring selection refused — Select is advisory-only (Batch 194)');
+  }
+  return {
+    kind: 'advisory-hint',
+    recommendedTool,
+    hint: `Consider ${recommendedTool} — advisory only; generate the full call freely.`,
+    freeGeneration: true,
+    forcedPrefix: null,
+    astNote: 'Advisory delivery: pooled AST +1.8, McNemar p=0.06, not significant — at-worst-neutral, never a deployment win.',
+    guardrail: SELECT_ADVISORY_ONLY_GUARDRAIL,
+  };
+}
+
+/**
+ * Guard: reject any Select spec that carries a forced-prefix,
+ * teacher-forced-name, or constrained-rescoring delivery. Returns
+ * { advisoryOnly: true } for a clean spec. This is the enforcement
+ * point for Correction 1: there is no forced-prefix path to fall back
+ * to, so a non-compliant spec fails here instead of running.
+ */
+function assertAdvisoryOnlySelect(spec = {}) {
+  if (spec === null || typeof spec !== 'object') throw new Error('assertAdvisoryOnlySelect: spec must be an object');
+  if (spec.forcedPrefix !== undefined && spec.forcedPrefix !== null) {
+    throw new Error('assertAdvisoryOnlySelect: forced-prefix selection refused — Select is advisory-only (Batch 194)');
+  }
+  if (spec.teacherForcedName === true) {
+    throw new Error('assertAdvisoryOnlySelect: teacher-forced name selection refused — Select is advisory-only (Batch 194)');
+  }
+  if (spec.constrainedRescoring === true || spec.constrainedSelection === true) {
+    throw new Error('assertAdvisoryOnlySelect: constrained-rescoring selection refused — Select is advisory-only (Batch 194)');
+  }
+  if (spec.forceToolName === true || spec.prefixForced === true) {
+    throw new Error('assertAdvisoryOnlySelect: forced tool-name prefix refused — Select is advisory-only (Batch 194)');
+  }
+  return { advisoryOnly: true, guardrail: SELECT_ADVISORY_ONLY_GUARDRAIL };
+}
+
+/**
+ * The ONLY Select behavior in this module: given one hop's candidates
+ * and a recommended tool, return the advisory hint plus the full
+ * candidate list, unpruned by the hint. The hint advises; it does not
+ * select, delete, or reorder candidates. opts passes through to
+ * assertAdvisoryOnlySelect (any forced-prefix field throws).
+ */
+function selectAdvisory(candidates, recommendedTool, opts = {}) {
+  assertAdvisoryOnlySelect(opts);
+  if (!Array.isArray(candidates)) throw new Error('selectAdvisory: candidates must be an array');
+  const hint = advisoryHint(recommendedTool, opts);
+  return {
+    kind: 'select-advisory',
+    hint,
+    recommendedTool,
+    candidateIds: candidates.filter((c) => c && typeof c.id === 'string').map((c) => c.id),
+    deletesNoCandidate: true,
+    freeGeneration: true,
+    guardrail: SELECT_ADVISORY_ONLY_GUARDRAIL,
+  };
+}
+
+/**
+ * Single-hop scope guard for the attention-segment selector. The
+ * selector's gains are single-call results and do NOT transfer
+ * multi-turn (−27 pts on the τ-bench probe; gate AUROC 0.48/0.73).
+ * Throws on any multi-turn context; returns { scope:
+ * 'single-hop-only', allowed: true } for a single hop.
+ */
+function assertSingleHopScope(context = {}) {
+  if (context.multiTurn === true || context.multiStep === true) {
+    throw new Error('assertSingleHopScope: attention-segment selector is SINGLE-HOP ONLY — multi-turn use refused until re-validated in a real multi-turn loop (Batch 194: −27 pts on the τ-bench probe)');
+  }
+  if (typeof context.turns === 'number' && context.turns > 1) {
+    throw new Error('assertSingleHopScope: attention-segment selector is SINGLE-HOP ONLY — turns > 1 refused until re-validated in a real multi-turn loop (Batch 194)');
+  }
+  if (context.loop === 'multi-turn' || context.conversationTurns === true) {
+    throw new Error('assertSingleHopScope: attention-segment selector is SINGLE-HOP ONLY — multi-turn loop use refused (Batch 194)');
+  }
+  return { scope: 'single-hop-only', allowed: true, note: 'Single-call name-only gains (+11.9 BFCL / +14.9 Seal-Tools) do not transfer multi-turn; re-validation in a real loop is required first.' };
+}
+
+/**
+ * Serving-path decision for the attention-segment selector. HAA needs
+ * eager attention with output_attentions on; vLLM (and any
+ * FlashAttention path that cannot expose weights) cannot supply it.
+ * Returns { serve, attentionWeights, costBasis, constraint } where
+ * serve is 'eager-slow-path' (eager mode available for the disputed
+ * hop) or 'forgo-attention-signals' (serve without the selector).
+ * An unknown/unproven serving path forgoes the signals — attention
+ * availability is never assumed.
+ */
+function selectorServingPath(opts = {}) {
+  const serving = opts.servingPath || opts.serving || null;
+  const eager = opts.eagerAttention === true || serving === 'eager' || serving === 'huggingface-eager';
+  if (eager && opts.outputAttentions !== false) {
+    return {
+      serve: 'eager-slow-path',
+      attentionWeights: true,
+      costBasis: '1.2x selector cost measured against an eager baseline, NOT against an optimized FlashAttention/vLLM path',
+      constraint: EAGER_ATTENTION_DEPLOYMENT_CONSTRAINT,
+    };
+  }
+  if (serving === 'vllm' || serving === 'flash-attention' || serving === 'flashattention' || opts.attentionWeights === false) {
+    return {
+      serve: 'forgo-attention-signals',
+      attentionWeights: false,
+      costBasis: '1.2x must NOT be quoted as the cost of adding the selector to a vLLM-served model',
+      constraint: EAGER_ATTENTION_DEPLOYMENT_CONSTRAINT,
+    };
+  }
+  return {
+    serve: 'forgo-attention-signals',
+    attentionWeights: false,
+    costBasis: 'attention availability unproven for this serving path; forgo signals rather than assume them',
+    constraint: EAGER_ATTENTION_DEPLOYMENT_CONSTRAINT,
+  };
+}
+
+/**
+ * Disputed-hop tier choice: the attention-segment selector and the
+ * ModeX tier are ALTERNATIVES, not votes. Throws when more than one
+ * tier is chosen or when any vote/ensemble/boost-and-vote flag is
+ * present (the paper's panel-vote variant loses 32 points). Exactly
+ * one tier must be named: 'attention-segment' or 'modex'.
+ */
+function chooseDisputedHopTier(opts = {}) {
+  if (opts.ensemble === true || opts.vote === true || opts.panelVote === true || opts.boostAndVote === true) {
+    throw new Error('chooseDisputedHopTier: no vote/ensemble path exists — attention-segment and ModeX are alternatives, not votes (Batch 194: panel-vote variant loses 32 points)');
+  }
+  const tiers = Array.isArray(opts.tiers) ? opts.tiers : (opts.tier ? [opts.tier] : []);
+  if (tiers.length !== 1) {
+    throw new Error(`chooseDisputedHopTier: exactly one disputed-hop tier required (got ${tiers.length}); attention-segment and ModeX are alternatives, not votes`);
+  }
+  const tier = tiers[0];
+  if (tier !== 'attention-segment' && tier !== 'modex') {
+    throw new Error(`chooseDisputedHopTier: unknown tier "${tier}" (expected 'attention-segment' or 'modex')`);
+  }
+  return { tier, alternativesNotVotes: true, note: 'The unchosen tier is not consulted; no boosting, no vote, no ensemble.' };
+}
+
+/**
+ * Wrong-tool budget split (Correction 2). Readout-side mechanisms and
+ * the counterfactual-trace log are funded; harness reordering and
+ * duplication are NOT (they recover ≤23% because the model already
+ * attended to the gold tool). Returns { allowed, reason }.
+ */
+function wrongToolBudgetAllows(mechanism) {
+  const funded = {
+    'advisory-hint': 'readout-side: soft advisory into free generation (AST +1.8, n.s. — at-worst-neutral)',
+    'calibrated-steering': 'readout-side: calibrated steering in free generation (fixes WHICH function is named, never its arguments)',
+    'retraining': 'readout-side: retraining the readout',
+    'counterfactual-trace': 'per Batch 5\'s ladder: log the failure as a counterfactual trace for the sleep job',
+  };
+  if (Object.prototype.hasOwnProperty.call(funded, mechanism)) {
+    return { allowed: true, mechanism, reason: funded[mechanism] };
+  }
+  if (mechanism === 'harness-reorder' || mechanism === 'harness-duplicate') {
+    return { allowed: false, mechanism, reason: 'input-side repair refused: reorder gold-first recovers 18.2%, duplicate gold 16.7% (bound ≤23%) — the model already attended to the gold tool; failure is readout-side' };
+  }
+  return { allowed: false, mechanism, reason: `unknown wrong-tool mechanism "${mechanism}"; only advisory-hint, calibrated-steering, retraining, and counterfactual-trace are funded` };
+}
+
 module.exports = {
   percentile,
   median,
@@ -1948,4 +2286,15 @@ module.exports = {
   prefixPrune,
   proxyTokens,
   falsifierReplay,
+  // Batch 194: Chen advisory-only Select constraint.
+  SELECT_ADVISORY_ONLY_GUARDRAIL,
+  EAGER_ATTENTION_DEPLOYMENT_CONSTRAINT,
+  CHEN_194_FINDINGS,
+  advisoryHint,
+  assertAdvisoryOnlySelect,
+  selectAdvisory,
+  assertSingleHopScope,
+  selectorServingPath,
+  chooseDisputedHopTier,
+  wrongToolBudgetAllows,
 };

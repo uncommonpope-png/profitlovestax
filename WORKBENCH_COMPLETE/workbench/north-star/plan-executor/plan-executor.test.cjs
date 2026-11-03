@@ -30,6 +30,16 @@ const {
   prefixPrune,
   proxyTokens,
   falsifierReplay,
+  SELECT_ADVISORY_ONLY_GUARDRAIL,
+  EAGER_ATTENTION_DEPLOYMENT_CONSTRAINT,
+  CHEN_194_FINDINGS,
+  advisoryHint,
+  assertAdvisoryOnlySelect,
+  selectAdvisory,
+  assertSingleHopScope,
+  selectorServingPath,
+  chooseDisputedHopTier,
+  wrongToolBudgetAllows,
 } = require('./plan-executor.cjs');
 
 const read = (id, dependsOn, run) => ({ id, dependsOn, kind: 'read', readOnly: true, run: run || (async () => `${id}-done`) });
@@ -824,4 +834,140 @@ test('Batch 192: falsifier harness — token-length distribution is reported, no
   // still unmeasured and the harness exists to measure it.
   assert.equal(d.fracUnder100, 1);
   assert.ok(proxyTokens('{"tool":"search"') > 0);
+});
+
+// ------------------------------------------- Batch 194: Chen advisory-only Select
+
+test('Batch 194: forced-prefix Select is rejected — no forced-prefix path exists', () => {
+  assert.throws(() => assertAdvisoryOnlySelect({ forcedPrefix: 'search(' }), /advisory-only/);
+  assert.throws(() => assertAdvisoryOnlySelect({ teacherForcedName: true }), /advisory-only/);
+  assert.throws(() => assertAdvisoryOnlySelect({ constrainedRescoring: true }), /advisory-only/);
+  assert.throws(() => assertAdvisoryOnlySelect({ constrainedSelection: true }), /advisory-only/);
+  assert.throws(() => assertAdvisoryOnlySelect({ forceToolName: true }), /advisory-only/);
+  assert.throws(() => advisoryHint('search', { forcedPrefix: 'search(' }), /forced prefix refused/);
+  assert.throws(() => advisoryHint('search', { teacherForcedName: true }), /refused/);
+  assert.throws(() => selectAdvisory([{ id: 'a' }], 'search', { forcedPrefix: 'search(' }), /advisory-only/);
+});
+
+test('Batch 194: advisory path is the only Select behavior — hint advises, never selects or deletes', () => {
+  const out = selectAdvisory(
+    [{ id: 'a', tool: 'search' }, { id: 'b', tool: 'note' }],
+    'search',
+  );
+  assert.equal(out.kind, 'select-advisory');
+  assert.equal(out.hint.kind, 'advisory-hint');
+  assert.equal(out.hint.freeGeneration, true);
+  assert.equal(out.hint.forcedPrefix, null);
+  assert.deepEqual(out.candidateIds, ['a', 'b']); // hint deletes no candidate
+  assert.equal(out.deletesNoCandidate, true);
+  assert.equal(assertAdvisoryOnlySelect({}).advisoryOnly, true);
+  assert.match(SELECT_ADVISORY_ONLY_GUARDRAIL, /advisory/);
+});
+
+test('Batch 194: +1.8 AST is recorded as within-noise, never as a claimed gain', () => {
+  assert.equal(CHEN_194_FINDINGS.astLevel.advisoryHintPooled, 1.8);
+  assert.equal(CHEN_194_FINDINGS.astLevel.advisoryHintMcNemarP, 0.06);
+  assert.equal(CHEN_194_FINDINGS.astLevel.advisoryHintSignificant, false);
+  assert.match(CHEN_194_FINDINGS.astLevel.advisoryHintReading, /at-worst-neutral/);
+  assert.match(advisoryHint('search').astNote, /not significant/);
+  // The negative side is recorded alongside, so the +1.8 can never be
+  // quoted without its context: hard forcing loses even with gold.
+  assert.equal(CHEN_194_FINDINGS.astLevel.constrainedRescoringVsFreeGenerationPooled, -19.1);
+  assert.deepEqual(CHEN_194_FINDINGS.astLevel.goldForcedPerModel, [0.24, 0.44, 0.55]);
+  assert.deepEqual(CHEN_194_FINDINGS.astLevel.freeGenerationPerModel, [0.28, 0.67, 0.77]);
+});
+
+test('Batch 194: single-hop scope — multi-turn use of the attention-segment selector is refused', () => {
+  assert.deepEqual(assertSingleHopScope({}).scope, 'single-hop-only');
+  assert.deepEqual(assertSingleHopScope({ turns: 1 }).allowed, true);
+  assert.throws(() => assertSingleHopScope({ multiTurn: true }), /SINGLE-HOP ONLY/);
+  assert.throws(() => assertSingleHopScope({ turns: 2 }), /SINGLE-HOP ONLY/);
+  assert.throws(() => assertSingleHopScope({ loop: 'multi-turn' }), /SINGLE-HOP ONLY/);
+  assert.equal(CHEN_194_FINDINGS.multiTurnNonTransfer.tauBenchProbe, -27);
+  assert.deepEqual(CHEN_194_FINDINGS.multiTurnNonTransfer.gateSignalAuroc, [0.48, 0.73]);
+});
+
+test('Batch 194: +11.9/+14.9 recorded as name-only single-call gains — quoting them as end-to-end gain is a misquote', () => {
+  assert.equal(CHEN_194_FINDINGS.selectorNameOnlySingleCall.bfcl, 11.9);
+  assert.equal(CHEN_194_FINDINGS.selectorNameOnlySingleCall.sealTools, 14.9);
+  assert.match(CHEN_194_FINDINGS.selectorNameOnlySingleCall.scope, /name-only, single-call/);
+  assert.match(CHEN_194_FINDINGS.selectorNameOnlySingleCall.misquoteWarning, /misquote/);
+  assert.equal(CHEN_194_FINDINGS.selectorNameOnlySingleCall.rawUngatedOn3B, -4.7);
+});
+
+test('Batch 194: eager-attention deployment constraint — vLLM forgoes signals, eager serves a slow path', () => {
+  const vllm = selectorServingPath({ servingPath: 'vllm' });
+  assert.equal(vllm.serve, 'forgo-attention-signals');
+  assert.equal(vllm.attentionWeights, false);
+  assert.match(vllm.costBasis, /must NOT be quoted/);
+  const eager = selectorServingPath({ servingPath: 'eager', outputAttentions: true });
+  assert.equal(eager.serve, 'eager-slow-path');
+  assert.equal(eager.attentionWeights, true);
+  assert.match(eager.costBasis, /eager baseline/);
+  assert.equal(selectorServingPath({}).serve, 'forgo-attention-signals'); // unproven path never assumed
+  assert.match(EAGER_ATTENTION_DEPLOYMENT_CONSTRAINT, /vLLM cannot expose attention weights/);
+  assert.equal(CHEN_194_FINDINGS.costAndServing.selectorCostVsEagerBaseline, '1.2x');
+});
+
+test('Batch 194: selector and ModeX are alternatives, not votes — no vote/ensemble path exists', () => {
+  assert.equal(chooseDisputedHopTier({ tier: 'attention-segment' }).tier, 'attention-segment');
+  assert.equal(chooseDisputedHopTier({ tier: 'modex' }).alternativesNotVotes, true);
+  assert.throws(() => chooseDisputedHopTier({ tiers: ['attention-segment', 'modex'] }), /alternatives, not votes/);
+  assert.throws(() => chooseDisputedHopTier({ tier: 'modex', ensemble: true }), /no vote\/ensemble/);
+  assert.throws(() => chooseDisputedHopTier({ tier: 'attention-segment', panelVote: true }), /no vote\/ensemble/);
+  assert.throws(() => chooseDisputedHopTier({}), /exactly one/);
+  assert.equal(CHEN_194_FINDINGS.selectorNameOnlySingleCall.panelVoteVariant, -32);
+});
+
+test('Batch 194: core finding — failure at the readout, not the harness', () => {
+  const core = CHEN_194_FINDINGS.coreFinding;
+  assert.equal(core.failuresExamined, 198);
+  assert.equal(core.attentionArgmaxPointsToGold, 0.80);
+  assert.deepEqual(core.perModel, [0.71, 0.86, 0.80]);
+  assert.equal(core.chance, 0.21);
+  assert.equal(core.goldLiterallyUnderAttended, 0.10);
+  assert.match(core.reading, /readout, not the harness/);
+});
+
+test('Batch 194: wrong-tool budget — harness reorder/duplicate refused, readout-side funded', () => {
+  assert.equal(wrongToolBudgetAllows('harness-reorder').allowed, false);
+  assert.equal(wrongToolBudgetAllows('harness-duplicate').allowed, false);
+  assert.equal(wrongToolBudgetAllows('advisory-hint').allowed, true);
+  assert.equal(wrongToolBudgetAllows('calibrated-steering').allowed, true);
+  assert.equal(wrongToolBudgetAllows('retraining').allowed, true);
+  assert.equal(wrongToolBudgetAllows('counterfactual-trace').allowed, true);
+  assert.equal(CHEN_194_FINDINGS.inputSideRepairs.reorderGoldFirst, 0.182);
+  assert.equal(CHEN_194_FINDINGS.inputSideRepairs.duplicateGold, 0.167);
+  assert.equal(CHEN_194_FINDINGS.inputSideRepairs.summaryBound, '<=0.23');
+});
+
+test('Batch 194: steering fixes WHICH function is named, never its arguments', () => {
+  const s = CHEN_194_FINDINGS.steeringScope;
+  assert.match(s.fixes, /never its arguments/);
+  assert.equal(s.calibratedDelta2FreeGeneration.nameRecovery, 0.67);
+  assert.equal(s.calibratedDelta2FreeGeneration.argumentRecovery, 0.13);
+  assert.equal(s.calibratedDelta2FreeGeneration.argumentDamage, 0.13);
+  assert.equal(s.constrainedDelta8UnderFreeGeneration.nameAccuracyFrom, 0.929);
+  assert.equal(s.constrainedDelta8UnderFreeGeneration.nameAccuracyTo, 0.20);
+});
+
+test('Batch 194: advisory hint composes with the round-4 prefix tier without replacing it', () => {
+  // Prefix tier still prunes duplicates within a cluster (round 4 stands).
+  const atC0 = candidatesAtCheckpoint([
+    { id: 'd1', tool: 'search', args: { q: 'a' } },
+    { id: 'd2', tool: 'search', args: { q: 'b' } },
+    { id: 'd3', tool: 'note', args: { body: 'x' } },
+  ], 'C0');
+  const pruned = prefixPrune(atC0, 'C0');
+  assert.ok(pruned.kept.includes('d3')); // minority tool cluster never pruned
+  // The advisory hint then advises over the survivors without deleting any.
+  const advised = selectAdvisory(atC0.filter((c) => pruned.kept.includes(c.id)), 'note');
+  assert.deepEqual(advised.candidateIds.sort(), pruned.kept.sort());
+  assert.equal(advised.hint.freeGeneration, true);
+});
+
+test('Batch 194: findings carry the harness-vs-product distinction — paper numbers, not pool numbers', () => {
+  assert.match(CHEN_194_FINDINGS.scopeNote, /NOT on the north-star tool pool/);
+  assert.match(CHEN_194_FINDINGS.scopeNote, /No live model run, no attention measured/);
+  assert.match(CHEN_194_FINDINGS.paper, /2606.16364/);
 });

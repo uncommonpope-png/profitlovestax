@@ -225,6 +225,42 @@ re-read, so no appendix-only number is quoted), NOT on the
 north-star tool pool or the bundled base; no live model run, no
 attention measured, no product gate verified.
 
+## Round 6 (Batch 197) — delta only, round-1/2/3/4/5 code extended not rewritten
+
+### plan-executor/ — Batch 197: advisory-hint test design, pre-registered
+
+The disputed-hop tier now has a testable entry gate, not just a
+mechanism: no advisory ships on a 20-task falsifier, no AST claim
+ships on a 100-task pilot, and no loop claim ships without M2's
+final-state delta. Three arms, same task, same model, greedy:
+(F) free generation, (A-rec) advisory with the Batch 3 Plan-top1
+recommendation (one model, two prompts, BM25 K=15, logprob-margin
+gated — no attention, vLLM-compatible, the deployable path),
+(A-gold) advisory with the GOLD tool name — the ceiling arm Chen
+lacks, and the diagnostic that makes the test interpretable: if
+A-gold AST ≤ free AST, the DELIVERY is neutral/harmful and
+recommendation work is moot; if A-gold helps but A-rec does not,
+the RECOMMENDATION is the bottleneck. Chen's S2 attention selector
+is a secondary LAB arm only (eager HF, cost vs an eager baseline),
+and every verdict line must name which arm was run. Gold is frozen
+before the test from the Batch 4 audit trail (schema-valid,
+executed, person-accepted or uncorrected), never derived from a
+hint-arm output; at least one-third confusable tasks and three
+routines, or the test has no headroom and its thresholds do not
+transfer. Scoring is AST-first with decomposition (name accuracy,
+argument accuracy conditional on correct name, valid@1, ExecRate,
+hint-follow and hint-override rates): name up with AST flat IS
+Chen's scope result reproduced, verdict "name-only," never
+"partial win." Hint wording is fixed verbatim (Chen publishes
+none) and arguments are never included. Multi-turn: M1 embedded
+single-hop, M2 full dependent episodes, final-state verdict rule —
+turn-1 positive but final-state ≤ 0 FAILS for loop use even if
+single-hop passes; Chen's last-token-margin gate is banned in
+multi-turn. HONEST LIMIT: pre-registered design only — nothing
+executed, no personal-task AST number exists; the pilot-first
+ordering (pilot, then M1/M2) is part of the spec. Round 5's
+advisory-only Select constraint STANDS untouched.
+
 ## Out of scope (watch/citation-only — NOT built, correctly)
 Fork PR watch (Degiorgio#3 / upstream #2624 two-step trigger), OATR
 registry post-expiry checks, WAG/SEP watch items, SEP-1913 successor watch,

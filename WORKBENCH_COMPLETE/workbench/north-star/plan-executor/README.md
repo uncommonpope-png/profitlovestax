@@ -3,7 +3,7 @@
 Node.js, CommonJS, zero dependencies. Runs with plain `node`.
 
 ```sh
-node plan-executor.test.cjs   # 59 tests, exit 0 on pass
+node plan-executor.test.cjs   # 73 tests, exit 0 on pass
 ```
 
 ## What it implements
@@ -57,6 +57,12 @@ executor }`. `prefix` is the list of completed levels only.
 | Selector and ModeX are ALTERNATIVES for a disputed hop, not votes: no vote/ensemble path exists — the paper's panel-vote variant loses 32 points. Exactly one tier must be named | 194 | `chooseDisputedHopTier()` |
 | Core finding + Correction 2: on 198 real BFCL live_multiple failures, per-candidate attention argmax points to the gold tool on 80% (per-model 0.71/0.86/0.80) vs 21% chance — failure at the readout, not the harness. Input-side repairs recover ≤23% (reorder 18.2%, duplicate 16.7%); the wrong-tool budget goes to readout-side mechanisms (advisory hint, calibrated steering, retraining) and logging the failure as a counterfactual trace for the sleep job. Steering fixes WHICH function is named, never its arguments (calibrated δ=+2: name 0.67/0.04, arguments net-zero 0.13/0.13; δ=+8 under free generation collapses name 0.929→0.20) | 194 | `wrongToolBudgetAllows()`, `CHEN_194_FINDINGS` |
 | Round-5 constraint composes with round 4, does not replace it: the C0/C1/C2 diversity-preserving prefix tier STANDS untouched; the advisory hint never deletes a tool identity, so prune (duplicates only) → hint (advice only) → free generation | 194 | `selectAdvisory()` over `prefixPrune()` survivors (test) |
+| Advisory-hint test design, pre-registered: three arms (free / Plan-top1 advisory / gold-hint ceiling Chen lacks), frozen personal gold, one-third confusable, three routines, AST decomposition (name AND arguments, order-independent) | 197 | `ADVISORY_TEST_ARMS`, `advisoryArmSpec()`, `assertTaskSet()`, `scoreCall()`, `scoreArms()` |
+| Tiered sample-size honesty: 20–30 falsifier ("not falsified" vs "falsified," never "works"); 100-task pilot cannot confirm Chen's +1.8 ("consistent with noise"); 300-task Chen-scale ceiling is "no large harm + direction," never "replicates Chen"; never pool across models/bases | 197 §4 | `SAMPLE_TIERS`, `tierForN()`, `checkClaim()`, `mcnemarReport()` |
+| Pairing controls: freeze memory/adapter/tool-pool growth, fixed order, fresh context per arm, full Batch 4 audit row per call | 197 §6 | `assertPairingControls()` |
+| Multi-turn survival: M1 embedded single-hop, M2 full episodes with final-state verdict; M1/M2 only after the pilot passes; Chen last-token-margin gate BANNED in multi-turn; turn-1 positive + final-state ≤ 0 = FAIL for loop use | 197 §7 | `assertMultiTurnOrder()`, `assertMultiTurnGate()`, `multiTurnVerdict()` |
+| Abort rules: advise-all AST below free with valid@1 down > 2 or ExecRate down > 3 stops the hint; A-gold helps but A-rec does not stops to re-examine the RECOMMENDATION | 197 §8 | `abortCheck()`, `assertPilotPassed()` |
+| Hint wording fixed and verbatim (Chen publishes none): one system-prompt line, arguments never included; a result without its verbatim hint string is not reproducible | 197 §3 | `ADVISORY_HINT_TEMPLATE`, `advisoryHintText()`, `assertVerbatimHint()` |
 
 ### Signal convention
 
@@ -136,6 +142,20 @@ otherwise, and the Batch 16 three-class split is untouched here.
   reading (upward re-freeze as a recorded sleep-job decision, never
   automatic) is not enforced by this function; callers that want it
   should gate upward re-freezes on a recorded decision.
+- **Round-6 harness is pre-registered, NOT executed (Batch 197).**
+  No task was run, no hint was tested, no AST number exists here for
+  personal tasks — the three-arm design, tier ceilings, pairing
+  controls, and multi-turn verdict rule are a spec plus guard code,
+  not results. The 100/300-task power ceilings are design judgments
+  from McNemar's discordant-only structure, not computed power
+  analyses for a specific base/task set; a real power calculation
+  needs the pilot's observed discordant rate. BFCL AST details and
+  τ-bench framing are secondary/abstract-level sources, not the
+  official eval code or the τ-bench paper in full. Execution order
+  is fixed by the batch: pilot first (100 tasks, three arms, frozen
+  gold), M1/M2 only after the pilot passes its abort rules, never M2
+  before the pilot, never wording-sensitivity arms merged into the
+  pilot.
 - **Round-5 numbers are the paper's, not the product's (Batch 194).**
   Every Chen figure in `CHEN_194_FINDINGS` (80% attention argmax,
   −19.1 AST, +1.8 advisory, +11.9/+14.9 name-only, −27 multi-turn,

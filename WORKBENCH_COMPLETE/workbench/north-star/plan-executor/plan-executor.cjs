@@ -2253,6 +2253,355 @@ function wrongToolBudgetAllows(mechanism) {
   return { allowed: false, mechanism, reason: `unknown wrong-tool mechanism "${mechanism}"; only advisory-hint, calibrated-steering, retraining, and counterfactual-trace are funded` };
 }
 
+
+// ------------------- Batch 197: advisory-hint test design (PRE-REGISTERED, UNEXECUTED)
+// Chen's advisory numbers are the paper's on BFCL/Seal-Tools, NOT on the
+// north-star tool pool or the bundled base. No task was run, no hint was
+// tested, no AST number exists here for personal tasks. This section is a
+// test harness skeleton plus guard rules: it encodes what a future test
+// MUST do (and must never claim) so a small pilot cannot be read as
+// confirming whatever delta it happens to produce. It never executes a
+// model call, never scores a real task, and never imports a live runner.
+
+/** The three arms, same task, same model, same harness order, greedy. */
+const ADVISORY_TEST_ARMS = ['free', 'advisory-rec', 'advisory-gold'];
+
+/**
+ * Hint wording, FIXED and verbatim (Batch 197 §3). Chen publishes no
+ * wording ("a one-line prompt hint" / "a soft system-prompt hint" only),
+ * so this string is a new variable, not Chen's: every future advisory
+ * result must quote its hint string verbatim, or it is not reproducible
+ * and must not be cited as an advisory result. Arguments are NEVER
+ * included — including them would smuggle teacher-forcing back in.
+ */
+const ADVISORY_HINT_TEMPLATE =
+  'Suggested tool for this step: {tool} — use it only if it fits the request; otherwise choose freely.';
+
+function advisoryHintText(tool) {
+  if (typeof tool !== 'string' || tool.length === 0) {
+    throw new Error('advisoryHintText: tool must be a non-empty string');
+  }
+  return ADVISORY_HINT_TEMPLATE.replace('{tool}', tool);
+}
+
+/**
+ * Verbatim-hint guard: a result's hint string must equal the fixed
+ * template with its tool substituted, character for character. A
+ * paraphrased or missing hint string is refused, not repaired.
+ */
+function assertVerbatimHint(hintString, tool) {
+  if (hintString !== advisoryHintText(tool)) {
+    throw new Error('assertVerbatimHint: hint string must quote the fixed Batch 197 wording verbatim (Chen publishes none; wording is a free variable, not a detail to guess)');
+  }
+  return { verbatim: true, hint: hintString };
+}
+
+/**
+ * Recommendation source, decided BEFORE any AST run (Batch 197 §0).
+ * Primary = Batch 3 Plan–Retrieve–Select top-1 (one model, two prompts,
+ * BM25 K=15, logprob-margin gated): no attention, vLLM-compatible,
+ * deployable on the resident runner. Chen's S2 attention selector is a
+ * SECONDARY lab arm only, run in eager HF mode with cost reported
+ * against an eager baseline, never against a vLLM baseline (Batch 194
+ * serving-path catch). A verdict line must name which arm was run.
+ */
+const RECOMMENDATION_SOURCES = {
+  primary: 'plan-top1',
+  lab: 'attention-segment-s2',
+};
+
+function assertRecommendationSource(source, opts = {}) {
+  if (source === RECOMMENDATION_SOURCES.primary) {
+    return { source, deployable: true, servingPath: 'vllm-compatible' };
+  }
+  if (source === RECOMMENDATION_SOURCES.lab) {
+    if (opts.servingPath !== 'eager') {
+      throw new Error('assertRecommendationSource: S2 attention selector is a lab arm only — it requires eager HF mode (output_attentions on) and its cost must be reported against an eager baseline, never a vLLM baseline (Batch 194)');
+    }
+    return { source, deployable: false, servingPath: 'eager', labOnly: true };
+  }
+  throw new Error('assertRecommendationSource: unknown recommendation source — primary is plan-top1, lab-only is attention-segment-s2 (Batch 197 §0)');
+}
+
+/**
+ * Arm spec guard. Advisory arms require a recommendation source and a
+ * verbatim hint string; the gold arm additionally requires the gold
+ * tool name. Wording-sensitivity arms are NEVER part of the pilot
+ * (they would split N); they are post-pilot only.
+ */
+function advisoryArmSpec(arm, opts = {}) {
+  if (!ADVISORY_TEST_ARMS.includes(arm)) {
+    throw new Error(`advisoryArmSpec: unknown arm "${arm}" — arms are free, advisory-rec, advisory-gold (Batch 197 §2)`);
+  }
+  if (arm === 'free') return { arm, hint: null };
+  assertRecommendationSource(opts.recommendationSource, opts);
+  assertVerbatimHint(opts.hintString, opts.hintedTool);
+  if (opts.mergedIntoPilot === true && opts.wordingSensitivity === true) {
+    throw new Error('advisoryArmSpec: wording-sensitivity arms must NOT be merged into the pilot — post-pilot only, reported as a wording effect (Batch 197 §3)');
+  }
+  const spec = { arm, recommendationSource: opts.recommendationSource, hintString: opts.hintString, hintedTool: opts.hintedTool };
+  if (arm === 'advisory-gold') {
+    if (typeof opts.goldTool !== 'string' || opts.goldTool.length === 0) {
+      throw new Error('advisoryArmSpec: advisory-gold arm requires the gold tool name (Batch 197 §2)');
+    }
+    spec.goldTool = opts.goldTool;
+  }
+  return spec;
+}
+
+/**
+ * Tiered sample-size honesty (Batch 197 §4). The ceilings are the point:
+ * a 20–30-task falsifier can only say "not falsified" vs "falsified";
+ * a 100-task pilot can detect a LARGE shift (~10 points) and rule out
+ * large harm but CANNOT confirm Chen's +1.8 — a +1.8-sized pilot delta
+ * is "consistent with noise," never replication; a 300-task Chen-scale
+ * run still only claims "no large harm + direction," never
+ * "replicates Chen." checkClaim throws on any claim above its tier's
+ * ceiling, so the test log cannot be read as confirming whatever delta
+ * it happens to produce. Models/bases are NEVER pooled (the per-model
+ * split in Batch 197 forbids it: pooled +1.8 is driven by the weakest
+ * model; the two stronger models are flat-to-negative).
+ */
+const SAMPLE_TIERS = {
+  falsifier: { nMin: 20, nMax: 30, verdictVocabulary: ['not falsified', 'falsified'], ceiling: 'feasibility and catastrophic harm only' },
+  pilot: { n: 100, verdictVocabulary: ['consistent with noise', 'large shift detected', 'large harm ruled out'], ceiling: 'cannot confirm +1.8' },
+  chenScale: { n: 300, verdictVocabulary: ['no large harm + direction'], ceiling: 'not a replication of Chen' },
+};
+
+function tierForN(n) {
+  if (n >= 20 && n <= 30) return 'falsifier';
+  if (n === 100) return 'pilot';
+  if (n === 300) return 'chenScale';
+  return 'unregistered';
+}
+
+function checkClaim(tier, claim) {
+  const t = SAMPLE_TIERS[tier];
+  if (!t) throw new Error(`checkClaim: unknown tier "${tier}" — tiers are falsifier, pilot, chenScale (Batch 197 §4)`);
+  const c = String(claim).toLowerCase();
+  if (tier === 'falsifier' && (c.includes('works') || c.includes('benefit') || c.includes('improves'))) {
+    throw new Error('checkClaim: a 20–30-task falsifier CANNOT claim benefit — its vocabulary is "not falsified" vs "falsified," never "works" (Batch 197 §4a)');
+  }
+  if (tier === 'pilot' && (c.includes('confirm') || c.includes('replicat'))) {
+    throw new Error('checkClaim: a 100-task pilot CANNOT confirm Chen\'s +1.8 — a +1.8-sized pilot delta is "consistent with noise," not replication (Batch 197 §4b)');
+  }
+  if (tier === 'chenScale' && c.includes('replicat')) {
+    throw new Error('checkClaim: a 300-task run still does NOT replicate Chen — its ceiling is "no large harm + direction" (Batch 197 §4c)');
+  }
+  return { tier, claim, ceiling: t.ceiling, allowedVocabulary: t.verdictVocabulary };
+}
+
+/**
+ * McNemar paired-test reporting (Batch 197, secondary guide only):
+ * discordant pairs only carry information; exact binomial version when
+ * b+c < 25, asymptotic otherwise. Report b/c counts, not p alone.
+ */
+function mcnemarReport(b, c) {
+  if (!Number.isInteger(b) || !Number.isInteger(c) || b < 0 || c < 0) {
+    throw new Error('mcnemarReport: b and c must be non-negative integers (discordant counts)');
+  }
+  const discordant = b + c;
+  return { b, c, discordant, exact: discordant < 25, method: discordant < 25 ? 'exact-binomial' : 'asymptotic' };
+}
+
+/**
+ * Per-call AST scoring (Batch 197 §5; BFCL synthesis, NOT official eval
+ * code — if the test adopts BFCL's evaluator, its exact implementation
+ * governs). AST = 1 only when the name matches AND every required
+ * parameter is present with an allowed value and correct type;
+ * argument order is irrelevant. argsConditional is null when the name
+ * is wrong (argument accuracy is conditional on correct name).
+ */
+function valuesMatch(goldValue, callValue) {
+  if (Array.isArray(goldValue)) return goldValue.includes(callValue); // accepted set/range
+  return goldValue === callValue;
+}
+
+function scoreCall(gold, call) {
+  if (!gold || typeof gold.tool !== 'string' || !gold.args || typeof gold.args !== 'object') {
+    throw new Error('scoreCall: gold must be { tool, args }');
+  }
+  const schemaValid = !!(call && typeof call.tool === 'string' && call.args && typeof call.args === 'object');
+  const nameCorrect = schemaValid && call.tool === gold.tool;
+  let argsCorrect = false;
+  if (nameCorrect) {
+    argsCorrect = Object.keys(gold.args).every((k) => k in call.args && valuesMatch(gold.args[k], call.args[k]));
+  }
+  return {
+    ast: nameCorrect && argsCorrect ? 1 : 0,
+    nameCorrect: nameCorrect ? 1 : 0,
+    argsCorrect: nameCorrect ? (argsCorrect ? 1 : 0) : null,
+    schemaValid: schemaValid ? 1 : 0,
+  };
+}
+
+/**
+ * Per-arm aggregate. hintFollowRate = final call's tool == hinted tool;
+ * hintOverrideRate is computed in scoreArms (paired: advisory call vs
+ * free call on the same task). Decomposition is load-bearing: if the
+ * advisory arm's name accuracy rises but AST does not, that IS Chen's
+ * scope result reproduced on personal data — verdict "name-only, do
+ * not claim call improvement," never "partial win."
+ */
+function scoreArm(rows) {
+  if (!Array.isArray(rows) || rows.length === 0) throw new Error('scoreArm: rows must be a non-empty array');
+  const scored = rows.map((r) => scoreCall(r.gold, r.call));
+  const mean = (xs) => xs.reduce((a, b) => a + b, 0) / xs.length;
+  const conditional = scored.map((s) => s.argsCorrect).filter((v) => v !== null);
+  const hinted = rows.filter((r) => typeof r.hintedTool === 'string');
+  return {
+    n: rows.length,
+    ast: mean(scored.map((s) => s.ast)),
+    nameAccuracy: mean(scored.map((s) => s.nameCorrect)),
+    argsConditionalAccuracy: conditional.length ? mean(conditional) : null,
+    schemaValidAt1: mean(scored.map((s) => s.schemaValid)),
+    hintFollowRate: hinted.length ? hinted.filter((r) => r.call && r.call.tool === r.hintedTool).length / hinted.length : null,
+  };
+}
+
+function scoreArms(arms) {
+  for (const a of ADVISORY_TEST_ARMS) {
+    if (!arms || !Array.isArray(arms[a]) || arms[a].length === 0) {
+      throw new Error(`scoreArms: all three arms must be reported, never advisory-rec alone — missing "${a}" (Batch 197 §2)`);
+    }
+  }
+  const n = arms.free.length;
+  if (arms['advisory-rec'].length !== n || arms['advisory-gold'].length !== n) {
+    throw new Error('scoreArms: arms must cover the same tasks (same N, paired)');
+  }
+  const scored = {};
+  for (const a of ADVISORY_TEST_ARMS) scored[a] = scoreArm(arms[a]);
+  const overrideRate = (armRows) => {
+    let diff = 0;
+    for (let i = 0; i < n; i++) {
+      if (armRows[i].call && arms.free[i].call && armRows[i].call.tool !== arms.free[i].call.tool) diff++;
+    }
+    return diff / n;
+  };
+  scored['advisory-rec'].hintOverrideRate = overrideRate(arms['advisory-rec']);
+  scored['advisory-gold'].hintOverrideRate = overrideRate(arms['advisory-gold']);
+  const rec = scored['advisory-rec'];
+  const free = scored.free;
+  const decomposition = (rec.nameAccuracy > free.nameAccuracy && rec.ast <= free.ast)
+    ? 'name-only, do not claim call improvement'
+    : 'ast-tracks-name';
+  return { arms: scored, decomposition };
+}
+
+/**
+ * Task-set guard (Batch 197 §1). Gold comes from the Batch 4 audit
+ * trail (schema-valid, executed successfully, person-accepted or left
+ * uncorrected), frozen in a curated set BEFORE the test runs — never
+ * derived from a hint-arm output (that would be circular). At least
+ * one-third confusable tasks (near-synonym tool pairs), else free
+ * name accuracy already sits near Chen's 0.929 ceiling and the test
+ * has no headroom. At least three routines, or the Batch 5 re-fit
+ * warning applies (a threshold learned on one routine does not
+ * transfer).
+ */
+function assertTaskSet(tasks) {
+  if (!Array.isArray(tasks) || tasks.length === 0) throw new Error('assertTaskSet: tasks must be a non-empty array');
+  const reasons = [];
+  if (tasks.some((t) => !t || !t.goldFrozen)) reasons.push('gold must be frozen before the test runs');
+  if (tasks.some((t) => t && t.derivedFromHintArm)) reasons.push('gold must never be derived from a hint-arm output (circular)');
+  const confusable = tasks.filter((t) => t && t.confusable).length;
+  if (confusable / tasks.length < 1 / 3) reasons.push('at least one-third confusable tasks required (near-synonym tool pairs)');
+  const routines = new Set(tasks.map((t) => t && t.routine).filter(Boolean));
+  if (routines.size < 3) reasons.push('at least three routines required (one-routine thresholds do not transfer)');
+  if (reasons.length) throw new Error(`assertTaskSet: ${reasons.join('; ')} (Batch 197 §1)`);
+  return { tasks: tasks.length, confusableShare: confusable / tasks.length, routines: routines.size };
+}
+
+/**
+ * Pairing controls (Batch 197 §6): without these the arms are not
+ * comparable. Freeze memory/adapter/tool-pool growth during the test
+ * (otherwise the hint arm learns from the free arm's traces), fix
+ * tool/harness order across arms, randomize arm order across tasks,
+ * run each arm in a fresh context (no hint leakage via conversation
+ * memory), log the full Batch 4 audit row per call.
+ */
+function assertPairingControls(cfg = {}) {
+  const required = ['frozenMemory', 'frozenAdapter', 'frozenToolPool', 'fixedOrder', 'freshContextPerArm', 'auditRowPerCall'];
+  const missing = required.filter((k) => cfg[k] !== true);
+  if (missing.length) throw new Error(`assertPairingControls: missing pairing controls: ${missing.join(', ')} (Batch 197 §6)`);
+  return { pairingControlled: true };
+}
+
+/**
+ * Abort / falsifier rules, Batch 4 rollback triggers adopted literally
+ * (Batch 197 §8). A stopped test is a result, logged with its b/c
+ * table — not a reason to re-run with a new wording until it passes.
+ */
+function abortCheck(pilot) {
+  if (!pilot || !pilot.free || !pilot.advisoryRec) throw new Error('abortCheck: pilot must carry free and advisoryRec arm scores');
+  const f = pilot.free;
+  const a = pilot.advisoryRec;
+  if (a.ast < f.ast && ((f.schemaValidAt1 - a.schemaValidAt1) > 0.02 || (f.execRate - a.execRate) > 0.03)) {
+    return { stop: true, reason: 'advise-all AST below free with valid@1 down > 2 points or ExecRate down > 3 points — do not ship the hint (Batch 197 §8)' };
+  }
+  if (pilot.advisoryGold && pilot.advisoryGold.ast > f.ast && a.ast <= f.ast) {
+    return { stop: true, reason: 'A-gold helps but A-rec does not — stop and re-examine the RECOMMENDATION, not the delivery (Batch 197 §8)' };
+  }
+  return { stop: false, reason: null };
+}
+
+function assertPilotPassed(pilot) {
+  const check = abortCheck(pilot);
+  if (check.stop) throw new Error(`assertPilotPassed: pilot failed its abort rules — ${check.reason}`);
+  return { pilotPassed: true };
+}
+
+/**
+ * Multi-turn ordering gates (Batch 197 §7). M1/M2 run ONLY after the
+ * single-hop pilot passes its abort rules; M2 never runs before the
+ * pilot, and wording-sensitivity arms are never merged into the pilot.
+ */
+function assertMultiTurnOrder(state = {}) {
+  if (state.phase === 'M1' || state.phase === 'M2') {
+    if (state.pilotPassed !== true) throw new Error(`assertMultiTurnOrder: ${state.phase} requires the single-hop pilot to pass its abort rules first (Batch 197 §7)`);
+  }
+  if (state.phase === 'M2' && state.m1Passed !== true) {
+    throw new Error('assertMultiTurnOrder: M2 requires M1 to pass first — do not run M2 before the pilot and M1 (Batch 197 §7)');
+  }
+  if (state.wordingSensitivityMergedIntoPilot === true) {
+    throw new Error('assertMultiTurnOrder: wording-sensitivity arms must NOT be merged into the pilot (Batch 197 §3)');
+  }
+  return { orderOk: true, phase: state.phase || null };
+}
+
+/**
+ * Hard ban carried from Batch 194 into multi-turn: do NOT reuse Chen's
+ * last-token-margin gate in M1/M2 (multi-turn AUROC 0.48/0.73, −27
+ * points on τ-bench). Any multi-turn gate must be a new gate (e.g.
+ * Plan margin or verifier failure) validated separately.
+ */
+function assertMultiTurnGate(gate) {
+  if (gate === 'chen-last-token-margin') {
+    throw new Error('assertMultiTurnGate: Chen\'s last-token-margin gate is BANNED in multi-turn (AUROC 0.48/0.73, −27 pts on τ-bench) — use a separately validated new gate (Batch 197 §7)');
+  }
+  return { gateOk: true, gate };
+}
+
+/**
+ * Pre-registered multi-turn verdict rule (Batch 197 §7): if the hint
+ * delta at turn 1 is positive but the final-state delta is ≤ 0, the
+ * verdict is FAIL for loop use even if single-hop passes — a loop
+ * that wins the first hop and loses the episode is not a loop
+ * improvement. M1 compares delta_single vs delta_embedded with
+ * shrinkage pre-registered as the finding; M2 scores per-turn AST
+ * AND final state (τ-bench style: state matches the goal, not just
+ * the last call).
+ */
+function multiTurnVerdict(deltas = {}) {
+  if (typeof deltas.turn1Delta !== 'number' || typeof deltas.finalStateDelta !== 'number') {
+    throw new Error('multiTurnVerdict: deltas must carry turn1Delta and finalStateDelta numbers');
+  }
+  if (deltas.turn1Delta > 0 && deltas.finalStateDelta <= 0) {
+    return { verdict: 'FAIL', scope: 'loop-use', reason: 'hint wins turn 1 but final-state delta ≤ 0 — a loop that wins the first hop and loses the episode is not a loop improvement (Batch 197 §7)' };
+  }
+  return { verdict: 'pass-pending', scope: 'loop-use', reason: null };
+}
+
 module.exports = {
   percentile,
   median,
@@ -2286,6 +2635,28 @@ module.exports = {
   prefixPrune,
   proxyTokens,
   falsifierReplay,
+  // Batch 197: advisory-hint test design (pre-registered, unexecuted).
+  ADVISORY_TEST_ARMS,
+  ADVISORY_HINT_TEMPLATE,
+  advisoryHintText,
+  assertVerbatimHint,
+  RECOMMENDATION_SOURCES,
+  assertRecommendationSource,
+  advisoryArmSpec,
+  SAMPLE_TIERS,
+  tierForN,
+  checkClaim,
+  mcnemarReport,
+  scoreCall,
+  scoreArm,
+  scoreArms,
+  assertTaskSet,
+  assertPairingControls,
+  abortCheck,
+  assertPilotPassed,
+  assertMultiTurnOrder,
+  assertMultiTurnGate,
+  multiTurnVerdict,
   // Batch 194: Chen advisory-only Select constraint.
   SELECT_ADVISORY_ONLY_GUARDRAIL,
   EAGER_ATTENTION_DEPLOYMENT_CONSTRAINT,

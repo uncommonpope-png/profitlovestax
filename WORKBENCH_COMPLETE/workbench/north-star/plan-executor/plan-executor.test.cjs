@@ -40,6 +40,27 @@ const {
   selectorServingPath,
   chooseDisputedHopTier,
   wrongToolBudgetAllows,
+  ADVISORY_TEST_ARMS,
+  ADVISORY_HINT_TEMPLATE,
+  advisoryHintText,
+  assertVerbatimHint,
+  RECOMMENDATION_SOURCES,
+  assertRecommendationSource,
+  advisoryArmSpec,
+  SAMPLE_TIERS,
+  tierForN,
+  checkClaim,
+  mcnemarReport,
+  scoreCall,
+  scoreArm,
+  scoreArms,
+  assertTaskSet,
+  assertPairingControls,
+  abortCheck,
+  assertPilotPassed,
+  assertMultiTurnOrder,
+  assertMultiTurnGate,
+  multiTurnVerdict,
 } = require('./plan-executor.cjs');
 
 const read = (id, dependsOn, run) => ({ id, dependsOn, kind: 'read', readOnly: true, run: run || (async () => `${id}-done`) });
@@ -970,4 +991,148 @@ test('Batch 194: findings carry the harness-vs-product distinction — paper num
   assert.match(CHEN_194_FINDINGS.scopeNote, /NOT on the north-star tool pool/);
   assert.match(CHEN_194_FINDINGS.scopeNote, /No live model run, no attention measured/);
   assert.match(CHEN_194_FINDINGS.paper, /2606.16364/);
+});
+
+test('Batch 197: three arms, same task, same model — gold ceiling arm is new, Chen has none', () => {
+  assert.deepEqual(ADVISORY_TEST_ARMS, ['free', 'advisory-rec', 'advisory-gold']);
+  const spec = advisoryArmSpec('advisory-gold', {
+    recommendationSource: 'plan-top1',
+    hintString: advisoryHintText('search'),
+    hintedTool: 'search',
+    goldTool: 'search',
+  });
+  assert.equal(spec.goldTool, 'search');
+  assert.throws(() => advisoryArmSpec('advisory-fourth', {}), /arms are free, advisory-rec, advisory-gold/);
+});
+
+test('Batch 197: hint wording is fixed and verbatim — Chen publishes none, so ours must be quoted', () => {
+  assert.equal(advisoryHintText('search'), 'Suggested tool for this step: search — use it only if it fits the request; otherwise choose freely.');
+  assert.match(ADVISORY_HINT_TEMPLATE, /otherwise choose freely/);
+  assert.ok(!ADVISORY_HINT_TEMPLATE.includes('arguments')); // arguments NEVER included
+  assert.deepEqual(assertVerbatimHint(advisoryHintText('note'), 'note').verbatim, true);
+  assert.throws(() => assertVerbatimHint('Consider note instead', 'note'), /verbatim/);
+  assert.throws(() => advisoryHintText(''), /non-empty string/);
+});
+
+test('Batch 197: recommendation source decided before any AST run — Plan-top1 primary, S2 lab-only eager', () => {
+  assert.equal(assertRecommendationSource('plan-top1').deployable, true);
+  assert.equal(assertRecommendationSource('attention-segment-s2', { servingPath: 'eager' }).labOnly, true);
+  assert.throws(() => assertRecommendationSource('attention-segment-s2', { servingPath: 'vllm' }), /lab arm only/);
+  assert.throws(() => assertRecommendationSource('attention-segment-s2', {}), /lab arm only/);
+  assert.throws(() => assertRecommendationSource('mystery-selector'), /unknown recommendation source/);
+  assert.equal(RECOMMENDATION_SOURCES.primary, 'plan-top1');
+});
+
+test('Batch 197: tiered sample-size honesty — small tests cannot claim what they cannot measure', () => {
+  assert.equal(tierForN(25), 'falsifier');
+  assert.equal(tierForN(100), 'pilot');
+  assert.equal(tierForN(300), 'chenScale');
+  assert.equal(tierForN(50), 'unregistered');
+  assert.throws(() => checkClaim('falsifier', 'it works'), /never "works"/);
+  assert.throws(() => checkClaim('falsifier', 'shows benefit'), /never "works"/);
+  assert.throws(() => checkClaim('pilot', 'confirms +1.8'), /CANNOT confirm/);
+  assert.throws(() => checkClaim('pilot', 'replicates Chen'), /CANNOT confirm/);
+  assert.throws(() => checkClaim('chenScale', 'replicates Chen'), /does NOT replicate Chen/);
+  assert.equal(checkClaim('falsifier', 'not falsified').ceiling, SAMPLE_TIERS.falsifier.ceiling);
+  assert.equal(checkClaim('pilot', 'consistent with noise').tier, 'pilot');
+});
+
+test('Batch 197: McNemar uses discordant pairs only — exact below 25, asymptotic otherwise', () => {
+  const small = mcnemarReport(9, 6);
+  assert.equal(small.discordant, 15);
+  assert.equal(small.exact, true);
+  assert.equal(small.method, 'exact-binomial');
+  const big = mcnemarReport(20, 10);
+  assert.equal(big.exact, false);
+  assert.throws(() => mcnemarReport(-1, 5), /non-negative integers/);
+});
+
+test('Batch 197: AST scoring is name AND arguments, order-independent, never name-only', () => {
+  const gold = { tool: 'search', args: { q: 'cats', limit: 5 } };
+  assert.deepEqual(scoreCall(gold, { tool: 'search', args: { limit: 5, q: 'cats' } }), { ast: 1, nameCorrect: 1, argsCorrect: 1, schemaValid: 1 });
+  assert.equal(scoreCall(gold, { tool: 'search', args: { q: 'dogs', limit: 5 } }).ast, 0);
+  assert.equal(scoreCall(gold, { tool: 'search', args: { q: 'dogs', limit: 5 } }).argsCorrect, 0);
+  const wrongName = scoreCall(gold, { tool: 'note', args: { q: 'cats', limit: 5 } });
+  assert.equal(wrongName.ast, 0);
+  assert.equal(wrongName.argsConditional, null); // argument accuracy is conditional on correct name
+  assert.equal(scoreCall(gold, null).schemaValid, 0);
+  // Accepted set: gold value given as a set counts a member as a match.
+  assert.equal(scoreCall({ tool: 't', args: { k: ['a', 'b'] } }, { tool: 't', args: { k: 'b' } }).ast, 1);
+});
+
+test('Batch 197: scoreArms requires all three arms and catches name-up/args-flat', () => {
+  const mk = (tool, args) => ({ gold: { tool: 'search', args: { q: 'x' } }, call: { tool, args }, hintedTool: 'search' });
+  const free = [mk('search', { q: 'x' }), mk('note', { body: 'y' }), mk('search', { q: 'z' })];
+  // Advisory arm: name right everywhere, arguments wrong on the two it "fixed" — name up, AST flat.
+  const rec = [mk('search', { q: 'x' }), mk('search', { q: 'wrong' }), mk('search', { q: 'also-wrong' })];
+  const goldArm = [mk('search', { q: 'x' }), mk('search', { q: 'x' }), mk('search', { q: 'x' })];
+  const out = scoreArms({ free, 'advisory-rec': rec, 'advisory-gold': goldArm });
+  assert.ok(out.arms['advisory-rec'].nameAccuracy > out.arms.free.nameAccuracy);
+  assert.equal(out.arms['advisory-rec'].ast, out.arms.free.ast);
+  assert.equal(out.decomposition, 'name-only, do not claim call improvement');
+  assert.throws(() => scoreArms({ free, 'advisory-rec': rec }), /all three arms/);
+});
+
+test('Batch 197: task set guard — frozen gold, one-third confusable, three routines, never circular', () => {
+  const good = [];
+  for (let i = 0; i < 9; i++) {
+    good.push({ goldFrozen: true, derivedFromHintArm: false, confusable: i < 3, routine: ['a', 'b', 'c'][i % 3] });
+  }
+  assert.equal(assertTaskSet(good).confusableShare, 1 / 3);
+  assert.throws(() => assertTaskSet(good.map((t) => ({ ...t, confusable: false }))), /one-third confusable/);
+  assert.throws(() => assertTaskSet(good.map((t) => ({ ...t, routine: 'a' }))), /three routines/);
+  assert.throws(() => assertTaskSet(good.map((t) => ({ ...t, goldFrozen: false }))), /frozen before the test/);
+  assert.throws(() => assertTaskSet(good.map((t) => ({ ...t, derivedFromHintArm: true }))), /circular/);
+});
+
+test('Batch 197: pairing controls — all six required, otherwise arms are not comparable', () => {
+  const full = { frozenMemory: true, frozenAdapter: true, frozenToolPool: true, fixedOrder: true, freshContextPerArm: true, auditRowPerCall: true };
+  assert.deepEqual(assertPairingControls(full).pairingControlled, true);
+  assert.throws(() => assertPairingControls({ ...full, frozenMemory: false }), /frozenMemory/);
+});
+
+test('Batch 197: abort rules — harm stops the hint, gold-without-rec re-examines the recommendation', () => {
+  const base = { free: { ast: 0.60, schemaValidAt1: 0.95, execRate: 0.90 }, advisoryRec: { ast: 0.60, schemaValidAt1: 0.95, execRate: 0.90 } };
+  assert.equal(abortCheck(base).stop, false);
+  const harm = { free: base.free, advisoryRec: { ast: 0.55, schemaValidAt1: 0.92, execRate: 0.90 } };
+  assert.match(abortCheck(harm).reason, /do not ship the hint/);
+  const recBottleneck = { free: base.free, advisoryRec: { ast: 0.60, schemaValidAt1: 0.95, execRate: 0.90 }, advisoryGold: { ast: 0.70, schemaValidAt1: 0.95, execRate: 0.90 } };
+  assert.match(abortCheck(recBottleneck).reason, /RECOMMENDATION, not the delivery/);
+  assert.throws(() => assertPilotPassed(harm), /do not ship the hint/);
+  assert.deepEqual(assertPilotPassed(base).pilotPassed, true);
+});
+
+test('Batch 197: multi-turn ordering — pilot first, M1 before M2, wording never merged into the pilot', () => {
+  assert.throws(() => assertMultiTurnOrder({ phase: 'M1', pilotPassed: false }), /pilot to pass/);
+  assert.throws(() => assertMultiTurnOrder({ phase: 'M2', pilotPassed: true, m1Passed: false }), /M1 to pass first/);
+  assert.throws(() => assertMultiTurnOrder({ phase: 'M2', pilotPassed: false, m1Passed: false }), /pilot to pass/);
+  assert.deepEqual(assertMultiTurnOrder({ phase: 'M2', pilotPassed: true, m1Passed: true }).orderOk, true);
+  assert.throws(() => assertMultiTurnOrder({ wordingSensitivityMergedIntoPilot: true }), /NOT be merged into the pilot/);
+  assert.throws(() => advisoryArmSpec('advisory-rec', { recommendationSource: 'plan-top1', hintString: advisoryHintText('search'), hintedTool: 'search', wordingSensitivity: true, mergedIntoPilot: true }), /NOT be merged into the pilot/);
+});
+
+test('Batch 197: Chen last-token-margin gate is banned in multi-turn', () => {
+  assert.throws(() => assertMultiTurnGate('chen-last-token-margin'), /BANNED in multi-turn/);
+  assert.deepEqual(assertMultiTurnGate('plan-margin').gateOk, true);
+});
+
+test('Batch 197: multi-turn verdict rule — win turn 1, lose the episode, FAIL for loop use', () => {
+  const fail = multiTurnVerdict({ turn1Delta: 0.05, finalStateDelta: 0 });
+  assert.equal(fail.verdict, 'FAIL');
+  assert.equal(fail.scope, 'loop-use');
+  const neg = multiTurnVerdict({ turn1Delta: 0.05, finalStateDelta: -0.02 });
+  assert.equal(neg.verdict, 'FAIL');
+  const ok = multiTurnVerdict({ turn1Delta: 0.05, finalStateDelta: 0.03 });
+  assert.equal(ok.verdict, 'pass-pending');
+  assert.throws(() => multiTurnVerdict({ turn1Delta: 0.05 }), /turn1Delta and finalStateDelta/);
+});
+
+test('Batch 197: harness composes with round-5 advisory-only Select without weakening it', () => {
+  // Round 5 still refuses any forced-prefix Select spec.
+  assert.throws(() => selectAdvisory([{ id: 'c1' }], 'search', { forcedPrefix: 'search' }), /advisory-only/);
+  // The Batch 197 hint text is advisory delivery, not a forced prefix.
+  const hint = advisoryHintText('search');
+  assert.ok(hint.includes('otherwise choose freely'));
+  const advised = selectAdvisory([{ id: 'c1' }, { id: 'c2' }], 'search');
+  assert.equal(advised.deletesNoCandidate, true);
 });

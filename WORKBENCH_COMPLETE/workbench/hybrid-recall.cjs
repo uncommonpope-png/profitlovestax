@@ -271,7 +271,7 @@ async function retrieve(query, opts = {}) {
       ]);
       const got = await timed;
       denseRaw = Array.isArray(got) ? got : [];
-      vectorAvailable = true;
+      vectorAvailable = denseRaw.length > 0;
     } catch (e) {
       console.warn("[HYBRID RECALL] Dense leg unavailable, BM25-only:", e && e.message ? e.message : e);
       vectorAvailable = false;

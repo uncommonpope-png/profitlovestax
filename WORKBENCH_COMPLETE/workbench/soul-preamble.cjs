@@ -39,8 +39,8 @@ const path = require("path");
 
 const DEFAULT_FILE = "soul-preamble-compact.md";
 const MAX_CHARS = 8000;
-const RECALL_CHARS_WITH_PREAMBLE = 6000;
-const RECALL_CHARS_WITHOUT_PREAMBLE = 12000;
+const RECALL_CHARS_WITH_PREAMBLE = 4000;
+const RECALL_CHARS_WITHOUT_PREAMBLE = 8000;
 
 function envOff(name) {
   const raw = process.env[name];

@@ -1,1 +1,4 @@
-WORKBENCH_COMPLETE/soul-economy/downloads/the-profit-lovetax-family.zip filter=lfs diff=lfs merge=lfs -text
+*.lance binary
+*.txn binary
+*.manifest binary
+*.gguf binary

@@ -1,0 +1,25 @@
+---
+title: SOUL-NOTE - GSK Research - Devika agentic AI software engineer workflow
+type: research
+verified: true
+date: 2026-10-27T23:33:10.184Z
+---
+
+# GSK Research — Devika agentic AI software engineer workflow
+
+## Verified Finding
+GitHub - stitionai/devika: Devika is the first open-source ...: Devika utilizes large language models, planning and reasoning algorithms, and web browsing abilities to intelligently develop software. Devika aims to revolutionize the way we build software by providing an AI pair programmer who can take on complex coding tasks with minimal human guidance. | Devika AI: Open Source Software Engineer: Devika AI is an open source AI software engineer that can understand high-level human instructions, break them down into steps, research relevant information, and generate the code for particular task. | Devika: Devika Devadoss (born Prameela Devi; 25 April 1943 – 2 May 2002) [citation needed] was an Indian actress who worked in Tamil and Telugu along with a few Malayalam, Kannada, and Hindi films. She was one of the popular lead actresses in the 1960s. | Devika ~ Complete Information [ Wiki | Photos | Videos ]: Devika or Prameela Devi (25th April 1942 – 1st May 2002) was a Tamil and Telugu actress. Devika is the granddaughter of Telugu cinema doyen Raghupathi Venkaiah Naidu. One of her uncles was a Mayor of Chennai. Kanaka is her daughter. In Tamil, she has acted with all major heroes of the day. | devika/README.md at main · stitionai/devika · GitHub: Devika utilizes large language models, planning and reasoning algorithms, and web browsing abilities to intelligently develop software. Devika aims to revolutionize the way we build software by providing an AI pair programmer who can take on complex coding tasks with minimal human guidance.
+
+## Source Excerpts
+- GitHub - stitionai/devika: Devika is the first open-source implementation of an Agentic Software Engineer. Initially started as an open-source alternative to Devin. · GitHub Skip to content Navigation Menu Sign in Appearance settings Platform AI CODE CREATION GitHub Copilot Write better code with AI GitHub Copilot app Direct agents from issue to merge MCP Registry Integrate external tools DEVELOPER WORKFLOWS Actions Automate any workflow Codespaces Instant dev environments Issues Plan and track  ([source](https://github.com/stitionai/devika))
+- Devika AI: Open Source Software Engineer Skip to content Facebook GitHub X Devika AI Menu Menu Overview Code assistant How to use Installation Demo Omnihuman-1 Devika AI: Open Source Software Engineer Devika AI&nbsp;is an open source&nbsp;AI software engineer&nbsp;that can understand high-level human instructions, break them down into steps, research relevant information, and generate the code for particular task. It uses Claude 3,&nbsp;GPT-4,&nbsp;GPT-3.5, and&nbsp;Local LLMs via Ollama. Price: ([source](https://devikaai.org/))
+- Devika - Wikipedia Jump to content Main menu Main menu move to sidebar hide Navigation Main page Contents Current events Random article About Wikipedia Contact us Contribute Help Learn to edit Community portal Recent changes Upload file Special pages Search Search Appearance Donate Create account Log in Personal tools Donate Create account Log in Contents move to sidebar hide (Top) 1 Film career 2 Death 3 Filmography Toggle Filmography subsection 3.1 Tamil 3.2 Telugu 3.3 Malayalam 3.4 Hindi 3.5  ([source](https://en.wikipedia.org/wiki/Devika))
+- Devika ~ Complete Information [ Wiki | Photos | Videos ] Alchetron Sign in Siddhesh Joshi &nbsp; (Editor) I enjoy creating and spreading knowledgeable content for everyone around the world and try my best not to leave even the smallest of mistakes go unnoticed. Devika Updated on Apr 25, 2026 Edit Like Comment Share Share on Facebook Tweet on Twitter Share on LinkedIn Share on Reddit Sign in Full Name &nbsp;&nbsp; Prameela Devi Role &nbsp;&nbsp; Actress Name &nbsp;&nbsp; Prameela Devi Years&nbsp; ([source](https://alchetron.com/Devika))
+- devika/README.md at main · stitionai/devika · GitHub Skip to content Navigation Menu Sign in Appearance settings Platform AI CODE CREATION GitHub Copilot Write better code with AI GitHub Copilot app Direct agents from issue to merge MCP Registry Integrate external tools DEVELOPER WORKFLOWS Actions Automate any workflow Codespaces Instant dev environments Issues Plan and track work Code Review Manage code changes Code Quality Enforce quality at merge APPLICATION SECURITY GitHub Advanced Security  ([source](https://github.com/stitionai/devika/blob/main/README.md))
+
+## Sources
+1. [GitHub - stitionai/devika: Devika is the first open-source ...](https://github.com/stitionai/devika) — HTTP 200
+2. [Devika AI: Open Source Software Engineer](https://devikaai.org/) — HTTP 200
+3. [Devika](https://en.wikipedia.org/wiki/Devika) — HTTP 200
+4. [Devika ~ Complete Information [ Wiki | Photos | Videos ]](https://alchetron.com/Devika) — HTTP 200
+5. [devika/README.md at main · stitionai/devika · GitHub](https://github.com/stitionai/devika/blob/main/README.md) — HTTP 200

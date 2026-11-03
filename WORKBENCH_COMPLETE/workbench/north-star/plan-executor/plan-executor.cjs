@@ -5044,6 +5044,275 @@ function checkOfflineCriticSpec212(spec) {
   };
 }
 
+/**
+ * Batch 214 — Taxonomy-to-ledger mapping audit, CLOSED (SWE-PRM
+ * Appendix A.1 prompt listings re-read in full, not just §3.2.1).
+ * This section CLOSES Batch 208's Q9 audit. It CONFIRMS Batch 208's
+ * "two new event types" and CORRECTS Batch 208's framing in one
+ * respect: the question as posed conflated two different things —
+ * a LIVE ledger event type (something the running agent emits) and
+ * an OFFLINE critic label (something the sleep-job pass writes onto
+ * a logged window). All 12 categories work as offline labels. Only
+ * a subset needs live detection. The two columns are kept separate
+ * below, or the answer double-counts.
+ *
+ * Counted bottom line (Batch 214): NATIVE 3 (tool selection
+ * post-hoc, hallucinations argument half, verification failures);
+ * RULE-DERIVABLE 5 (task specification, role specification,
+ * information processing, context handling, derailment/deviation as
+ * ONE detector); NEW live fields/detectors 2 (step repetition,
+ * termination); OFFLINE-LABEL ONLY 1 (problem misidentification);
+ * REFINEMENTS 2 (provenance source-field reference; drift
+ * thresholds as design judgments to calibrate, not paper constants).
+ * Any future batch claiming a THIRD new event type must show a
+ * category whose rule cannot be built from the fields below — the
+ * burden of proof is now on the claimant, not on the audit.
+ *
+ * Naming notes (immaterial, recorded so future batches quote
+ * correctly): Batch 208's "termination unawareness" is "Termination
+ * Condition Unawareness" in the prompt listing. The prompt
+ * listings' family parentheticals differ from §3.2.1's headings
+ * (Specification Errors = "System Design Issues" in the prompt,
+ * Reasoning Errors = "Decision Making Issues," Coordination Errors
+ * = "Process Management Issues") — quote §3.2.1's family names,
+ * NOT the prompt subtitles.
+ *
+ * Recovery actions below ARE recorded, unlike Batch 208: Batch 214
+ * verified them as prompt text (Appendix A.1). They are training-
+ * label guidance for the offline pass (Batch 208 Decision 3), NOT
+ * live prompts — none was tested as a north-star intervention, and
+ * Batch 208 Decision 1 (no live periodic critic stage) is unchanged.
+ */
+const TAXONOMY_AUDIT_214 = Object.freeze({
+  source: 'Gandhi et al., SWE-PRM, arXiv:2509.02360, §3.2.1 re-read + Appendix A.1 prompt listings (PRMD + PRMDR, Listing 6) read in full (Batch 214)',
+  audit: 'CLOSED — Batch 208 Q9 closed; the next lead must be named by a future batch',
+  columns: Object.freeze({
+    liveEvent: 'something the running agent emits',
+    offlineLabel: 'something the sleep-job pass writes onto a logged window',
+    rule: 'the two columns are kept separate — a live event type is NOT the same thing as an offline label',
+  }),
+  familyNames: Object.freeze({
+    quote: ['Specification errors', 'Reasoning errors', 'Coordination errors'],
+    doNotQuote: ['System Design Issues', 'Decision Making Issues', 'Process Management Issues'],
+    note: 'Quote §3.2.1 family names, not the prompt-listing subtitles (Batch 214)',
+  }),
+  counts: Object.freeze({ native: 3, ruleDerivable: 5, newLiveFields: 2, offlineLabelOnly: 1, refinements: 2, total: 12 }),
+  countsNote: 'The batch counts RULE-DERIVABLE as 5 items: 4 rule-derivable categories (task specification, role specification, information processing, context handling) + the collapsed derailment/deviation detector as ONE item spanning two categories — so 3 native + 4 rule-derivable + 2 collapsed + 2 new + 1 offline-only = 12 categories (Batch 214)',
+  cadence: Object.freeze({ everyNHops: 5, windowKSteps: 8, note: "SWE-PRM's cadence adopted for comparability; thresholds are design judgments, not paper constants" }),
+});
+
+const TAXONOMY_DISPOSITIONS_214 = Object.freeze([
+  Object.freeze({ category: 'task-specification violation', family: 'Specification errors', disposition: 'RULE-DERIVABLE', liveColumn: 'offline label (predicate linkage)', rule: "Batch 20 expected_outcome_predicates are the checkable form of task requirements: a trajectory violating an outcome predicate IS a task-specification violation at outcome level, and the DAG verifier already logs predicate violations per level; the ledger lacks only the LABEL linkage", grade: 'rule (predicate-backed) / judge (natural-language-only remainder)', note: 'Requirements stated only as natural language (no predicate) cannot be rule-checked — those stay LLM-judge labels offline, NEVER live events, and the offline pass must report the predicate-backed vs judge-only fraction or the category precision is unknowable' }),
+  Object.freeze({ category: 'role-specification violation', family: 'Specification errors', disposition: 'RULE-DERIVABLE', liveColumn: 'offline label (policy-check linkage)', rule: "Batch 23 privilege axis + Batch 21 policy table: a call outside the routine's allowed tool set, or a privileged-tool call without the policy-table confirmation, IS a role violation by definition; the verifier already logs both checks", grade: 'rule', note: 'The check RESULT must be logged as a Batch 19 verifier-audit class or the derivability is theoretical; a routine with no allowed-set declaration leaves the category UNMEASURABLE (same "undeclared = unknown" rule as footprints, Batch 19/20)' }),
+  Object.freeze({ category: 'step repetition', family: 'Specification errors', disposition: 'NEW', liveColumn: 'live event (ledger flag first)', rule: 'A hop whose normalized call (Batch 10: tool + normalized args, permutation-invariant, value-normalized) EQUALS a prior hop in the same trajectory whose observation status was verified-success, with NO intervening write to any of that call\'s inputs', grade: 'new-flag', eventFields: ['hop id', 'repeated hop id', 'intervening-write check result'], note: 'Cheap (normalized-call comparison against the trajectory\'s own verified calls), needs no model; the "no intervening write" clause is the false-positive guard — a re-read after a write is a fresh read, not a repetition' }),
+  Object.freeze({ category: 'termination unawareness', family: 'Specification errors', disposition: 'NEW', liveColumn: 'live event (ledger flag first)', rule: 'Two-part artifact: (a) a per-routine completion predicate (tool-verified outcome present, or final-state predicate from Batch 20 outcome predicates, or person acceptance — whichever the routine declares); (b) the flag itself: any non-final hop after the predicate fired', grade: 'new-flag', promptName: 'Termination Condition Unawareness', promptDefinition: 'Agent continues working when task completion criteria are met', note: 'The ledger has NO completion predicate per routine at all, so without (a) the flag is unmeasurable — a routine without a declared completion predicate reports termination-unawareness as "not measurable", NEVER as zero' }),
+  Object.freeze({ category: 'problem misidentification', family: 'Reasoning errors', disposition: 'OFFLINE-LABEL ONLY', liveColumn: 'offline label only — NO live field, NO live flag', rule: 'None derives it: a misunderstood subtask is visible only retrospectively, via person correction (Batch 2) or trajectory failure, and neither distinguishes misidentification from the other causes of the same correction', grade: 'judge', note: 'The offline pass may label it only with evidence (correction text, failed-then-corrected subtask), and its precision is judge-grade, not rule-grade. Do NOT let a live "misidentification" flag into the gate — it would be a model judging its own understanding, the same self-verification failure Batches 208/211 document' }),
+  Object.freeze({ category: 'tool-selection error', family: 'Reasoning errors', disposition: 'NATIVE', liveColumn: 'offline label (post-hoc only)', rule: "Batch 4 router decision + executed tool + Batch 3 Select exact-match against the person's gold tool set: chosen tool ≠ gold tool, where gold = the person's verified choice on that routine", grade: 'native (post-hoc)', note: 'Live, the gate sees only the choice, not its wrongness; the "error" label exists only after the person\'s accept/correct. Fine for the offline pass, fatal for any live use: a live tool-selection-error flag would need the gold before the person acts, which is circular' }),
+  Object.freeze({ category: 'hallucination', family: 'Reasoning errors', disposition: 'NATIVE', liveColumn: 'offline label (argument half native; observation sub-case rule-derivable)', rule: "Batch 17 provenance: a parameter value whose source = model_generation (traceable to neither request, memory, tool result, nor documented default, under Batch 10 normalized matching) IS the hallucination label for arguments", grade: 'native (arguments) / rule (observation sub-case)', note: 'Fabricated OBSERVATION claims (agent asserting a tool said something it did not) are NOT covered by per-parameter provenance — they need observation-status comparison (claimed observation vs logged tool result), which the audit trail holds but no field currently flags as a mismatch. That sub-case is RULE-DERIVABLE (claimed vs logged observation diff) and the offline pass counts it SEPARATELY from argument hallucination, or the category mixes two mechanisms' }),
+  Object.freeze({ category: 'information-processing failure', family: 'Reasoning errors', disposition: 'RULE-DERIVABLE', liveColumn: 'offline label (with refinement)', rule: 'Retrieval failure = a read/clarify for a value whose source exists in memory or an earlier tool result but was not retrieved (a re-read of an already-observed value — overlaps category 11); misinterpretation = a hop that USES a value different from the observation it claims to use', grade: 'rule', refinement: 'Provenance must record source FIELD, not just source kind — (source, field/reference) per value, e.g. (tool_result, hop 4, field "balance") — so that "used field X\'s value as if it were field Y" is checkable. Without the field reference, misinterpretation and hallucination are indistinguishable in the ledger', note: 'Refinement 1 of 2: small (one extra field per parameter value), and it also sharpens category 7\'s observation sub-case' }),
+  Object.freeze({ category: 'task derailment', family: 'Coordination errors', disposition: 'COLLAPSED', liveColumn: 'offline label (one drift detector, macro threshold)', rule: 'COLLAPSED with goal deviation into ONE drift detector: over a sliding window (every 5 hops over the last 8, SWE-PRM cadence), the share of hops whose tool/effect footprint lies outside the routine\'s goal tool set; MACRO threshold (e.g. a full window with no on-goal hop, or the routine goal abandoned for N consecutive hops) = derailment label', grade: 'rule', note: 'The paper\'s distinction is macro drift (abandoning the main task) vs micro misalignment, but no ledger field can draw that line — both are "hops outside the routine\'s goal." Two labels from ONE metric, never two independent LLM judgments on the same hops (which would double-count the same drift)' }),
+  Object.freeze({ category: 'goal deviation', family: 'Coordination errors', disposition: 'COLLAPSED', liveColumn: 'offline label (one drift detector, micro threshold)', rule: 'COLLAPSED with task derailment into ONE drift detector (same sliding window, same metric); MICRO threshold (e.g. ≥1 off-goal hop in the window, design judgment to calibrate) = goal-deviation label', grade: 'rule', note: 'Thresholds are design judgments to calibrate, NOT paper constants — SWE-PRM gives no thresholds; its window cadence is the only portable number' }),
+  Object.freeze({ category: 'context-handling failure', family: 'Coordination errors', disposition: 'RULE-DERIVABLE', liveColumn: 'offline label', rule: 'A read or clarify hop requesting a value already present in a VERIFIED observation earlier in the same trajectory (same normalized value, or same resource+field) — "forgot previous findings" in checkable form', grade: 'rule', note: 'Overlap warning: this rule fires on the same hops as category 8\'s retrieval-failure rule — the offline pass must decide attribution (re-read caused by forgetting = 11; re-read caused by distrusting a stale observation = NOT a failure, it is a re-verification). The rule MUST exempt re-reads after a conflicting observation or a version move (Batch 19 version-guard logic), or it punishes correct re-verification' }),
+  Object.freeze({ category: 'verification failure', family: 'Coordination errors', disposition: 'NATIVE', liveColumn: 'offline label', rule: "Batch 4 validator suite logs a verifier verdict per hop, and Batch 11 hop class marks commit hops (write/final): a commit hop with no prior verifier pass, or with a skipped/failed verifier check overridden WITHOUT a logged reason, IS the verification-failure label, directly from existing fields", grade: 'native', note: 'An overridden check WITH a logged reason (person confirmed despite the failure) is a DIFFERENT event (person-accepted risk, Batch 13 verify-before-commit) and must be counted separately from an unlogged skip, or the diagnostic punishes the person-confirmation flow the gate is designed to allow' }),
+]);
+
+/**
+ * Recovery actions, verified as prompt text by Batch 214 (Appendix A.1).
+ * Unlike Batch 208, which quoted only the pairing, Batch 214 verified
+ * each action's text — so they are recorded here. They are training-
+ * label guidance for the offline pass (Batch 208 Decision 3), NOT live
+ * prompts: none was tested as a north-star intervention, and Batch 208
+ * Decision 1 (no live periodic critic stage) is unchanged.
+ */
+const SWE_PRM_RECOVERIES_214 = Object.freeze({
+  'task-specification violation': 'redirect to original task requirements',
+  'role-specification violation': 'remind of role and boundaries',
+  'step repetition': 'acknowledge completed work, guide to next logical step',
+  'termination unawareness': 'signal completion criteria, instruct to finalize',
+  'problem misidentification': 'clarify actual problem and expected approach',
+  'tool-selection error': 'suggest correct tools, explain appropriate usage',
+  'hallucination': 'request verification of claims against actual evidence',
+  'information-processing failure': 'guide to correct information sources and interpretation',
+  'task derailment': 'realign with original objectives and priorities',
+  'goal deviation': 'refocus on primary goals and expected outcomes',
+  'context-handling failure': 'provide context summary and key information recap',
+  'verification failure': 'instruct specific verification steps and quality checks',
+});
+
+function taxonomyAudit214(name) {
+  const row = TAXONOMY_DISPOSITIONS_214.find((r) => r.category === name);
+  if (!row) throw new Error(`taxonomyAudit214: unknown SWE-PRM category "${name}" — the taxonomy has exactly 12 categories (Batch 214, appendix-verified)`);
+  return { ...row, audit: 'CLOSED — Batch 208 Q9 closed by Batch 214', supersedesBatch208Unmapped: row.category === 'problem misidentification' || row.category === 'information-processing failure' || row.category === 'task derailment' || row.category === 'goal deviation' };
+}
+
+function assertNoThirdNewEventType214(category) {
+  const allowed = ['step repetition', 'termination unawareness'];
+  if (allowed.includes(category)) return { category, newEventType: true, note: 'One of the exactly two NEW live fields confirmed by Batch 214 (Batch 208 Decision 2, confirmed not expanded)' };
+  throw new Error(`assertNoThirdNewEventType214: REFUSED — "${category}" is NOT a new live event type (Batch 214). Batch 208's "which two need new event types" is CONFIRMED, not expanded: the other ten need label linkage, a stated rule, or the two refinements — never a new event type. A claimant of a third new event type must show a category whose rule cannot be built from the Batch 214 fields`);
+}
+
+function assertColumnSeparation214(label) {
+  if (!label || typeof label !== 'object') throw new Error('assertColumnSeparation214: label must be an object with category + column');
+  if (label.column !== 'live-event' && label.column !== 'offline-label') throw new Error(`assertColumnSeparation214: REFUSED — a label must declare its column: "live-event" (running agent emits) or "offline-label" (sleep-job pass writes onto a logged window). Got "${label.column}" (Batch 214: the columns are different, or the answer double-counts)`);
+  if (label.category === 'problem misidentification' && label.column === 'live-event') throw new Error('assertColumnSeparation214: REFUSED — problem misidentification is OFFLINE-LABEL ONLY (Batch 214). A live flag would be a model judging its own understanding, the Batches 208/211 self-verification failure');
+  if (label.category === 'tool-selection error' && label.column === 'live-event') throw new Error('assertColumnSeparation214: REFUSED — tool-selection error is a POST-HOC label only (Batch 214). A live flag would need the gold before the person acts, which is circular');
+  return { category: label.category, column: label.column, note: 'Live event vs offline label kept separate (Batch 214)' };
+}
+
+function assertNewFlagsNotLiveGate214(use) {
+  if (!use || typeof use !== 'object') throw new Error('assertNewFlagsNotLiveGate214: use must be an object');
+  if (use.where === 'live-gate') throw new Error('assertNewFlagsNotLiveGate214: REFUSED — the two NEW flags (step repetition, termination) are LEDGER events first (Batch 214). They become live-gate inputs ONLY if a future batch specifies their intervention (e.g. repetition flag → acknowledge-and-advance nudge, termination flag → finalize prompt) AND measures it under Batch 13\'s non-destructive-intervention rule. Until then they are diagnostics; wiring them live without that measurement skips the queue');
+  return { where: use.where || 'ledger-diagnostic', note: 'NEW flags are diagnostics until a future batch specifies + measures their intervention (Batch 214)' };
+}
+
+function assertTaxonomyFamilyName214(name) {
+  if (TAXONOMY_AUDIT_214.familyNames.doNotQuote.includes(name)) throw new Error(`assertTaxonomyFamilyName214: REFUSED — "${name}" is a prompt-listing subtitle (Batch 214). Quote §3.2.1 family names: Specification errors / Reasoning errors / Coordination errors`);
+  if (!TAXONOMY_AUDIT_214.familyNames.quote.includes(name)) throw new Error(`assertTaxonomyFamilyName214: unknown family "${name}" — §3.2.1 families are Specification errors, Reasoning errors, Coordination errors (Batch 214)`);
+  return { family: name, quotedFrom: '§3.2.1 (Batch 214)' };
+}
+
+function assertRecoveryNotLivePrompt214(use) {
+  if (use && use.where === 'live-prompt') throw new Error('assertRecoveryNotLivePrompt214: REFUSED — SWE-PRM recovery actions are training-label guidance for the offline pass (Batch 214), NOT live prompts. None was tested as a north-star intervention; Batch 208 Decision 1 (no live periodic critic stage) is unchanged');
+  return { where: (use && use.where) || 'offline-label-guidance', note: 'Recovery actions are offline-pass label guidance only (Batch 214)' };
+}
+
+function normalizeCall214(call) {
+  if (!call || typeof call.tool !== 'string' || !call.args || typeof call.args !== 'object') throw new Error('normalizeCall214: call must be { tool, args } (Batch 10 normalized call, Batch 214 step-repetition rule)');
+  const sortKeys = (v) => {
+    if (Array.isArray(v)) return v.map(sortKeys);
+    if (v && typeof v === 'object') return Object.fromEntries(Object.keys(v).sort().map((k) => [k, sortKeys(v[k])]));
+    if (typeof v === 'string') return v.trim();
+    return v;
+  };
+  return JSON.stringify({ tool: call.tool, args: sortKeys(call.args) });
+}
+
+function stepRepetitionFlag214(input) {
+  if (!input || !input.call || !input.priorCall) throw new Error('stepRepetitionFlag214: input must carry call + priorCall (Batch 214 step-repetition rule)');
+  if (normalizeCall214(input.call) !== normalizeCall214(input.priorCall)) return { flagged: false, reason: 'Normalized calls differ — not a repetition (Batch 214)' };
+  if (input.priorObservationStatus !== 'verified-success') return { flagged: false, reason: 'Prior hop observation was not verified-success — the repetition rule requires a completed, verified call (Batch 214)' };
+  if (!Array.isArray(input.interveningWriteKeys)) throw new Error('stepRepetitionFlag214: REFUSED — the intervening-write check is mandatory (Batch 214). Supply interveningWriteKeys (possibly empty); without it the flag cannot be decided');
+  const callKeys = Object.keys(input.call.args || {});
+  const overlap = input.interveningWriteKeys.filter((k) => callKeys.includes(k));
+  if (overlap.length > 0) return { flagged: false, reason: `Re-read after a write to [${overlap.join(', ')}] is a fresh read, not a repetition — the no-intervening-write guard (Batch 214)` };
+  return { flagged: true, event: { hopId: input.call.id || null, repeatedHopId: input.priorCall.id || null, interveningWriteCheck: 'pass — no write to any call input since the verified call' }, note: 'NEW ledger event type: step repetition (Batch 214)' };
+}
+
+function terminationFlag214(input) {
+  if (!input || !input.completionPredicate) throw new Error('terminationFlag214: input must carry completionPredicate (Batch 214)');
+  if (!input.completionPredicate.declared) return { measurable: false, flagged: [], verdict: 'NOT MEASURABLE — no per-routine completion predicate declared; termination-unawareness is never reported as zero (Batch 214)' };
+  const forms = ['tool-verified outcome', 'final-state outcome predicate', 'person acceptance'];
+  if (!forms.includes(input.completionPredicate.form)) throw new Error(`terminationFlag214: completion predicate form must be one of ${forms.join(' / ')} (Batch 214) — whichever the routine declares`);
+  if (input.predicateFiredAtHop === null || input.predicateFiredAtHop === undefined) return { measurable: true, flagged: [], verdict: 'Predicate declared but never fired in this trajectory — no termination flag (Batch 214)' };
+  const flagged = (input.hops || []).filter((h) => h.index > input.predicateFiredAtHop && !h.isFinal).map((h) => h.id);
+  return { measurable: true, flagged, verdict: flagged.length > 0 ? `Termination flag: ${flagged.length} non-final hop(s) after the completion predicate fired (Batch 214)` : 'No non-final hop after the predicate fired (Batch 214)' };
+}
+
+function driftDetector214(input) {
+  if (!input || !Array.isArray(input.windowHops) || input.windowHops.length === 0) throw new Error('driftDetector214: input must carry a non-empty windowHops array (Batch 214 drift metric)');
+  if (input.derailmentDetector || input.deviationDetector) throw new Error('driftDetector214: REFUSED — ONE drift detector, two thresholds (Batch 214). Separate derailment/deviation detectors double-count the same drift in the diagnostic');
+  if (input.microThreshold === undefined || input.macroConsecutive === undefined) throw new Error('driftDetector214: REFUSED — micro threshold AND macro consecutive threshold must be STATED (Batch 214). SWE-PRM gives no thresholds; they are design judgments to calibrate, not paper constants');
+  if (!Array.isArray(input.goalToolSet)) throw new Error('driftDetector214: goalToolSet (the routine\'s goal tool set) is required — both labels are "hops outside the routine\'s goal" (Batch 214)');
+  const offGoal = input.windowHops.filter((h) => !input.goalToolSet.includes(h.tool));
+  let longestRun = 0;
+  let run = 0;
+  for (const h of input.windowHops) {
+    run = input.goalToolSet.includes(h.tool) ? 0 : run + 1;
+    longestRun = Math.max(longestRun, run);
+  }
+  const labels = [];
+  if (offGoal.length >= input.microThreshold) labels.push('goal deviation');
+  if (offGoal.length === input.windowHops.length || longestRun >= input.macroConsecutive) labels.push('task derailment');
+  return { metric: 'single drift metric — share of window hops outside the routine\'s goal tool set', windowSize: input.windowHops.length, offGoalCount: offGoal.length, offGoalShare: offGoal.length / input.windowHops.length, longestOffGoalRun: longestRun, labels, note: 'Two labels from ONE metric (Batch 214 collapse); thresholds are design judgments to calibrate, not paper constants' };
+}
+
+function labelWindow214(input) {
+  if (!input || !Array.isArray(input.labels)) throw new Error('labelWindow214: input must carry a labels array (Batch 214 offline-pass format)');
+  if (input.exactlyOneCategory) throw new Error('labelWindow214: REFUSED — categories are a SET, not a partition (Batch 214). The SWE-PRM worked example marks BOTH step repetition AND tool-selection error DETECTED: Yes on the same trace; a per-trajectory diagnostic reports per-category rates, never shares summing to 100%');
+  const seen = new Set();
+  const labels = [];
+  for (const l of input.labels) {
+    if (!l.category) throw new Error('labelWindow214: every label needs a category (Batch 214)');
+    taxonomyAudit214(l.category);
+    if (l.detected === 'Yes' && !l.evidence) throw new Error(`labelWindow214: REFUSED — "${l.category}" marked DETECTED: Yes without EVIDENCE (Batch 214, SWE-PRM instruction 4: only mark DETECTED: Yes with clear evidence; the format-level version of Batch 211's SCORE stage-1 rule)`);
+    if (l.detected === 'Yes' && !l.grade) throw new Error(`labelWindow214: REFUSED — "${l.category}" has no GRADE (Batch 214). Each label carries its grade (native / rule / new-flag / judge) alongside its rate; a rate without its grade is incomplete`);
+    if (!['native', 'rule', 'new-flag', 'judge'].includes(l.grade) && l.detected === 'Yes') throw new Error(`labelWindow214: unknown grade "${l.grade}" — grades are native / rule / new-flag / judge (Batch 214)`);
+    if (l.recoveryAction) assertRecoveryNotLivePrompt214({ where: 'offline-label-guidance' });
+    const key = l.category;
+    if (!seen.has(key)) { seen.add(key); labels.push(l); }
+  }
+  const taskStatus = input.taskStatus || 'On track';
+  if (!['On track', 'Needs correction', 'Critical intervention required'].includes(taskStatus)) throw new Error(`labelWindow214: TASK_STATUS must be On track / Needs correction / Critical intervention required (Batch 214, SWE-PRM response format)`);
+  return { labels, labelsAreSet: true, taskStatus, overallGuidance: input.overallGuidance || null, note: 'SWE-PRM response format stolen verbatim in shape: per-category DETECTED Yes/No + EVIDENCE + RECOVERY_ACTION, then TASK_STATUS + OVERALL_GUIDANCE (Batch 214)' };
+}
+
+function assertLabelGradeReported214(report) {
+  if (!report || typeof report !== 'object') throw new Error('assertLabelGradeReported214: report must be an object');
+  if (!report.perCategory || !Array.isArray(report.perCategory)) throw new Error('assertLabelGradeReported214: REFUSED — the growth-proof diagnostic must report grade ALONGSIDE rate, per category (Batch 214). A rise in judge-grade labels is not the same evidence as a rise in rule-grade labels');
+  for (const row of report.perCategory) {
+    if (!row.category || !row.grade || row.rate === undefined) throw new Error(`assertLabelGradeReported214: REFUSED — per-category row for "${row.category || '?'}" lacks category, grade, or rate (Batch 214)`);
+  }
+  return { gradeReportedAlongsideRate: true, note: 'Grade alongside rate, per category (Batch 214)' };
+}
+
+function promotionPrecisionByGrade214(report) {
+  if (!report || !report.perCategoryPrecisionByGrade) throw new Error('promotionPrecisionByGrade214: REFUSED — the promotion test must report per-category label precision BY GRADE (Batch 214 amendment to Q10). Without it, the test cannot distinguish taxonomy validation from judge testing');
+  const rows = report.perCategoryPrecisionByGrade;
+  const judgeRows = rows.filter((r) => r.grade === 'judge');
+  const judgeShare = rows.length > 0 ? judgeRows.length / rows.length : 0;
+  if (judgeShare > 0.5) return { taxonomyValidation: false, judgeShare, verdict: 'Labels are mostly judge-grade (category 5 + the natural-language remainder of 1) — the promotion test is testing the JUDGE, not the taxonomy, and its verdict cannot be read as taxonomy validation (Batch 214)' };
+  return { taxonomyValidation: 'not-refuted', judgeShare, verdict: 'Per-category precision by grade reported; judge-grade share does not dominate, so a promotion verdict may be read as taxonomy evidence (Batch 214)' };
+}
+
+function provenanceFieldReference214(record) {
+  if (!record || typeof record !== 'object') throw new Error('provenanceFieldReference214: record must be an object');
+  if (record.claimsMisinterpretationVsHallucination && !record.sourceField) throw new Error('provenanceFieldReference214: REFUSED — distinguishing misinterpretation from hallucination REQUIRES the source-field reference (Batch 214 refinement 1 of 2): provenance must record (source, field/reference) per value, e.g. (tool_result, hop 4, field "balance"). Without it both read as "value not matching its claimed source"');
+  return { sourceField: record.sourceField || null, note: 'Provenance refinement (Batch 214): source FIELD, not just source kind, per value — serves category 7\'s observation sub-case and category 8' };
+}
+
+function taskSpecPredicateFraction214(input) {
+  if (!input || input.predicateBacked === undefined || input.judgeOnly === undefined) throw new Error('taskSpecPredicateFraction214: REFUSED — the offline pass must report what fraction of task-spec labels are predicate-backed vs judge-only (Batch 214), or the category\'s precision is unknowable');
+  const total = input.predicateBacked + input.judgeOnly;
+  if (total === 0) return { predicateBackedFraction: null, verdict: 'No task-spec labels in this pass — fraction undefined, not zero (Batch 214)' };
+  return { predicateBacked: input.predicateBacked, judgeOnly: input.judgeOnly, predicateBackedFraction: input.predicateBacked / total, note: 'Predicate-backed vs judge-only fraction reported (Batch 214); natural-language-only requirements stay judge labels offline, never live events' };
+}
+
+function roleCheckLogged214(input) {
+  if (!input || typeof input !== 'object') throw new Error('roleCheckLogged214: input must be an object');
+  if (!input.allowedSetDeclared) return { measurable: false, verdict: 'UNMEASURABLE — routine has no allowed-set declaration; same "undeclared = unknown" rule as footprints (Batch 214)' };
+  if (!input.loggedAsVerifierAuditClass) throw new Error('roleCheckLogged214: REFUSED — the role-check RESULT must be logged as a Batch 19 verifier-audit class (Batch 214), or the role-specification derivability is theoretical');
+  return { measurable: true, verdict: 'Role-check outcome logged as a verifier-audit class (Batch 214)' };
+}
+
+function taxonomyAuditStatus214() {
+  return { ...TAXONOMY_AUDIT_214, q9: 'CLOSED by Batch 214 (appendix re-read)', newEventTypes: ['step repetition', 'termination unawareness'], note: 'Batch 208\'s "which two need new event types" CONFIRMED, not expanded; the other ten need label linkage, a stated rule, or the two refinements' };
+}
+
+function checkOfflineCriticSpec214(spec) {
+  if (!spec || typeof spec !== 'object') throw new Error('checkOfflineCriticSpec214: spec must be an object');
+  const base = checkOfflineCriticSpec212(spec);
+  const column = spec.auditLabels ? spec.auditLabels.map((l) => assertColumnSeparation214({ category: l.category, column: l.column || 'offline-label' })) : { column: 'UNSET — every label declares live-event or offline-label (Batch 214)' };
+  const window = spec.windowLabels ? labelWindow214(spec.windowLabels) : { windowLabels: 'UNSET — window labels are a SET with grade + evidence per label (Batch 214)' };
+  const drift = spec.drift ? driftDetector214(spec.drift) : { drift: 'UNSET — derailment/deviation share ONE drift detector with two thresholds (Batch 214)' };
+  const newFlags = spec.newFlagsLiveGate ? assertNewFlagsNotLiveGate214(spec.newFlagsLiveGate) : { newFlags: 'LEDGER DIAGNOSTIC — the two NEW flags are not live-gate inputs until a future batch specifies + measures their intervention (Batch 214)' };
+  const gradeReport = spec.gradeReport ? assertLabelGradeReported214(spec.gradeReport) : { gradeReport: 'UNSET — grade reported alongside rate, per category (Batch 214)' };
+  const precisionByGrade = spec.promotionPrecisionByGrade ? promotionPrecisionByGrade214({ perCategoryPrecisionByGrade: spec.promotionPrecisionByGrade }) : { precisionByGrade: 'UNSET — promotion test reports per-category precision by grade (Batch 214 amendment to Q10)' };
+  return {
+    batch: 214,
+    verdict: 'SPEC OK',
+    base,
+    column,
+    window,
+    drift,
+    newFlags,
+    gradeReport,
+    precisionByGrade,
+    audit: taxonomyAuditStatus214(),
+    executed: false,
+    note: 'Spec only — no ledger event was emitted, no rule was run, no window was labeled in Batch 214; the mapping is a spec audit against the log\'s own accumulated spec fields, not against shipped code (the branch comparison is where spec-vs-code gaps get found). Batch 208 Decisions 1 and 3 CONFIRMED unchanged; Batch 211 filter, calibration, three-arm promotion, and decoupling rules CONFIRMED unchanged; Batch 212 stage-0 spec, mechanical drop rule, and distilled placement (round-13 fix) CONFIRMED unchanged. New: Q9 audit closed, two-column framing, one drift detector with two thresholds, label grade alongside rate, categories as a set. No live gate change: nothing here adds a live stage, a live flag, or a live intervention.',
+  };
+}
+
 module.exports = {
   percentile,
   median,
@@ -5236,4 +5505,26 @@ module.exports = {
   weaverPromotionArm212,
   weaverStatus212,
   checkOfflineCriticSpec212,
+  // Batch 214: taxonomy-to-ledger audit CLOSED — two-column framing, one drift detector, grade alongside rate, categories as a set (spec, unexecuted).
+  TAXONOMY_AUDIT_214,
+  TAXONOMY_DISPOSITIONS_214,
+  SWE_PRM_RECOVERIES_214,
+  taxonomyAudit214,
+  assertNoThirdNewEventType214,
+  assertColumnSeparation214,
+  assertNewFlagsNotLiveGate214,
+  assertTaxonomyFamilyName214,
+  assertRecoveryNotLivePrompt214,
+  normalizeCall214,
+  stepRepetitionFlag214,
+  terminationFlag214,
+  driftDetector214,
+  labelWindow214,
+  assertLabelGradeReported214,
+  promotionPrecisionByGrade214,
+  provenanceFieldReference214,
+  taskSpecPredicateFraction214,
+  roleCheckLogged214,
+  taxonomyAuditStatus214,
+  checkOfflineCriticSpec214,
 };

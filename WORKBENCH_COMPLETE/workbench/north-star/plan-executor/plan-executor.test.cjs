@@ -178,6 +178,27 @@ const {
   weaverPromotionArm212,
   weaverStatus212,
   checkOfflineCriticSpec212,
+  TAXONOMY_AUDIT_214,
+  TAXONOMY_DISPOSITIONS_214,
+  SWE_PRM_RECOVERIES_214,
+  taxonomyAudit214,
+  assertNoThirdNewEventType214,
+  assertColumnSeparation214,
+  assertNewFlagsNotLiveGate214,
+  assertTaxonomyFamilyName214,
+  assertRecoveryNotLivePrompt214,
+  normalizeCall214,
+  stepRepetitionFlag214,
+  terminationFlag214,
+  driftDetector214,
+  labelWindow214,
+  assertLabelGradeReported214,
+  promotionPrecisionByGrade214,
+  provenanceFieldReference214,
+  taskSpecPredicateFraction214,
+  roleCheckLogged214,
+  taxonomyAuditStatus214,
+  checkOfflineCriticSpec214,
 } = require('./plan-executor.cjs');
 
 const read = (id, dependsOn, run) => ({ id, dependsOn, kind: 'read', readOnly: true, run: run || (async () => `${id}-done`) });
@@ -2410,4 +2431,189 @@ test('Batch 212: round 13 composes with rounds 5–12 without weakening them; th
   // Round 13's own status: spec, unexecuted.
   assert.equal(WEAVER_212.source.includes('arXiv:2506.18203'), true);
   assert.equal(checkOfflineCriticSpec212({ cadence: { everyNHops: 5, windowKSteps: 8 }, intervention: { kind: 'append-guidance' } }).executed, false);
+});
+
+test('Batch 214 audit closes Q9: all 12 categories have a disposition, exactly two NEW, counts add up', () => {
+  assert.equal(TAXONOMY_DISPOSITIONS_214.length, 12);
+  assert.deepEqual(TAXONOMY_AUDIT_214.counts, { native: 3, ruleDerivable: 5, newLiveFields: 2, offlineLabelOnly: 1, refinements: 2, total: 12 });
+  const news = TAXONOMY_DISPOSITIONS_214.filter((r) => r.disposition === 'NEW').map((r) => r.category);
+  assert.deepEqual(news, ['step repetition', 'termination unawareness']);
+  assert.equal(TAXONOMY_DISPOSITIONS_214.filter((r) => r.disposition === 'NATIVE').length, 3);
+  // Batch 214 counts RULE-DERIVABLE as 5 items: 4 rule-derivable categories + the collapsed detector as one item spanning two categories.
+  assert.equal(TAXONOMY_DISPOSITIONS_214.filter((r) => r.disposition === 'RULE-DERIVABLE').length, 4);
+  assert.equal(TAXONOMY_DISPOSITIONS_214.filter((r) => r.disposition === 'COLLAPSED').length, 2);
+  assert.equal(TAXONOMY_DISPOSITIONS_214.filter((r) => r.disposition === 'OFFLINE-LABEL ONLY').length, 1);
+  assert.equal(TAXONOMY_DISPOSITIONS_214.filter((r) => r.disposition === 'COLLAPSED').length, 2);
+  const status = taxonomyAuditStatus214();
+  assert.equal(status.q9, 'CLOSED by Batch 214 (appendix re-read)');
+  assert.deepEqual(status.newEventTypes, ['step repetition', 'termination unawareness']);
+  // The four Batch 208 UNMAPPED rows now carry Batch 214 dispositions, not silence.
+  for (const c of ['problem misidentification', 'information-processing failure', 'task derailment', 'goal deviation']) {
+    assert.equal(taxonomyAudit214(c).supersedesBatch208Unmapped, true);
+  }
+});
+
+test('Batch 214 burden of proof: a third new event type throws', () => {
+  assert.equal(assertNoThirdNewEventType214('step repetition').newEventType, true);
+  assert.equal(assertNoThirdNewEventType214('termination unawareness').newEventType, true);
+  assert.throws(() => assertNoThirdNewEventType214('context-handling failure'), /CONFIRMED, not expanded/);
+  assert.throws(() => assertNoThirdNewEventType214('problem misidentification'), /must show a category/);
+  assert.throws(() => taxonomyAudit214('not a category'), /exactly 12 categories/);
+});
+
+test('Batch 214 two columns: live event vs offline label are never conflated', () => {
+  assert.equal(assertColumnSeparation214({ category: 'step repetition', column: 'live-event' }).column, 'live-event');
+  assert.equal(assertColumnSeparation214({ category: 'hallucination', column: 'offline-label' }).column, 'offline-label');
+  assert.throws(() => assertColumnSeparation214({ category: 'problem misidentification', column: 'live-event' }), /OFFLINE-LABEL ONLY/);
+  assert.throws(() => assertColumnSeparation214({ category: 'tool-selection error', column: 'live-event' }), /POST-HOC label only/);
+  assert.throws(() => assertColumnSeparation214({ category: 'hallucination', column: 'both' }), /declare its column/);
+  assert.throws(() => assertNewFlagsNotLiveGate214({ where: 'live-gate' }), /LEDGER events first/);
+  assert.equal(assertNewFlagsNotLiveGate214({ where: 'ledger-diagnostic' }).where, 'ledger-diagnostic');
+});
+
+test('Batch 214 naming: §3.2.1 family names quoted, prompt subtitles refused; recoveries are label guidance, not live prompts', () => {
+  assert.equal(assertTaxonomyFamilyName214('Coordination errors').quotedFrom, '§3.2.1 (Batch 214)');
+  assert.throws(() => assertTaxonomyFamilyName214('Process Management Issues'), /prompt-listing subtitle/);
+  assert.equal(SWE_PRM_RECOVERIES_214['step repetition'], 'acknowledge completed work, guide to next logical step');
+  assert.equal(SWE_PRM_RECOVERIES_214['termination unawareness'], 'signal completion criteria, instruct to finalize');
+  assert.equal(SWE_PRM_RECOVERIES_214['verification failure'], 'instruct specific verification steps and quality checks');
+  assert.equal(assertRecoveryNotLivePrompt214({ where: 'offline-label-guidance' }).where, 'offline-label-guidance');
+  assert.throws(() => assertRecoveryNotLivePrompt214({ where: 'live-prompt' }), /NOT live prompts/);
+});
+
+test('Batch 214 step-repetition rule: normalized-call equality + verified-success + no intervening write', () => {
+  const call = { id: 'h9', tool: 'read', args: { b: 2, a: ' x ' } };
+  const prior = { id: 'h3', tool: 'read', args: { a: 'x', b: 2 } };
+  assert.equal(normalizeCall214(call), normalizeCall214(prior));
+  const flag = stepRepetitionFlag214({ call, priorCall: prior, priorObservationStatus: 'verified-success', interveningWriteKeys: [] });
+  assert.equal(flag.flagged, true);
+  assert.equal(flag.event.repeatedHopId, 'h3');
+  assert.equal(stepRepetitionFlag214({ call, priorCall: prior, priorObservationStatus: 'verified-success', interveningWriteKeys: ['a'] }).flagged, false);
+  assert.equal(stepRepetitionFlag214({ call, priorCall: prior, priorObservationStatus: 'failed', interveningWriteKeys: [] }).flagged, false);
+  assert.equal(stepRepetitionFlag214({ call, priorCall: { id: 'h3', tool: 'write', args: { a: 'x', b: 2 } }, priorObservationStatus: 'verified-success', interveningWriteKeys: [] }).flagged, false);
+  assert.throws(() => stepRepetitionFlag214({ call, priorCall: prior, priorObservationStatus: 'verified-success' }), /intervening-write check is mandatory/);
+});
+
+test('Batch 214 termination flag: undeclared predicate is "not measurable", never zero', () => {
+  const undeclared = terminationFlag214({ completionPredicate: { declared: false }, hops: [{ index: 1, id: 'h1', isFinal: false }] });
+  assert.equal(undeclared.measurable, false);
+  assert.match(undeclared.verdict, /never reported as zero/);
+  const flagged = terminationFlag214({
+    completionPredicate: { declared: true, form: 'person acceptance' },
+    predicateFiredAtHop: 4,
+    hops: [{ index: 5, id: 'h5', isFinal: false }, { index: 6, id: 'h6', isFinal: true }],
+  });
+  assert.deepEqual(flagged.flagged, ['h5']);
+  assert.throws(() => terminationFlag214({ completionPredicate: { declared: true, form: 'vibes' }, predicateFiredAtHop: 1, hops: [] }), /one of/);
+  const neverFired = terminationFlag214({ completionPredicate: { declared: true, form: 'tool-verified outcome' }, predicateFiredAtHop: null, hops: [] });
+  assert.deepEqual(neverFired.flagged, []);
+});
+
+test('Batch 214 drift collapse: one detector, two thresholds — two detectors throw, thresholds must be stated', () => {
+  const window = [{ tool: 'read' }, { tool: 'browse' }, { tool: 'read' }, { tool: 'browse' }, { tool: 'browse' }];
+  const goal = ['read'];
+  const micro = driftDetector214({ windowHops: window, goalToolSet: goal, microThreshold: 1, macroConsecutive: 3 });
+  assert.deepEqual(micro.labels, ['goal deviation']);
+  assert.equal(micro.offGoalCount, 3);
+  assert.equal(micro.longestOffGoalRun, 2);
+  const macro = driftDetector214({ windowHops: [{ tool: 'read' }, { tool: 'browse' }, { tool: 'browse' }, { tool: 'browse' }], goalToolSet: goal, microThreshold: 1, macroConsecutive: 3 });
+  assert.deepEqual(macro.labels, ['goal deviation', 'task derailment']);
+  const onGoal = driftDetector214({ windowHops: [{ tool: 'read' }, { tool: 'browse' }], goalToolSet: goal, microThreshold: 2, macroConsecutive: 3 });
+  assert.deepEqual(onGoal.labels, []);
+  assert.throws(() => driftDetector214({ windowHops: window, goalToolSet: goal, microThreshold: 1, macroConsecutive: 3, derailmentDetector: {}, deviationDetector: {} }), /ONE drift detector/);
+  assert.throws(() => driftDetector214({ windowHops: window, goalToolSet: goal, microThreshold: 1 }), /must be STATED/);
+  assert.throws(() => driftDetector214({ windowHops: window, microThreshold: 1, macroConsecutive: 3 }), /goalToolSet/);
+});
+
+test('Batch 214 window labels: a SET with grade + evidence — partition and gradeless labels throw', () => {
+  const ok = labelWindow214({
+    labels: [
+      { category: 'step repetition', detected: 'Yes', evidence: 'hop 3 repeats hop 1', recoveryAction: 'acknowledge completed work, guide to next logical step', grade: 'new-flag' },
+      { category: 'tool-selection error', detected: 'Yes', evidence: 'chose read, gold was write', recoveryAction: 'suggest correct tools, explain appropriate usage', grade: 'native' },
+      { category: 'hallucination', detected: 'No' },
+    ],
+    taskStatus: 'Needs correction',
+  });
+  assert.equal(ok.labelsAreSet, true);
+  assert.equal(ok.labels.length, 3);
+  assert.equal(ok.taskStatus, 'Needs correction');
+  assert.throws(() => labelWindow214({ labels: [{ category: 'step repetition', detected: 'Yes', grade: 'new-flag' }], exactlyOneCategory: false }), /without EVIDENCE/);
+  assert.throws(() => labelWindow214({ labels: [{ category: 'step repetition', detected: 'Yes', evidence: 'x' }] }), /no GRADE/);
+  assert.throws(() => labelWindow214({ labels: [], exactlyOneCategory: true }), /a SET, not a partition/);
+  assert.throws(() => labelWindow214({ labels: [], taskStatus: 'Fine' }), /TASK_STATUS/);
+  // Duplicate category collapses in the set.
+  const dup = labelWindow214({ labels: [
+    { category: 'hallucination', detected: 'Yes', evidence: 'v', grade: 'native' },
+    { category: 'hallucination', detected: 'Yes', evidence: 'v2', grade: 'native' },
+  ] });
+  assert.equal(dup.labels.length, 1);
+});
+
+test('Batch 214 grade alongside rate + precision by grade: judge-dominated labels cannot validate the taxonomy', () => {
+  assert.equal(assertLabelGradeReported214({ perCategory: [{ category: 'step repetition', grade: 'new-flag', rate: 0.2 }] }).gradeReportedAlongsideRate, true);
+  assert.throws(() => assertLabelGradeReported214({ perCategory: [{ category: 'step repetition', rate: 0.2 }] }), /lacks category, grade, or rate/);
+  assert.throws(() => promotionPrecisionByGrade214({}), /precision BY GRADE/);
+  const judgeHeavy = promotionPrecisionByGrade214({ perCategoryPrecisionByGrade: [
+    { category: 'problem misidentification', grade: 'judge' },
+    { category: 'task-specification violation', grade: 'judge' },
+    { category: 'step repetition', grade: 'new-flag' },
+  ] });
+  assert.equal(judgeHeavy.taxonomyValidation, false);
+  assert.match(judgeHeavy.verdict, /testing the JUDGE, not the taxonomy/);
+  const balanced = promotionPrecisionByGrade214({ perCategoryPrecisionByGrade: [
+    { category: 'problem misidentification', grade: 'judge' },
+    { category: 'step repetition', grade: 'new-flag' },
+    { category: 'verification failure', grade: 'native' },
+  ] });
+  assert.equal(balanced.taxonomyValidation, 'not-refuted');
+});
+
+test('Batch 214 refinements: provenance field reference, predicate fraction, role-check logging', () => {
+  assert.throws(() => provenanceFieldReference214({ claimsMisinterpretationVsHallucination: true }), /source-field reference/);
+  assert.equal(provenanceFieldReference214({ claimsMisinterpretationVsHallucination: true, sourceField: { source: 'tool_result', hop: 4, field: 'balance' } }).sourceField.field, 'balance');
+  const frac = taskSpecPredicateFraction214({ predicateBacked: 3, judgeOnly: 1 });
+  assert.equal(frac.predicateBackedFraction, 0.75);
+  assert.throws(() => taskSpecPredicateFraction214({ predicateBacked: 3 }), /predicate-backed vs judge-only/);
+  assert.equal(roleCheckLogged214({ allowedSetDeclared: false }).measurable, false);
+  assert.throws(() => roleCheckLogged214({ allowedSetDeclared: true, loggedAsVerifierAuditClass: false }), /verifier-audit class/);
+  assert.equal(roleCheckLogged214({ allowedSetDeclared: true, loggedAsVerifierAuditClass: true }).measurable, true);
+});
+
+test('Batch 214 composite: Batch 212 spec + audit columns + drift + grade + precision, all unexecuted', () => {
+  const spec = checkOfflineCriticSpec214({
+    cadence: { everyNHops: 5, windowKSteps: 8 },
+    intervention: { kind: 'append-guidance' },
+    auditLabels: [{ category: 'step repetition', column: 'live-event' }],
+    windowLabels: {
+      labels: [{ category: 'step repetition', detected: 'Yes', evidence: 'h3 repeats h1', grade: 'new-flag' }],
+      taskStatus: 'Needs correction',
+    },
+    drift: { windowHops: [{ tool: 'read' }, { tool: 'browse' }], goalToolSet: ['read'], microThreshold: 1, macroConsecutive: 3 },
+    gradeReport: { perCategory: [{ category: 'step repetition', grade: 'new-flag', rate: 0.2 }] },
+    promotionPrecisionByGrade: [
+      { category: 'step repetition', grade: 'new-flag' },
+      { category: 'verification failure', grade: 'native' },
+    ],
+  });
+  assert.equal(spec.verdict, 'SPEC OK');
+  assert.equal(spec.executed, false);
+  assert.equal(spec.base.verdict, 'SPEC OK');
+  assert.equal(spec.audit.q9, 'CLOSED by Batch 214 (appendix re-read)');
+  assert.deepEqual(spec.drift.labels, ['goal deviation']);
+  assert.equal(spec.precisionByGrade.taxonomyValidation, 'not-refuted');
+  assert.throws(() => checkOfflineCriticSpec214({ cadence: { everyNHops: 5, windowKSteps: 8 }, intervention: { kind: 'append-guidance' }, auditLabels: [{ category: 'problem misidentification', column: 'live-event' }] }), /OFFLINE-LABEL ONLY/);
+  assert.throws(() => checkOfflineCriticSpec214({ cadence: { everyNHops: 5, windowKSteps: 8 }, intervention: { kind: 'append-guidance' }, newFlagsLiveGate: { where: 'live-gate' } }), /LEDGER events first/);
+});
+
+test('Batch 214: round 14 composes with rounds 5–13 without weakening them; the spec is unexecuted', () => {
+  // Round 13 guards still bite.
+  assert.throws(() => checkOfflineCriticSpec212({ cadence: { everyNHops: 5, windowKSteps: 8 }, intervention: { kind: 'append-guidance' }, distilledPlacement: { where: 'live' } }), /never becomes the live gate/);
+  // Round 12 guards still bite.
+  assert.equal(checkOfflineCriticSpec211({ cadence: { everyNHops: 5, windowKSteps: 8 }, intervention: { kind: 'append-guidance' } }).executed, false);
+  // Round 11 guards still bite.
+  assert.throws(() => assertNoLivePeriodicCriticStage208([...detectorTimeline(), 'periodic-critic']), /no live periodic critic stage/);
+  assert.equal(checkOfflineCriticSpec208({ cadence: { everyNHops: 5, windowKSteps: 8 }, intervention: { kind: 'append-guidance' } }).executed, false);
+  // Round 14's own status: spec, unexecuted.
+  assert.equal(TAXONOMY_AUDIT_214.source.includes('arXiv:2509.02360'), true);
+  assert.equal(checkOfflineCriticSpec214({ cadence: { everyNHops: 5, windowKSteps: 8 }, intervention: { kind: 'append-guidance' } }).executed, false);
 });

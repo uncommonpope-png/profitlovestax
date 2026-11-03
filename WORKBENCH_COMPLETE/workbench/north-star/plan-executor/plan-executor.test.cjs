@@ -104,6 +104,23 @@ const {
   assertAsaQuarantineStands,
   WU_HEALY_CITATION_201,
   assertWuHealyCitation,
+  MULTI_SAMPLE_LIVE_GATE_CLOSURE_204,
+  SR_LOGPROB_204,
+  SR_DISQUALIFICATIONS_204,
+  SLIM_SC_TRANSFER_204,
+  SAMPLED_STEP_RULES_204,
+  assertLiveToolGate,
+  assertNoGateReopening,
+  assertSrLogprobScope,
+  assertWarmUpDelay,
+  assertGateInputNotPartialScore,
+  assertWithinClusterPrune,
+  withinClusterPrune,
+  assertAbsoluteThreshold,
+  assertConfidenceNotFromPrunedPool,
+  assertSampledStep,
+  PARKED_FREE_CHAT_SR_TEST_204,
+  assertParkedFreeChatSrTest,
 } = require('./plan-executor.cjs');
 
 const read = (id, dependsOn, run) => ({ id, dependsOn, kind: 'read', readOnly: true, run: run || (async () => `${id}-done`) });
@@ -1493,4 +1510,169 @@ test('Batch 201: round 8 composes with rounds 5–7 without weakening them', () 
   // Timeline stage 1 IS the round-7 gap tier, re-slotted by time — same detector, later company.
   assert.equal(DETECTOR_TIMELINE_201[1].tier, 'wu-cosine-gap-pre-generation');
   assert.equal(DETECTOR_TIMELINE_201[0].tier, DISPUTED_HOP_TIERS_199[0].tier);
+});
+
+// ------------------------------------------------------------ Batch 204
+
+test('Batch 204: closure recorded — Batch 5 + Batch 10 STAND, now with SR + Slim-SC behind them', () => {
+  assert.equal(MULTI_SAMPLE_LIVE_GATE_CLOSURE_204.verdict, 'CLOSED — the multi-sample live tool gate stays CLOSED');
+  assert.ok(MULTI_SAMPLE_LIVE_GATE_CLOSURE_204.stands.includes('Batch 5 sampling-tax rule'));
+  assert.ok(MULTI_SAMPLE_LIVE_GATE_CLOSURE_204.stands.some((s) => s.includes('Batch 10 demotion')));
+  assert.ok(MULTI_SAMPLE_LIVE_GATE_CLOSURE_204.additionalSources.some((s) => s.includes('2410.20290v2')));
+  assert.ok(MULTI_SAMPLE_LIVE_GATE_CLOSURE_204.additionalSources.some((s) => s.includes('2509.13990v1')));
+  assert.equal(MULTI_SAMPLE_LIVE_GATE_CLOSURE_204.status, 'SPEC, not executed — no SR or Slim-SC run in Batch 204');
+});
+
+test('Batch 204: live multi-sample gate for tool hops is refused in every spelling', () => {
+  // Samples > 1, explicit flag, and named multi-sample methods all throw.
+  assert.throws(() => assertLiveToolGate({ live: true, hopKind: 'tool', samples: 8 }), /stays CLOSED/);
+  assert.throws(() => assertLiveToolGate({ live: true, hopKind: 'tool-hop', multiSample: true }), /stays CLOSED/);
+  assert.throws(() => assertLiveToolGate({ live: true, hopKind: 'tool', method: 'best-of-n' }), /stays CLOSED/);
+  assert.throws(() => assertLiveToolGate({ live: true, hopKind: 'tool', method: 'self-consistency' }), /stays CLOSED/);
+  assert.throws(() => assertLiveToolGate({ live: true, hopKind: 'tool', method: 'multi-sample', samples: 5000 }), /stays CLOSED/);
+  // Single-sample live tool hops are not a multi-sample gate and pass.
+  assert.equal(assertLiveToolGate({ live: true, hopKind: 'tool', samples: 1 }).multi, false);
+  // Offline multi-sample work is not a live gate and passes this guard (other rules govern it).
+  assert.equal(assertLiveToolGate({ live: false, hopKind: 'tool', samples: 16 }).live, false);
+  // Neither paper may be presented as reopening the gate.
+  assert.throws(() => assertNoGateReopening('speculative-rejection', 'reopens-live-gate'), /does NOT reopen/);
+  assert.throws(() => assertNoGateReopening('slim-sc', 'reopens-live-gate'), /does NOT reopen/);
+  assert.equal(assertNoGateReopening('slim-sc', 'constrains-future-sampled-steps').reopening, false);
+});
+
+test('Batch 204: SR-logprob correction recorded — NO reward model needed, but detached from gates and tool hops', () => {
+  assert.equal(SR_LOGPROB_204.needsRewardModel, false);
+  assert.ok(SR_LOGPROB_204.score.includes('(1/len) ln p(Y|X)'));
+  assert.ok(SR_LOGPROB_204.correction.includes('FAILS for the logprob variant'));
+  assert.ok(SR_LOGPROB_204.paperNumbers.includes('1.554 vs Bo3840 1.698'));
+  assert.ok(SR_LOGPROB_204.confidentErrorDirection.includes('0.97'));
+  assert.deepEqual(SR_LOGPROB_204.never, ['a gate', 'tool hops']);
+  // The only allowed scope passes; every gate/tool spelling throws.
+  assert.equal(assertSrLogprobScope({ hopKind: 'free-chat', role: 'accelerator' }).scope, 'free-chat accelerator');
+  assert.throws(() => assertSrLogprobScope({ hopKind: 'tool', role: 'accelerator' }), /never for tool hops/);
+  assert.throws(() => assertSrLogprobScope({ hopKind: 'tool', role: 'gate' }), /never a gate/);
+  assert.throws(() => assertSrLogprobScope({ hopKind: 'free-chat', role: 'gate' }), /never a gate/);
+  assert.throws(() => assertSrLogprobScope({ hopKind: 'free-chat', role: 'gate-input' }), /never a gate/);
+  assert.throws(() => assertSrLogprobScope({ hopKind: 'routine', role: 'accelerator' }), /only allowed scope is free-chat/);
+});
+
+test('Batch 204 rule (a): no pruning, scoring, or rejection before arguments are written', () => {
+  for (const action of ['prune', 'score', 'reject']) {
+    assert.throws(() => assertWarmUpDelay({ action, argsWritten: false }), /before the decision-bearing tokens exist/);
+    assert.throws(() => assertWarmUpDelay({ action, argsWritten: undefined }), /before the decision-bearing tokens exist/);
+  }
+  assert.equal(assertWarmUpDelay({ action: 'prune', argsWritten: true }).delayOk, true);
+  assert.equal(assertWarmUpDelay({ action: 'score', argsWritten: true }).delayOk, true);
+  assert.equal(assertWarmUpDelay({ action: 'observe', argsWritten: false }).delayOk, true);
+  // A partial score on a function name alone is not a gate input.
+  assert.throws(() => assertGateInputNotPartialScore({ basis: 'function-name-only', argsWritten: false }), /not a gate input/);
+  assert.throws(() => assertGateInputNotPartialScore({ partialBeforeArgs: true }), /not a gate input/);
+  assert.throws(() => assertGateInputNotPartialScore({ argsWritten: false }), /not a gate input/);
+  assert.equal(assertGateInputNotPartialScore({ basis: 'full-call', argsWritten: true }).gateInputOk, true);
+});
+
+test('Batch 204 rule (b): within-cluster pruning only — a mode-selecting prune throws; minority clusters survive', () => {
+  assert.throws(() => assertWithinClusterPrune({ shape: 'mode-select' }), /mode-selecting prune/);
+  assert.throws(() => assertWithinClusterPrune({ shape: 'modal' }), /mode-selecting prune/);
+  assert.throws(() => assertWithinClusterPrune({ shape: 'within-cluster', selectModalCluster: true }), /mode-selecting prune/);
+  assert.throws(() => assertWithinClusterPrune({ shape: 'within-cluster', discardNonModalClusters: true }), /mode-selecting prune/);
+  assert.throws(() => assertWithinClusterPrune({ shape: 'global-top-k' }), /only "within-cluster" is allowed/);
+  assert.equal(assertWithinClusterPrune({ shape: 'within-cluster' }).pruneOk, true);
+  // Helper: one representative per cluster, minority (singleton) cluster kept.
+  const out = withinClusterPrune([['a1', 'a2', 'a3'], ['b1'], ['c1', 'c2']]);
+  assert.deepEqual(out.kept, ['a1', 'b1', 'c1']);
+  assert.deepEqual(out.pruned, ['a2', 'a3', 'c2']);
+  assert.equal(out.clustersKept, 3);
+  // Cluster size plays no role in survival: the singleton minority cluster is kept.
+  assert.ok(out.kept.includes('b1'));
+});
+
+test('Batch 204 rule (c): absolute thresholds, not quantiles — kill-the-bottom-α throws in every spelling', () => {
+  assert.throws(() => assertAbsoluteThreshold({ shape: 'quantile', alpha: 0.5 }), /quantile cut is rejected/);
+  assert.throws(() => assertAbsoluteThreshold({ shape: 'absolute', killFraction: 0.5 }), /quantile cut is rejected/);
+  assert.throws(() => assertAbsoluteThreshold({ shape: 'absolute', killBottomAlpha: true }), /quantile cut is rejected/);
+  assert.throws(() => assertAbsoluteThreshold({ shape: 'absolute', bottomFraction: 0.25 }), /quantile cut is rejected/);
+  assert.throws(() => assertAbsoluteThreshold({ shape: 'absolute' }), /must name its bar/);
+  assert.throws(() => assertAbsoluteThreshold({ shape: 'rank-top-k' }), /only "absolute".*or "equivalence"/);
+  // Allowed: an absolute τu/τv-family bar, or a Batch 16 equivalence test.
+  assert.equal(assertAbsoluteThreshold({ shape: 'absolute', bar: 'tau_u' }).thresholdOk, true);
+  assert.equal(assertAbsoluteThreshold({ shape: 'absolute', tau: 0.9 }).thresholdOk, true);
+  assert.equal(assertAbsoluteThreshold({ shape: 'equivalence' }).thresholdOk, true);
+});
+
+test('Batch 204 rule (d): selection ≠ uncertainty — pruned-pool agreement is never a confidence signal', () => {
+  for (const signal of ['F_t', 'TPS', 'multiplicity', 'confidence', 'agreement']) {
+    assert.throws(() => assertConfidenceNotFromPrunedPool({ poolPruned: true, signal }), /never be cited as a confidence signal/);
+  }
+  // Unpruned-pool signals are a different claim and pass this guard.
+  assert.equal(assertConfidenceNotFromPrunedPool({ poolPruned: false, signal: 'TPS' }).confidenceSourceOk, true);
+  assert.equal(assertConfidenceNotFromPrunedPool({ poolPruned: false, signal: 'F_t' }).confidenceSourceOk, true);
+});
+
+test('Batch 204: composite sampled-step guard enforces all four rules, in order', () => {
+  const good = {
+    action: 'prune', argsWritten: true,
+    prune: { shape: 'within-cluster' },
+    thresholdRule: { shape: 'absolute', bar: 'tau_u' },
+    confidenceSource: { poolPruned: false, signal: 'TPS' },
+  };
+  assert.equal(assertSampledStep(good).sampledStepOk, true);
+  assert.deepEqual(assertSampledStep(good).rules.length, 4);
+  // Each rule violation throws through the composite.
+  assert.throws(() => assertSampledStep({ ...good, argsWritten: false }), /before the decision-bearing tokens exist/);
+  assert.throws(() => assertSampledStep({ ...good, prune: { shape: 'mode-select' } }), /mode-selecting prune/);
+  assert.throws(() => assertSampledStep({ ...good, thresholdRule: { shape: 'quantile', alpha: 0.5 } }), /quantile cut is rejected/);
+  assert.throws(() => assertSampledStep({ ...good, confidenceSource: { poolPruned: true, signal: 'agreement' } }), /never be cited as a confidence signal/);
+  assert.throws(() => assertSampledStep({ ...good, gateInput: { basis: 'function-name-only' } }), /not a gate input/);
+  // Passing the composite constrains shape only — it does not authorize the step.
+  assert.ok(assertSampledStep(good).note.includes('does not authorize the step'));
+});
+
+test('Batch 204: SR disqualifications + Slim-SC transfer limits recorded, not softened', () => {
+  // SR: destructive pruning and no uncertainty output, as independent disqualifications.
+  assert.ok(SR_DISQUALIFICATIONS_204.disqualifications.some((d) => d.startsWith('DESTRUCTIVE PRUNING')));
+  assert.ok(SR_DISQUALIFICATIONS_204.disqualifications.some((d) => d.startsWith('NO UNCERTAINTY OUTPUT')));
+  assert.ok(SR_DISQUALIFICATIONS_204.disqualifications.some((d) => d.startsWith('QUANTILE, NOT ABSOLUTE')));
+  assert.ok(SR_DISQUALIFICATIONS_204.mechanism.includes('5000'));
+  assert.ok(SR_DISQUALIFICATIONS_204.partialFinalCorrelation.includes('not tabulated in the main text'));
+  assert.ok(SR_DISQUALIFICATIONS_204.headlineEfficiency.includes('66.17'));
+  // Slim-SC: all four transfer limits present.
+  assert.ok(SLIM_SC_TRANSFER_204.transferLimits.some((t) => t.includes('~45%') && t.includes('3–5×')));
+  assert.ok(SLIM_SC_TRANSFER_204.transferLimits.some((t) => t.includes('normalized-AST distance is strictly better')));
+  assert.ok(SLIM_SC_TRANSFER_204.transferLimits.some((t) => t.includes('30-token tool calls')));
+  assert.ok(SLIM_SC_TRANSFER_204.transferLimits.some((t) => t.includes('14B/32B')));
+  assert.ok(SLIM_SC_TRANSFER_204.slimScIsNotModeX.includes('NOT ModeX'));
+  assert.ok(SLIM_SC_TRANSFER_204.motivationFinding.includes('45% incorrect–incorrect'));
+  // The four-rule set itself is complete and ordered.
+  assert.deepEqual(SAMPLED_STEP_RULES_204.map((r) => r.rule), ['a', 'b', 'c', 'd']);
+  assert.ok(SAMPLED_STEP_RULES_204[1].statement.includes('ModeX, Batch 18'));
+});
+
+test('Batch 204: parked free-chat SR test shape is a note only — never a live path, never tool hops', () => {
+  assert.equal(PARKED_FREE_CHAT_SR_TEST_204.status, 'PARKED — note only, not a live path, not built');
+  assert.equal(PARKED_FREE_CHAT_SR_TEST_204.comparison, 'SR-logprob vs single greedy on free-chat hops');
+  assert.deepEqual(PARKED_FREE_CHAT_SR_TEST_204.measures, ['latency', 'person-accepted quality']);
+  assert.ok(PARKED_FREE_CHAT_SR_TEST_204.neverMeasureAlone.includes('perplexity'));
+  assert.equal(PARKED_FREE_CHAT_SR_TEST_204.neverOn, 'tool hops');
+  assert.throws(() => assertParkedFreeChatSrTest({ hopKind: 'tool' }), /never run on tool hops/);
+  assert.throws(() => assertParkedFreeChatSrTest({ hopKind: 'free-chat', livePath: true }), /PARKED NOTE only/);
+  assert.equal(assertParkedFreeChatSrTest({ hopKind: 'free-chat' }).parked, true);
+});
+
+test('Batch 204: round 9 composes with rounds 5–8 without weakening them', () => {
+  // Round 5 advisory-only Select still bites.
+  assert.throws(() => selectAdvisory([{ id: 'c1' }], 'search', { forcedPrefix: 'search' }), /advisory-only/);
+  // Round 4/192 prefix tier: GAP-sibling guard still bites.
+  assert.throws(() => prefixPrune([
+    { id: 'a', hopId: 'h1', prefixText: '{"tool":"search","args":{}}' },
+    { id: 'b', hopId: 'h2', prefixText: '{"tool":"search","args":{}}' },
+  ], 'C0'), /GAP siblings/);
+  // Round 8 timeline + round 7 tier order stand untouched.
+  assert.equal(assertTimelineOrder(detectorTimeline()).orderOk, true);
+  assert.deepEqual(canonicalTierOrder(), ['advisory-hint', 'wu-cosine-gap-detector-candidate', 'wu-steering-lab', 'chen-s2-attention']);
+  // Round 6 pilot order stands: Healy still not a pilot arm.
+  assert.throws(() => assertHealyNotPilotArm(['free', 'advisory-rec', 'healy-gate']), /LATER gate arm/);
+  // Round 9's own within-cluster rule agrees with the prefix tier's rule (b): prune within, never across.
+  assert.ok(PREFIX_PRUNE_GUARDRAIL.includes('ONLY WITHIN a cluster'));
+  assert.equal(assertWithinClusterPrune({ shape: 'within-cluster' }).pruneOk, true);
 });

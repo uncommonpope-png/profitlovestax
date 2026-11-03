@@ -3228,6 +3228,335 @@ function assertWuHealyCitation(sections) {
   return { citedBy: WU_HEALY_CITATION_201.citedBy, sections };
 }
 
+// ------------------- Batch 204: Speculative Rejection + Slim-SC gate-spec pruning rules (SPEC, UNEXECUTED)
+//
+// Batch 204 read Sun et al., "Fast Best-of-N Decoding via Speculative
+// Rejection" (arXiv:2410.20290v2) and Hong et al., "Slim-SC: Thought
+// Pruning for Efficient Scaling with Self-Consistency"
+// (arXiv:2509.13990v1) in full — the last two Batch 192 related-work
+// leads — against the question the log has answered twice already:
+// can a cheaper multi-sample method reopen the multi-sample tier that
+// Batch 5 (sampling tax) and Batch 10 (SE demoted to offline-only for
+// tool hops) closed for the live gate? Answer: NO, and the reasons
+// differ per paper, which is why both had to be read rather than one
+// standing for "pruning works." No SR or Slim-SC run was executed in
+// Batch 204; every number below is the paper's on its models/tasks,
+// NOT on the north-star's 4B GGUF or personal tool routines. Code
+// linked by the papers (SpeculativeRejection, slimsc) was not cloned
+// or run. This section is spec + guard code only: it closes the gate
+// harder and constrains any future sampled step; it wires nothing
+// into the workbench/launcher and verifies no product gate.
+
+/**
+ * Closure record (Batch 204): Batch 5's sampling-tax rule and Batch
+ * 10's demotion of multi-sample SE to offline-only for tool hops
+ * STAND, now with two additional primary sources behind them (SR +
+ * Slim-SC) instead of one argument. Neither paper reopens the live
+ * gate, anywhere, in any reading below.
+ */
+const MULTI_SAMPLE_LIVE_GATE_CLOSURE_204 = {
+  verdict: 'CLOSED — the multi-sample live tool gate stays CLOSED',
+  stands: [
+    'Batch 5 sampling-tax rule',
+    'Batch 10 demotion: multi-sample SE offline-only for tool hops; G-NLL_SMT live',
+  ],
+  additionalSources: [
+    'Sun et al., Speculative Rejection, arXiv:2410.20290v2',
+    'Hong et al., Slim-SC, arXiv:2509.13990v1',
+  ],
+  whyNeitherReopens: [
+    'SR-logprob is locally implementable but selects for probability, the confident-error direction on tool hops (Batch 10 FC collapse)',
+    'SR reward-model variant needs a second model and a partial–final score correlation weakest exactly where tool decisions live (late arguments)',
+    'Slim-SC cuts at most ~45% off a cost still 3–5x after cutting, on long reasoning chains the tool gate does not have',
+  ],
+  status: 'SPEC, not executed — no SR or Slim-SC run in Batch 204',
+};
+
+/**
+ * SR-logprob variant (Batch 204, §5.3): the correction to the naive
+ * objection. SR with the score replaced by the model's OWN average
+ * log-probability, s(Y) = (1/len) ln p(Y|X), needs NO reward model at
+ * all — so "SR needs a second 7B reward model the resident machine
+ * cannot afford" FAILS for this variant — and it still beats Best-of-N
+ * on perplexity with large speedups (Table 2: SR α=0.5 average PPL
+ * 1.554 vs Bo3840 1.698, "speedup" 39.9x vs the Bo3840 baseline, read
+ * as the paper's relative-GPU-compute accounting, NOT a
+ * single-machine latency measurement; the Mistral-7B speedup is partly
+ * attributed by the authors to an inefficient HuggingFace GQA
+ * implementation). BUT the variant's objective is the trap: it
+ * maximizes probability, i.e. it keeps the most probable completions.
+ * Batch 10's FC collapse is exactly that high-probability candidates
+ * are the confidently-wrong ones (mean token probability 0.97 on tool
+ * calls; wrong calls identical except syntactic tokens). A
+ * logprob-pruned pool for tool hops would systematically RETAIN the
+ * confident errors and KILL the diverse, uncertain candidates — the
+ * opposite of what a gate wants. SR-logprob is therefore DETACHED: a
+ * legitimate generation accelerator for FREE-CHAT hops only, never a
+ * gate, never for tool hops. For free-chat hops, where probability
+ * and quality correlate better and where Batch 6's SEP tier already
+ * lives, it costs nothing in gate terms because the chat path has no
+ * tool gate — but it still does not touch the tool gate's verdict.
+ */
+const SR_LOGPROB_204 = {
+  source: 'Sun et al. §5.3, arXiv:2410.20290v2, Table 2',
+  score: 's(Y) = (1/len) ln p(Y|X) — the model\'s own average log-probability',
+  needsRewardModel: false,
+  correction: 'The naive "SR needs a reward model" objection FAILS for the logprob variant — but the variant selects for probability, the confident-error direction on tool hops',
+  paperNumbers: 'SR α=0.5 average PPL 1.554 vs Bo3840 1.698; "speedup" 39.9x vs Bo3840 baseline (relative-GPU-compute accounting, not single-machine latency)',
+  confidentErrorDirection: 'Batch 10 FC collapse: mean token probability 0.97 on tool calls; wrong calls identical except syntactic tokens — logprob pruning retains confident errors, kills diverse uncertain candidates',
+  detachedScope: { hopKind: 'free-chat', role: 'accelerator' },
+  never: ['a gate', 'tool hops'],
+};
+
+/**
+ * SR's other two independent disqualifications for the live tool gate
+ * (Batch 204) — each independent of the quantile objection, which is
+ * rule (c) below — plus the mechanism facts they rest on.
+ */
+const SR_DISQUALIFICATIONS_204 = {
+  source: 'Sun et al., arXiv:2410.20290v2 (§4.1–4.2, §6)',
+  mechanism: 'Start with a batch so large it would OOM after a few tokens (paper example: effectively Best-of-N with N ~ 5000 on one accelerator), generate until memory pressure, score PARTIAL utterances with a reward model s, cut at the α-th lower quantile of partial rewards (Eq. 4–5: r_cut = q_α, keep the top (1−α)), repeat at each memory boundary until sequences complete. α = 0 reproduces Best-of-N, so SR is a generalization, not a rival. Decision tokens are set by GPU memory capacity, not by generation quality — a hardware schedule wearing a quality rule.',
+  partialFinalCorrelation: 'Load-bearing claim (§4.1, Figure 2 + Appendix B Pearson/Kendall, not tabulated in the main text — cited qualitatively, not numerically): partial scores rank roughly like final scores; worked example saves ~85.5% of tokens by cutting below the eventual winner\'s partial score. Paper\'s own limits: ranking is "not always preserved," reward models are trained on full responses, and the ideal cutoff c⋆ (the winner\'s partial score) is unknowable at cut time — the quantile rule is a substitute for it, not an implementation of it.',
+  headlineEfficiency: 'With Llama-3-8B + RM-Mistral-7B, SR on one GPU reaches a reward Best-of-N needs 16–32 GPUs to match at similar latency (H100 DGX; baseline Best-of-120 = largest batch fitting one 80GB GPU; BoN doubled 120 → 3840). Win rates vs Bo120 (GPT-4-Turbo judge, Table 1): SR α=0.5 averages WR 66.17 / length-controlled WR 70.01 vs Bo3840\'s 62.89 / 63.04. Qualifications the paper supplies: gain SMALLER for Llama-3-8B-Instruct than base models (instruct models generate shorter responses, fewer rejection rounds — payoff scales with response length, bad news for short tool JSON); "16–32×" is GPU-count arithmetic, not a resident-machine latency claim.',
+  disqualifications: [
+    'QUANTILE, NOT ABSOLUTE (see rule (c)): the cut kills a fixed fraction α every round whatever the absolute quality — if all candidates are good, α still die; if all are bad, the top (1−α) survive. A gate needs an absolute threshold (Batch 5 τu/τv), not a relative cull.',
+    'DESTRUCTIVE PRUNING: a killed candidate is gone — Batch 13\'s abort bar applies in miniature. Early cuts are justified only if partial scores predict final scores, and §6 says partial–final correlation varies prompt-by-prompt and an adaptive α is future work. For tool hops the decision-bearing tokens are the ARGUMENTS, which come late — pruning on a partial score computed before arguments are written is pruning on the function name alone.',
+    'NO UNCERTAINTY OUTPUT: SR returns one winner; it does not emit a score usable as F_t, a reliability curve, or an SE estimate. It cannot feed Batch 12\'s TPS, because it destroys the sample whose spread TPS would be scored on. SR accelerates selection; it does not measure uncertainty, and the two jobs must not be conflated.',
+  ],
+};
+
+/**
+ * Slim-SC transfer limits (Batch 204) — why Slim-SC's real savings do
+ * not transfer to the live tool gate, stated plainly.
+ */
+const SLIM_SC_TRANSFER_204 = {
+  source: 'Hong et al., arXiv:2509.13990v1 (§2–§3, §5, §5.3, §6)',
+  mechanism: 'Step-wise thought pruning for self-consistency: after a warm-up delay (20 analysis steps × 3s intervals in the experiments — the delay exists because chains start by restating the problem, so early thoughts look similar even when later reasoning diverges), each new thought (split by stop words: "Alternatively," "Wait," "Another," etc.) is embedded (all-mpnet-base-v2) and compared by cosine similarity against all other chains\' thoughts in a FAISS index; if max similarity > τ_sim, one chain of the pair is pruned — random choice (RP) or diversity-based (DP: keep the chain with lower internal mean pairwise similarity, Eq. 1). At least one chain always survives. τ_sim > 0.9 in the design, 0.98 optimal in sensitivity analysis (§5.3: accuracy stable for τ_sim ≥ 0.95, peaking at 0.98; delay peaking at 20 steps).',
+  results: 'Table 1, three runs averaged; DeepSeek-R1-Distill-Qwen-14B and Qwen-QwQ-32B on GPQA Diamond / AIME-2024 / AQuA-RAT: R1-Distill Slim-SC(DP) cuts SC latency 45% on GPQA, 43% on AIME, 11% on AQuA, tokens 32% on AIME (418k vs 618k), mean KV-cache 46% vs 56%, accuracy maintained or improved (GPQA RP 63.5% vs SC 63.0%; AIME 82.2% = SC). QwQ gains smaller (latency −20% / −8% / −9%). Table 2 ablation (QwQ) proves the principle: global random pruning and least-similar pruning both degrade accuracy (least-similar: AIME 74.4%, ~8pp below Slim-SC) — pruning must target redundancy, not diversity. ESC, the sequential early-stopping rival, is token-frugal but latency-poor (R1-Distill ESC 876s vs Slim-SC(DP) 296s on GPQA) — the Batch 13 lesson in another form.',
+  motivationFinding: '§2.4, Figure 2b: at similarity 0.98, most highly-similar pairs are within-category — 45% incorrect–incorrect, 30% correct–correct, only 25% correct–incorrect — and incorrect chains are MORE self-similar than correct ones, increasingly so at higher thresholds. Similarity pruning disproportionately removes redundant INCORRECT chains, cleansing the pool — which is why accuracy can rise while compute falls.',
+  transferLimits: [
+    '(a) At most ~45% off a still-fatal 3–5× cost: Slim-SC does NOT repeal Batch 5\'s sampling tax. A 5–10× multi-sample cost becomes ~3–5× after Slim-SC, still fatal to Batch 4\'s interactive SLA (p95 1.5–2.0s for short tool hops) on a resident 4B.',
+    '(b) Embedder unnecessary for tool calls: the embedder is a second model (mpnet, ~110M — paper claims <2% GPU memory and ~0.3% latency overhead, but measured on a separate GPU in the experiments, so the overhead figure is an estimate, not a resident-machine measurement). For tool calls the embedder is unnecessary anyway: Batch 10\'s normalized-AST distance is strictly better than embedding cosine for tool calls (permutation-invariant, whitespace-insensitive, value-normalized) and free — so the north-star dedup needs no embedder at all.',
+    '(c) Thought segmentation does not map to tool hops: a tool call has no "Alternatively/Wait" thoughts; its decision-bearing units are the tool choice and the arguments, which arrive in one short JSON burst, not over a long reasoning chain. There is no warm-up period to exploit and no long tail of redundant chains to prune — the savings Slim-SC finds in 1000-token reasoning chains do not exist in 30-token tool calls.',
+    '(d) Models 14B/32B reasoning on STEM, not 4B tool loop: no 4B, no tool loop, no GGUF quant — the usual transfer gap, now sharper: Slim-SC\'s clustering premise (correct and incorrect chains form distinct clusters) was measured on reasoning text, not on tool calls where Batch 10 shows wrong calls collapse onto near-identical samples.',
+  ],
+  slimScIsNotModeX: 'Slim-SC is NOT ModeX. ModeX selects the modal cluster\'s centroid and discards the rest; Slim-SC prunes WITHIN clusters and keeps one representative per cluster, preserving minority clusters. A minority correct cluster survives Slim-SC and dies under ModeX. The two were conflated in casual "prune by similarity" talk; Batch 204 separates them — see rule (b).',
+};
+
+/** The four-rule constraint set for ANY future sampled step (Batch 204). */
+const SAMPLED_STEP_RULES_204 = [
+  { rule: 'a', name: 'WARM-UP / DELAY RULE', statement: 'No pruning, scoring, or rejection decision before the decision-bearing tokens exist. For tool hops: never prune or score a candidate call before its arguments are written; a partial score on a function name alone is not a gate input.', citations: 'Slim-SC 20-step delay + SR partial-score warning, the same rule in two vocabularies' },
+  { rule: 'b', name: 'WITHIN-CLUSTER PRUNING ONLY', statement: 'Prune redundant members within an equivalence cluster (Batch 16 Class 1: same normalized call), keeping one representative per cluster — never select a modal cluster and discard the rest (ModeX, Batch 18).', citations: 'Slim-SC within-cluster safety case for the rule; ModeX mode-collapse limitation against the alternative' },
+  { rule: 'c', name: 'ABSOLUTE THRESHOLDS, NOT QUANTILES', statement: 'SR\'s quantile cut (kill fixed fraction α regardless of absolute quality) is rejected as a gate shape. Any pruning rule needs an absolute bar (τu/τv family, Batch 5) or an equivalence test (Batch 16), not a "kill the bottom α" rule.', citations: 'SR Eq. 4–5 quantile cut; Batch 5 τu/τv family; Batch 16 equivalence test' },
+  { rule: 'd', name: 'SELECTION ≠ UNCERTAINTY', statement: 'A sampled step that prunes its own sample cannot later report that sample\'s spread. Pruned-pool agreement must never be cited as a confidence signal.', citations: 'SR returns one winner; neither SR nor Slim-SC feeds F_t/TPS (Batch 12) or the multiplicity classifier (Batch 16)' },
+];
+
+/**
+ * Guard 1 — the closure, enforced. Any live multi-sample gate request
+ * for tool hops throws, whatever its spelling (samples > 1, an
+ * explicit multiSample flag, or a named multi-sample method).
+ * Single-sample live tool hops pass (they are not a multi-sample gate);
+ * free-chat requests pass this guard (not its jurisdiction — the
+ * SR-logprob scope guard below governs free-chat, and refuses any
+ * gate role there too). A request that names SR or Slim-SC as
+ * reopening the live gate throws via assertNoGateReopening.
+ */
+function assertLiveToolGate(request) {
+  if (!request || typeof request !== 'object') throw new Error('assertLiveToolGate: request must be an object');
+  const live = request.live === true;
+  const toolHop = request.hopKind === 'tool' || request.hopKind === 'tool-hop';
+  const multi = request.multiSample === true
+    || (typeof request.samples === 'number' && request.samples > 1)
+    || request.method === 'multi-sample' || request.method === 'best-of-n' || request.method === 'self-consistency';
+  if (live && toolHop && multi) {
+    throw new Error('assertLiveToolGate: REFUSED — the multi-sample live tool gate stays CLOSED (Batch 204 closure: Batch 5 sampling-tax rule + Batch 10 demotion of multi-sample SE to offline-only for tool hops STAND, now with Sun arXiv:2410.20290v2 + Hong arXiv:2509.13990v1 behind them). No code path may reopen a live multi-sample gate for tool hops — not via SR, not via Slim-SC, not via any other sampled method');
+  }
+  return { gate: 'closed', live, toolHop, multi, note: 'Single-sample live tool hops are unaffected; free-chat requests are governed by assertSrLogprobScope, which refuses any gate role' };
+}
+
+/** Guard: neither SR nor Slim-SC may be presented as reopening the live gate. */
+function assertNoGateReopening(paper, claim) {
+  const known = ['speculative-rejection', 'sr', 'slim-sc', 'slimsc'];
+  if (typeof paper === 'string' && known.includes(paper.toLowerCase()) && claim === 'reopens-live-gate') {
+    throw new Error(`assertNoGateReopening: REFUSED — ${paper} does NOT reopen the multi-sample live gate (Batch 204 verdict). SR-logprob selects for probability (the confident-error direction on tool hops); Slim-SC cuts at most ~45% off a still-fatal 3–5× cost on a task shape the tool gate does not have`);
+  }
+  return { paper, claim, reopening: false };
+}
+
+/**
+ * Guard 2 — SR-logprob detachment, enforced. Allowed: exactly one
+ * scope — free-chat hops, accelerator role. Tool hops throw (the
+ * confident-error direction: Batch 10 FC collapse, mean token
+ * probability 0.97, wrong calls identical except syntactic tokens).
+ * Any gate role throws (SR-logprob is never a gate, on any hop).
+ * Unknown scopes throw rather than silently passing.
+ */
+function assertSrLogprobScope(use) {
+  if (!use || typeof use !== 'object') throw new Error('assertSrLogprobScope: use must be an object { hopKind, role }');
+  if (use.role === 'gate' || use.role === 'tool-gate' || use.role === 'gate-input') {
+    throw new Error('assertSrLogprobScope: REFUSED — SR-logprob is DETACHED: a legitimate generation accelerator for FREE-CHAT hops only, never a gate (Batch 204). SR returns one winner and feeds no F_t/TPS; it accelerates selection, it does not measure uncertainty');
+  }
+  if (use.hopKind === 'tool' || use.hopKind === 'tool-hop') {
+    throw new Error('assertSrLogprobScope: REFUSED — SR-logprob is never for tool hops (Batch 204). It maximizes probability, i.e. keeps the most probable completions — and Batch 10\'s FC collapse shows the most probable tool candidates are the confidently-wrong ones (mean token probability 0.97; wrong calls identical except syntactic tokens). A logprob-pruned tool pool retains confident errors and kills diverse, uncertain candidates');
+  }
+  if (use.hopKind !== 'free-chat' || use.role !== 'accelerator') {
+    throw new Error(`assertSrLogprobScope: unknown SR-logprob scope hopKind="${use.hopKind}" role="${use.role}" — the only allowed scope is free-chat hops as an accelerator (Batch 204)`);
+  }
+  return { scope: 'free-chat accelerator', needsRewardModel: false, score: SR_LOGPROB_204.score, note: 'Free-chat only; never a gate; never for tool hops; does not touch the tool gate\'s verdict' };
+}
+
+/**
+ * Guard 3a — WARM-UP / DELAY RULE. step: { action, argsWritten }.
+ * action in { prune, score, reject } before the arguments are written
+ * throws: the decision-bearing tokens do not exist yet. A partial
+ * score on a function name alone is refused as a gate input by
+ * assertGateInputNotPartialScore below. Non-decision actions
+ * (observe, log) pass; a decision after arguments are written passes.
+ */
+function assertWarmUpDelay(step) {
+  if (!step || typeof step !== 'object') throw new Error('assertWarmUpDelay: step must be an object { action, argsWritten }');
+  const decision = ['prune', 'score', 'reject', 'pruning', 'scoring', 'rejection'].includes(step.action);
+  if (decision && step.argsWritten !== true) {
+    throw new Error(`assertWarmUpDelay: REFUSED — no ${step.action} decision before the decision-bearing tokens exist (Batch 204 rule (a)). For tool hops: never prune or score a candidate call before its arguments are written; the arguments come late, and a decision now is a decision on the function name alone`);
+  }
+  return { delayOk: true, action: step.action, argsWritten: step.argsWritten === true };
+}
+
+/** Guard 3a (companion): a partial score on a function name alone is not a gate input. */
+function assertGateInputNotPartialScore(input) {
+  if (!input || typeof input !== 'object') throw new Error('assertGateInputNotPartialScore: input must be an object');
+  if (input.partialBeforeArgs === true || input.basis === 'function-name-only' || input.argsWritten === false) {
+    throw new Error('assertGateInputNotPartialScore: REFUSED — a partial score on a function name alone is not a gate input (Batch 204 rule (a)). SR\'s early cuts are justified only if partial scores predict final scores, and §6 says that correlation varies prompt-by-prompt; for tool hops the decision-bearing tokens are the arguments, which come late');
+  }
+  return { gateInputOk: true };
+}
+
+/**
+ * Guard 3b — WITHIN-CLUSTER PRUNING ONLY. prune: { shape }.
+ * shape 'mode-select' (select a modal cluster, discard the rest —
+ * ModeX, Batch 18) throws. shape 'within-cluster' passes. The pure
+ * helper withinClusterPrune implements the allowed shape: one
+ * representative per equivalence cluster, minority clusters survive.
+ */
+function assertWithinClusterPrune(prune) {
+  if (!prune || typeof prune !== 'object') throw new Error('assertWithinClusterPrune: prune must be an object { shape }');
+  if (prune.shape === 'mode-select' || prune.shape === 'modal' || prune.selectModalCluster === true || prune.discardNonModalClusters === true) {
+    throw new Error('assertWithinClusterPrune: REFUSED — a mode-selecting prune (select the modal cluster, discard the rest — ModeX, Batch 18) must throw (Batch 204 rule (b)). Prune redundant members WITHIN an equivalence cluster (Batch 16 Class 1: same normalized call), keeping one representative per cluster; a minority correct cluster survives Slim-SC-style pruning and dies under ModeX');
+  }
+  if (prune.shape !== 'within-cluster') throw new Error(`assertWithinClusterPrune: unknown prune shape "${prune.shape}" — only "within-cluster" is allowed (Batch 204 rule (b))`);
+  return { pruneOk: true, shape: 'within-cluster' };
+}
+
+/**
+ * Within-cluster prune, implemented (Batch 204 rule (b)): clusters is
+ * an array of equivalence clusters (each an array of candidate ids,
+ * Batch 16 Class 1: same normalized call). Keeps the first member of
+ * every cluster — including every minority cluster — and prunes the
+ * rest. Never selects a modal cluster: cluster size plays no role in
+ * survival. A mode-selecting call to this helper is a caller error;
+ * use assertWithinClusterPrune to police prune specs.
+ */
+function withinClusterPrune(clusters) {
+  if (!Array.isArray(clusters)) throw new Error('withinClusterPrune: clusters must be an array of equivalence clusters');
+  const kept = [];
+  const pruned = [];
+  for (const cluster of clusters) {
+    if (!Array.isArray(cluster) || cluster.length === 0) continue;
+    kept.push(cluster[0]);
+    pruned.push(...cluster.slice(1));
+  }
+  return { kept, pruned, clustersKept: kept.length, note: 'One representative per cluster, minority clusters included — never a modal selection (Batch 204 rule (b))' };
+}
+
+/**
+ * Guard 3c — ABSOLUTE THRESHOLDS, NOT QUANTILES. rule: { shape }.
+ * shape 'quantile', or any kill-the-bottom-α spelling (killFraction,
+ * alpha, bottomFraction), throws: SR's quantile cut kills a fixed
+ * fraction every round whatever the absolute quality. Allowed shapes:
+ * 'absolute' (a τu/τv-family bar, Batch 5) and 'equivalence' (a Batch
+ * 16 equivalence test). An absolute rule must name its bar; a rule
+ * with neither bar nor equivalence test throws as underspecified.
+ */
+function assertAbsoluteThreshold(rule) {
+  if (!rule || typeof rule !== 'object') throw new Error('assertAbsoluteThreshold: rule must be an object { shape }');
+  if (rule.shape === 'quantile' || rule.killFraction !== undefined || rule.killBottomAlpha === true || rule.alpha !== undefined || rule.bottomFraction !== undefined) {
+    throw new Error('assertAbsoluteThreshold: REFUSED — SR\'s quantile cut is rejected as a gate shape (Batch 204 rule (c)). It kills a fixed fraction α regardless of absolute quality: if all candidates are good, α still die; if all are bad, the top (1−α) survive. Any pruning rule needs an absolute bar (τu/τv family, Batch 5) or an equivalence test (Batch 16), not a "kill the bottom α" rule');
+  }
+  if (rule.shape === 'absolute') {
+    if (rule.bar === undefined && rule.tau === undefined && rule.threshold === undefined) {
+      throw new Error('assertAbsoluteThreshold: an absolute pruning rule must name its bar (τu/τv family, Batch 5) — a bar-less "absolute" rule is underspecified');
+    }
+    return { thresholdOk: true, shape: 'absolute' };
+  }
+  if (rule.shape === 'equivalence') return { thresholdOk: true, shape: 'equivalence' };
+  throw new Error(`assertAbsoluteThreshold: unknown pruning-rule shape "${rule.shape}" — only "absolute" (τu/τv family) or "equivalence" (Batch 16) are allowed (Batch 204 rule (c))`);
+}
+
+/**
+ * Guard 3d — SELECTION ≠ UNCERTAINTY. source: { poolPruned, signal }.
+ * Deriving F_t, TPS, multiplicity, agreement, or any confidence
+ * signal from a pruned pool throws: a sampled step that prunes its
+ * own sample cannot later report that sample's spread. SR returns one
+ * winner; neither SR nor Slim-SC feeds F_t/TPS or the multiplicity
+ * classifier. Unpruned-pool signals pass (they are a different claim,
+ * policed by their own rules, not by this guard).
+ */
+function assertConfidenceNotFromPrunedPool(source) {
+  if (!source || typeof source !== 'object') throw new Error('assertConfidenceNotFromPrunedPool: source must be an object { poolPruned, signal }');
+  const signals = ['F_t', 'TPS', 'multiplicity', 'confidence', 'agreement', 'spread', 'uncertainty'];
+  if (source.poolPruned === true && signals.includes(source.signal)) {
+    throw new Error(`assertConfidenceNotFromPrunedPool: REFUSED — pruned-pool "${source.signal}" must never be cited as a confidence signal (Batch 204 rule (d)). A sampled step that prunes its own sample cannot later report that sample's spread: SR destroys the sample whose spread TPS would be scored on, and a cleaned pool's agreement is selection, not uncertainty`);
+  }
+  return { confidenceSourceOk: true, poolPruned: source.poolPruned === true, signal: source.signal };
+}
+
+/**
+ * Composite guard for ANY future sampled step (Batch 204): offline
+ * bootstrap, disputed-hop tier, or Healy-gate sampling arms. step:
+ * { argsWritten, action, prune, thresholdRule, confidenceSource }.
+ * Each rule is enforced by its own guard, in rule order; the first
+ * violation throws. A step that passes all four still needs its own
+ * tier's gates (Batch 5 sampling tax, Batch 197 pilot order, Batch 4
+ * verifier) — this composite constrains the sampled step's shape, it
+ * does not authorize the step.
+ */
+function assertSampledStep(step) {
+  if (!step || typeof step !== 'object') throw new Error('assertSampledStep: step must be an object');
+  assertWarmUpDelay({ action: step.action, argsWritten: step.argsWritten });
+  if (step.gateInput !== undefined) assertGateInputNotPartialScore(step.gateInput);
+  if (step.prune !== undefined) assertWithinClusterPrune(step.prune);
+  if (step.thresholdRule !== undefined) assertAbsoluteThreshold(step.thresholdRule);
+  if (step.confidenceSource !== undefined) assertConfidenceNotFromPrunedPool(step.confidenceSource);
+  return { sampledStepOk: true, rules: ['a warm-up/delay', 'b within-cluster only', 'c absolute thresholds', 'd selection ≠ uncertainty'], note: 'Passing this composite constrains the step\'s shape only — it does not authorize the step (Batch 5 tax, Batch 197 pilot order, Batch 4 verifier still apply)' };
+}
+
+/**
+ * Parked free-chat test shape (Batch 204) — recorded as a PARKED NOTE
+ * ONLY. It is NOT built as a live path, and it must never run on tool
+ * hops. If ever run: SR-logprob vs single greedy on free-chat hops,
+ * measured on latency + person-accepted quality, NOT on perplexity
+ * alone (PPL is the objective, so a PPL win is circular).
+ */
+const PARKED_FREE_CHAT_SR_TEST_204 = {
+  status: 'PARKED — note only, not a live path, not built',
+  comparison: 'SR-logprob vs single greedy on free-chat hops',
+  measures: ['latency', 'person-accepted quality'],
+  neverMeasureAlone: 'perplexity — PPL is the objective, so a PPL win is circular',
+  neverOn: 'tool hops',
+  reasonParked: 'Free-chat is where probability correlates with quality better than on tool calls and where the chat path has no tool gate; the tool gate\'s verdict is untouched either way',
+};
+
+function assertParkedFreeChatSrTest(scope) {
+  if (!scope || typeof scope !== 'object') throw new Error('assertParkedFreeChatSrTest: scope must be an object');
+  if (scope.hopKind === 'tool' || scope.hopKind === 'tool-hop') {
+    throw new Error('assertParkedFreeChatSrTest: REFUSED — the parked SR-logprob test must never run on tool hops (Batch 204). Free-chat hops only, and only if ever un-parked');
+  }
+  if (scope.livePath === true) {
+    throw new Error('assertParkedFreeChatSrTest: REFUSED — the free-chat SR-logprob test shape is a PARKED NOTE only (Batch 204). It is not built as a live path');
+  }
+  return { parked: true, shape: PARKED_FREE_CHAT_SR_TEST_204.comparison, measures: PARKED_FREE_CHAT_SR_TEST_204.measures };
+}
+
 module.exports = {
   percentile,
   median,
@@ -3341,4 +3670,22 @@ module.exports = {
   assertAsaQuarantineStands,
   WU_HEALY_CITATION_201,
   assertWuHealyCitation,
+  // Batch 204: SR + Slim-SC gate-spec pruning rules (spec, unexecuted).
+  MULTI_SAMPLE_LIVE_GATE_CLOSURE_204,
+  SR_LOGPROB_204,
+  SR_DISQUALIFICATIONS_204,
+  SLIM_SC_TRANSFER_204,
+  SAMPLED_STEP_RULES_204,
+  assertLiveToolGate,
+  assertNoGateReopening,
+  assertSrLogprobScope,
+  assertWarmUpDelay,
+  assertGateInputNotPartialScore,
+  assertWithinClusterPrune,
+  withinClusterPrune,
+  assertAbsoluteThreshold,
+  assertConfidenceNotFromPrunedPool,
+  assertSampledStep,
+  PARKED_FREE_CHAT_SR_TEST_204,
+  assertParkedFreeChatSrTest,
 };

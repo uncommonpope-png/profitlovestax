@@ -3,7 +3,7 @@
 Node.js, CommonJS, zero dependencies. Runs with plain `node`.
 
 ```sh
-node plan-executor.test.cjs   # 104 tests, exit 0 on pass
+node plan-executor.test.cjs   # 115 tests, exit 0 on pass
 ```
 
 ## What it implements
@@ -77,6 +77,11 @@ executor }`. `prefix` is the list of completed levels only.
 | Healy infrastructure cost + artifact: "single forward pass" holds only in-process — it needs streaming capture DURING generation (function token, argument span, closing delimiter); on a server path it means a second pass over generated text. Trained, base-specific artifact joining the Batch 8/9 versioning tuple — a base swap orphans it | 201 | `HEALY_201.infrastructureCost`, `healyClassifierArtifact()`, `assertHealyArtifactBase()` |
 | What Healy does NOT change (guards, no regress): Batch 3's Select stays advisory-only (Healy gates execution, it does not select); Batch 197's pilot order stands (Healy is a later gate arm — do NOT merge it into the 100-task pilot); Batch 199's Wu-steering lab-arm exclusion stands (Healy detects, it does not steer) | 201 | `assertHealyNotPilotArm()`, `assertHealyNotSteering()` |
 | ASA re-checked, still withdrawn — quarantine STANDS: arXiv abstract 2602.04935, "withdrawn by Youjin Wang," v1 Feb 4 2026, v4 Aug 28 2026, no PDF; ASA numbers never cited as evidence. Wu-citation correction: Healy is cited by Wu §1 ONLY (not §1/§6) until a different Wu version shows otherwise | 201 | `ASA_RECHECK_201`, `assertAsaQuarantineStands()`, `WU_HEALY_CITATION_201`, `assertWuHealyCitation()` |
+| Multi-sample live tool gate stays CLOSED: Batch 5 sampling-tax rule + Batch 10 demotion (multi-sample SE offline-only for tool hops; G-NLL_SMT live) STAND, now with two more primary sources (Sun arXiv:2410.20290v2, Hong arXiv:2509.13990v1). No code path may reopen a live multi-sample gate for tool hops — any such request throws | 204 (Sun, Hong) | `MULTI_SAMPLE_LIVE_GATE_CLOSURE_204`, `assertLiveToolGate()`, `assertNoGateReopening()` |
+| SR-logprob variant disqualification + correction: SR with the model's own average log-probability s(Y) = (1/len) ln p(Y|X) needs NO reward model (the naive "SR needs a reward model" objection FAILS for this variant), BUT it selects for probability — the confident-error direction on tool hops (Batch 10 FC collapse: mean token probability 0.97; wrong calls identical except syntactic tokens). DETACHED: legitimate generation accelerator for FREE-CHAT hops only, never a gate, never for tool hops | 204 (Sun §5.3) | `SR_LOGPROB_204`, `assertSrLogprobScope()` |
+| SR's other two independent disqualifications for the live tool gate: destructive pruning (a killed candidate is gone; partial scores computed before late arguments are written) and no uncertainty output (SR returns one winner, feeds no F_t/TPS). Slim-SC transfer limits: at most ~45% off a still-fatal 3–5× cost; embedder unnecessary for tool calls (normalized-AST distance strictly better and free); thought segmentation does not map to tool hops (no warm-up period, no long redundant chains in 30-token tool calls); models 14B/32B reasoning on STEM, not 4B tool loop | 204 (Sun §4–§6, Hong §2–§6) | `SR_DISQUALIFICATIONS_204`, `SLIM_SC_TRANSFER_204` |
+| Four-rule constraint set for ANY future sampled step (offline bootstrap, disputed-hop tier, Healy-gate sampling arms), each as an enforced guard: (a) WARM-UP/DELAY — no pruning, scoring, or rejection before the decision-bearing tokens exist; for tool hops never prune/score before arguments are written; a partial score on a function name alone is not a gate input. (b) WITHIN-CLUSTER PRUNING ONLY — prune redundant members within an equivalence cluster (Batch 16 Class 1), one representative per cluster; a mode-selecting prune (ModeX, Batch 18) throws. (c) ABSOLUTE THRESHOLDS, NOT QUANTILES — SR's kill-the-bottom-α rule rejected as a gate shape; needs a τu/τv-family bar (Batch 5) or an equivalence test (Batch 16). (d) SELECTION ≠ UNCERTAINTY — a sampled step that prunes its own sample cannot report that sample's spread; pruned-pool agreement is never a confidence signal (F_t/TPS/multiplicity) | 204 | `SAMPLED_STEP_RULES_204`, `assertWarmUpDelay()`, `assertGateInputNotPartialScore()`, `assertWithinClusterPrune()`, `withinClusterPrune()`, `assertAbsoluteThreshold()`, `assertConfidenceNotFromPrunedPool()`, `assertSampledStep()` |
+| Parked free-chat test shape, NOTE ONLY (not a live path): SR-logprob vs single greedy on free-chat hops, latency + person-accepted quality, NOT perplexity alone (PPL is the objective, so a PPL win is circular). Never on tool hops | 204 | `PARKED_FREE_CHAT_SR_TEST_204`, `assertParkedFreeChatSrTest()` |
 
 ### Signal convention
 
@@ -156,6 +161,20 @@ otherwise, and the Batch 16 three-class split is untouched here.
   reading (upward re-freeze as a recorded sleep-job decision, never
   automatic) is not enforced by this function; callers that want it
   should gate upward re-freezes on a recorded decision.
+- **Round-9 gate-spec pruning rules are a spec, NOT executed (Batch 204).**
+  No SR or Slim-SC run was executed, no paper code was cloned or run —
+  every SR/Slim-SC figure is the paper's on its models/tasks (SR:
+  Llama-3-8B + RM-Mistral-7B on AlpacaFarm, H100 DGX; Slim-SC:
+  14B/32B reasoning models on GPQA/AIME/AQuA-RAT), NOT on the
+  north-star's 4B GGUF or personal tool routines. Sun's Appendix B
+  partial–final correlation coefficients were not tabulated from the
+  main text and are cited qualitatively, not numerically; Slim-SC's
+  0.3% embedding-overhead figure is the paper's estimate from a
+  separate-GPU setup, not a resident-machine measurement (moot for
+  tool calls, since the north-star dedup needs no embedder). The
+  parked free-chat SR-logprob test shape is a note only — it is not
+  built as a live path and must never run on tool hops. Neither paper
+  reopens the multi-sample live gate anywhere in this module.
 - **Round-8 slotting correction is a spec, NOT executed (Batch 201).**
   No Healy classifier was trained, no gap was computed, no Healy
   feature was extracted — every Healy figure is the paper's on Glaive
@@ -234,7 +253,10 @@ otherwise, and the Batch 16 three-class split is untouched here.
   is keeping all same-tool candidates until C1 splits them by
   parameter set. No tool-call-specific early-pruning paper was found
   in Batch 192; the Sun/Hong related-work leads were NOT read in full
-  and their numbers are NOT cited or built on here. Chen
+  at Batch 192 time — they WERE read in full in Batch 204 and are
+  cited and built on in the round-9 section above (gate closure +
+  four-rule sampled-step constraints), not in the prefix tier itself.
+  Chen
   (arXiv:2606.16364) WAS read in full in Batch 194 and is built on in
   the round-5 section above (main text only — appendix tables were
   not re-read, so no appendix-only number is quoted). Default value

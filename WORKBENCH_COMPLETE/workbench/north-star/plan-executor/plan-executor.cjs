@@ -4874,28 +4874,41 @@ function weaverMechanicalDrop212(critic) {
  * trains a small cross-encoder-class verifier (400M-class)
  * on Weaver pseudolabels per routine cluster; that
  * distilled model scores new trajectories cheaply IN THE
- * SLEEP JOB. Per the round-13 brief it is SLEEP-JOB ONLY:
- * any live-path placement throws — including an advisory
- * score on the live path, and it never becomes the live
- * gate by itself. It is per-routine, not general —
- * Weaver's distilled models are task-specific.
- *
- * NUANCE RECORDED, NOT ADOPTED: Batch 212's own text
- * allows the distilled model on the live path ONLY as an
+ * SLEEP JOB, and may appear on the live path ONLY as an
  * advisory score with its own verifier F1 reported
- * separately under Batch 211's decoupling rule. This
- * round enforces the stricter brief rule (sleep-job only)
- * until the parent reconciles the two — the advisory
- * allowance is recorded here so it is not lost, not
- * silently adopted.
+ * separately under Batch 211's decoupling rule (verify F1
+ * + refiner contribution, never a single "self-correction
+ * accuracy"). It does NOT become the live gate by itself,
+ * and it is per-routine, not general — Weaver's distilled
+ * models are task-specific.
+ *
+ * CORRECTION (round-13 fix): round 13 enforced the
+ * stricter brief rule (sleep-job only, including no
+ * live-advisory) and recorded this allowance as a
+ * discrepancy pending parent reconciliation. The parent
+ * verified Batch 212's own text and resolved the
+ * discrepancy IN FAVOR OF THE SOURCE BATCH: the advisory
+ * allowance below is Batch 212's rule, not an adoption.
+ * A live-advisory placement without its own separately
+ * reported verifier F1 still throws, and any gate use
+ * still throws.
  */
 function assertDistilledVerifierPlacement212(placement) {
   const where = String((placement && placement.where) || '');
-  if (where === 'live' || where === 'resident-live-path' || where === 'live-advisory') {
-    throw new Error('assertDistilledVerifierPlacement212: REFUSED — the distilled 400M-class verifier is SLEEP-JOB ONLY (round-13 brief, Batch 212 placement rule). It never becomes the live gate, and no live-path advisory placement is adopted in this round — Batch 212\'s advisory-score allowance is recorded in the README honest limits, not silently adopted, pending parent reconciliation');
+  if (where === 'live' || where === 'resident-live-path') {
+    throw new Error('assertDistilledVerifierPlacement212: REFUSED — the distilled 400M-class verifier never becomes the live gate (Batch 212). Sleep-job use, or live-path ADVISORY use with its own verifier F1 reported separately under Batch 211\'s decoupling rule, are the only allowed placements');
+  }
+  if (where === 'live-advisory') {
+    if (placement.gateUse === true) {
+      throw new Error('assertDistilledVerifierPlacement212: REFUSED — a live-path advisory score must never act as a gate: no abort, discard, block, or forced action from the distilled score (Batch 212)');
+    }
+    if (placement.verifierF1ReportedSeparately !== true) {
+      throw new Error('assertDistilledVerifierPlacement212: REFUSED — a live-path advisory score is allowed ONLY with its own verifier F1 reported separately under Batch 211\'s decoupling rule (verify F1 + refiner contribution, never a single "self-correction accuracy") (Batch 212)');
+    }
+    return { placement: 'live-advisory', perRoutine: true, advisoryOnly: true, gateUse: false, note: 'Live-path ADVISORY score only, per-routine and task-specific — never the live gate; its own verifier F1 must be reported separately (Batch 212, Batch 211 decoupling rule)' };
   }
   if (where !== 'sleep-job') {
-    throw new Error(`assertDistilledVerifierPlacement212: distilled verifier placement must be "sleep-job" (Batch 212), got "${where}"`);
+    throw new Error(`assertDistilledVerifierPlacement212: distilled verifier placement must be "sleep-job" or "live-advisory" with a separately reported verifier F1 (Batch 212), got "${where}"`);
   }
   return { placement: 'sleep-job', perRoutine: true, note: 'Per-routine, task-specific — Weaver\'s distilled models are task-specific, never general (Batch 212, paper §6)' };
 }
@@ -5013,7 +5026,7 @@ function checkOfflineCriticSpec212(spec) {
   const base = checkOfflineCriticSpec211(spec);
   const heterogeneous = spec.ensembleMembers ? assertEnsembleHeterogeneous212(spec.ensembleMembers) : { heterogeneous: 'UNSET — ensemble members, if any, must be heterogeneous signals (Batch 212)' };
   const stage0 = spec.stage0 ? weaverStage0_212(spec.stage0) : { stage0: 'UNSET — the stage-0 spec (normalize, binarize from 5–25 outcome-labeled routines, drop extreme marginals) runs before SCORE\'s two stages when an ensemble is used (Batch 212)' };
-  const distilled = spec.distilledPlacement ? assertDistilledVerifierPlacement212(spec.distilledPlacement) : { placement: 'UNSET — a distilled 400M-class verifier, if built, is sleep-job only (Batch 212)' };
+  const distilled = spec.distilledPlacement ? assertDistilledVerifierPlacement212(spec.distilledPlacement) : { placement: 'UNSET — a distilled 400M-class verifier, if built, is sleep-job, or live-path advisory only with its own verifier F1 reported separately (Batch 212)' };
   const clustering = spec.difficultyClustering ? weaverDifficultyClustering212(spec.difficultyClustering) : { difficultyClustering: 'UNSET — cluster routines by observed tool-verified success rate; test per-cluster vs global on the pilot (Batch 212)' };
   const promotionStage0 = spec.promotionStage0Result ? weaverPromotionArm212(spec.promotionStage0Result) : { stage0Wins: 'UNDECIDED — Weaver stage-0 arm (weighted + dropped vs raw, before the SCORE filter) not yet run (Batch 212 amendment to Batch 211 Q10)' };
   return {
@@ -5027,7 +5040,7 @@ function checkOfflineCriticSpec212(spec) {
     promotionStage0,
     weaver: weaverStatus212(),
     executed: false,
-    note: 'Spec only — no verifier, ensemble, or distilled model was run; no label was applied to a personal trajectory; no promotion test was run. Batch 208 Decisions 1 and 3 CONFIRMED unchanged; Batch 211 filter, calibration, three-arm promotion, and decoupling rules CONFIRMED unchanged. New: Weaver stage-0 spec, mechanical drop rule, distilled sleep-job placement, stage-0 promotion arm. Personal-task substitutions are proposals, untested anywhere in this paper or this log; no 4B Weaver result exists.',
+    note: 'Spec only — no verifier, ensemble, or distilled model was run; no label was applied to a personal trajectory; no promotion test was run. Batch 208 Decisions 1 and 3 CONFIRMED unchanged; Batch 211 filter, calibration, three-arm promotion, and decoupling rules CONFIRMED unchanged. New: Weaver stage-0 spec, mechanical drop rule, distilled placement (sleep-job, or live advisory with separately reported verifier F1 — round-13 fix corrected the round-13 sleep-job-only overreach in favor of Batch 212\'s own text), stage-0 promotion arm. Personal-task substitutions are proposals, untested anywhere in this paper or this log; no 4B Weaver result exists.',
   };
 }
 

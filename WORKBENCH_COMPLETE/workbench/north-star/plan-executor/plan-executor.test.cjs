@@ -2301,12 +2301,32 @@ test('Batch 212 mechanical drop: SWE-PRM 99.6% flagger drops outright; Table 5 g
   assert.equal(WEAVER_212.droppingTable5.noDrop, 79.4);
 });
 
-test('Batch 212 distilled placement: sleep job only — live and live-advisory both throw (stricter brief rule recorded)', () => {
+test('Batch 212 distilled placement, CORRECTED by the round-13 fix: sleep job, or live advisory with its own separately reported verifier F1 — gate use and F1-less advisory both throw', () => {
   assert.equal(assertDistilledVerifierPlacement212({ where: 'sleep-job' }).placement, 'sleep-job');
   assert.equal(assertDistilledVerifierPlacement212({ where: 'sleep-job' }).perRoutine, true);
-  assert.throws(() => assertDistilledVerifierPlacement212({ where: 'live' }), /SLEEP-JOB ONLY/);
-  assert.throws(() => assertDistilledVerifierPlacement212({ where: 'live-advisory' }), /SLEEP-JOB ONLY/);
-  assert.throws(() => assertDistilledVerifierPlacement212({ where: 'resident-live-path' }), /SLEEP-JOB ONLY/);
+  const advisory = assertDistilledVerifierPlacement212({ where: 'live-advisory', verifierF1ReportedSeparately: true });
+  assert.equal(advisory.placement, 'live-advisory');
+  assert.equal(advisory.advisoryOnly, true);
+  assert.equal(advisory.gateUse, false);
+  assert.equal(advisory.perRoutine, true);
+  assert.throws(() => assertDistilledVerifierPlacement212({ where: 'live-advisory' }), /own verifier F1 reported separately/);
+  assert.throws(() => assertDistilledVerifierPlacement212({ where: 'live-advisory', verifierF1ReportedSeparately: false }), /own verifier F1 reported separately/);
+  assert.throws(() => assertDistilledVerifierPlacement212({ where: 'live-advisory', verifierF1ReportedSeparately: true, gateUse: true }), /never act as a gate/);
+  assert.throws(() => assertDistilledVerifierPlacement212({ where: 'live' }), /never becomes the live gate/);
+  assert.throws(() => assertDistilledVerifierPlacement212({ where: 'resident-live-path' }), /never becomes the live gate/);
+  assert.throws(() => assertDistilledVerifierPlacement212({ where: 'elsewhere' }), /"sleep-job" or "live-advisory"/);
+});
+
+test('Batch 212 composite accepts live-advisory distilled placement with separately reported F1 (round-13 fix)', () => {
+  const spec = checkOfflineCriticSpec212({
+    cadence: { everyNHops: 5, windowKSteps: 8 },
+    intervention: { kind: 'append-guidance' },
+    distilledPlacement: { where: 'live-advisory', verifierF1ReportedSeparately: true },
+  });
+  assert.equal(spec.verdict, 'SPEC OK');
+  assert.equal(spec.distilled.placement, 'live-advisory');
+  assert.equal(spec.distilled.advisoryOnly, true);
+  assert.throws(() => checkOfflineCriticSpec212({ cadence: { everyNHops: 5, windowKSteps: 8 }, intervention: { kind: 'append-guidance' }, distilledPlacement: { where: 'live-advisory' } }), /own verifier F1 reported separately/);
 });
 
 test('Batch 212 difficulty clustering: observable success rate only — gold correctness throws; per-cluster vs global is a pilot test', () => {
@@ -2374,7 +2394,7 @@ test('Batch 212 composite: Batch 211 spec + stage 0 + heterogeneous members + sl
   assert.equal(spec.distilled.placement, 'sleep-job');
   assert.equal(spec.promotionStage0.stage0Wins, true);
   assert.equal(spec.weaver.closed, true);
-  assert.throws(() => checkOfflineCriticSpec212({ cadence: { everyNHops: 5, windowKSteps: 8 }, intervention: { kind: 'append-guidance' }, distilledPlacement: { where: 'live' } }), /SLEEP-JOB ONLY/);
+  assert.throws(() => checkOfflineCriticSpec212({ cadence: { everyNHops: 5, windowKSteps: 8 }, intervention: { kind: 'append-guidance' }, distilledPlacement: { where: 'live' } }), /never becomes the live gate/);
   assert.throws(() => checkOfflineCriticSpec212({ cadence: { everyNHops: 5, windowKSteps: 8 }, intervention: { kind: 'append-guidance' }, ensembleMembers: [{ kind: 'taxonomy critic', base: 'resident' }, { kind: 'taxonomy critic', base: 'resident' }] }), /HETEROGENEOUS signals/);
 });
 

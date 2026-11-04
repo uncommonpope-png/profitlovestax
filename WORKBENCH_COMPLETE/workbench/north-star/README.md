@@ -48,8 +48,8 @@ wire of the spec modules into the workbench, and it changes NO live behavior:
 **Test totals re-run from the assembled branch location (plain `node`):**
 verifier 47/47, plan-executor 184/184, provenance 19/19, interceptors 45/45,
 audit-wire 11/11, step-repetition 26/26, completion-predicate 37/37,
-drift-metric 44/44 —
-**413 pass, 0 fail** (369 pre-existing preserved + 44 new in round 17).
+drift-metric 44/44, source-field 54/54 —
+**467 pass, 0 fail** (413 pre-existing preserved + 54 new in round 18).
 
 **How to run the tests** (Node, zero dependencies, plain `node`):
 - `node WORKBENCH_COMPLETE/workbench/north-star/verifier/verifier.test.cjs`
@@ -59,6 +59,7 @@ drift-metric 44/44 —
 - `node WORKBENCH_COMPLETE/workbench/north-star/step-repetition/step-repetition.test.cjs`
 - `node WORKBENCH_COMPLETE/workbench/north-star/completion-predicate/completion-predicate.test.cjs`
 - `node WORKBENCH_COMPLETE/workbench/north-star/drift-metric/drift-metric.test.cjs`
+- `node WORKBENCH_COMPLETE/workbench/north-star/source-field/source-field.test.cjs`
 
 Test totals, each re-run by the coordinator from the assembled branch location:
 verifier 47/47, plan-executor 59/59, provenance 19/19, interceptors 45/45 —

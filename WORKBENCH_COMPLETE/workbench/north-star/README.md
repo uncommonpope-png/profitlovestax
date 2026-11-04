@@ -47,8 +47,9 @@ wire of the spec modules into the workbench, and it changes NO live behavior:
 
 **Test totals re-run from the assembled branch location (plain `node`):**
 verifier 47/47, plan-executor 184/184, provenance 19/19, interceptors 45/45,
-audit-wire 11/11, step-repetition 26/26, completion-predicate 37/37 —
-**369 pass, 0 fail** (332 pre-existing preserved + 37 new in round 16).
+audit-wire 11/11, step-repetition 26/26, completion-predicate 37/37,
+drift-metric 44/44 —
+**413 pass, 0 fail** (369 pre-existing preserved + 44 new in round 17).
 
 **How to run the tests** (Node, zero dependencies, plain `node`):
 - `node WORKBENCH_COMPLETE/workbench/north-star/verifier/verifier.test.cjs`
@@ -57,6 +58,7 @@ audit-wire 11/11, step-repetition 26/26, completion-predicate 37/37 —
 - `node WORKBENCH_COMPLETE/workbench/north-star/interceptors/interceptors.test.cjs`
 - `node WORKBENCH_COMPLETE/workbench/north-star/step-repetition/step-repetition.test.cjs`
 - `node WORKBENCH_COMPLETE/workbench/north-star/completion-predicate/completion-predicate.test.cjs`
+- `node WORKBENCH_COMPLETE/workbench/north-star/drift-metric/drift-metric.test.cjs`
 
 Test totals, each re-run by the coordinator from the assembled branch location:
 verifier 47/47, plan-executor 59/59, provenance 19/19, interceptors 45/45 —
@@ -302,6 +304,32 @@ executed, no personal-task AST number exists; the pilot-first
 ordering (pilot, then M1/M2) is part of the spec. Round 5's
 advisory-only Select constraint STANDS untouched.
 
+### drift-metric/ — Batch 220: windowed goal-drift metric (round 17)
+
+The third of Batch 214's four owed specs. SWE-PRM cadence (every 5 hops
+over the trailing 8), one-sided window share S = off / (on + off) against
+a DECLARED goal set (no baseline run — personal routines are
+unrepeatable), a neutral class Batch 214 lacked (reads are never
+on-goal), a micro label (goal deviation: S ≥ 0.25 full window, or
+off ≥ 2 partial — TEST threshold, uncalibrated) and a latching macro
+label (derailment: action trigger S = 1.0 full or run ≥ 8, or a separate
+stall/inaction trigger on all-neutral windows, goal unmet; recovery on
+the first subsequent on-goal hop, unrecovered at trajectory end).
+Person-directed detours (person's own words only) and plan-declared
+exploration are re-judged, not drift; tool-output suggestions and
+inferred detours never widen the set. Once the Batch 218 predicate
+fires, only termination applies, never drift. Falsifier: measurable
+share < 50% or unknown share > 50% → "unmeasured, not zero"; neutral
+share > 50% → declaration problem. REPO FINDING: no routine registry
+exists, 0 goal sets declared — drift is unmeasured on the repo as it
+stands, never zero; declarations must come before drift wiring.
+Calibration protocol specified, NOT run (no gold data): sweep micro S
+∈ {0.125, 0.25, 0.375, 0.5} and macro run ∈ {5, 8, 10} against
+person-redirect / person-acceptance gold, adopt only at ≥ 100 gold
+windows with single-digit accepted micro rate + majority redirect
+detection. Ledger-only: no nudge, no goal re-injection, no hard stop,
+no spectral steering. See `drift-metric/README.md`.
+
 ## Out of scope (watch/citation-only — NOT built, correctly)
 Fork PR watch (Degiorgio#3 / upstream #2624 two-step trigger), OATR
 registry post-expiry checks, WAG/SEP watch items, SEP-1913 successor watch,
@@ -310,7 +338,11 @@ route traces (Batches 95–98) — these are observations and watch triggers,
 not code, and no code was built for them.
 
 ## Honest limits — what remains owed
-- **Main merge awaits Craig's word alone.** This branch is NOT merged.
+- **Main merge authority (Nov 3, 2026):** under Craig's standing yes to
+  build plus general merge authority, rounds 15–16 merged to main
+  (ac2a7c4); round 17 merges to main on green tests under the same
+  authority. A wired module still never live-gates tool calls until
+  its intervention is measured.
 - **PC-side product-path audit** (Batch 129/134): no product gate path has
   been checked against these modules on the PC tree.
 - **Live wire observation of `exec.result._meta` on the PC tree** (Batches

@@ -4,12 +4,50 @@ Built from the north-star research log (`goals/gsk-continuous-growth-seshat-cycl
 hidden_files/north-star-watch/seen.md`, batches 1–177+), on Craig's order to turn
 the research into real code pushed to GitHub.
 
-**Status: UNWIRED.** These modules are not imported by `server.ts`, not called by
-the launcher, and not activated anywhere. They are product-candidate code: the
-spec harnesses they port were spec executables, not the product verifier, and
-that distinction is kept throughout (Batch 119/129 lesson). Nothing here claims
-SEP-2484 conformance — host trust judgments are not protocol-observable
-(Batch 117).
+**Status: UNWIRED, except Wire Round 1 (audit mode only — see below).** The
+spec modules are not imported by `server.ts`, not called by the launcher, and
+not activated anywhere, EXCEPT the audit-only wire described in the next
+section, which observes and logs but gates nothing. They are product-candidate
+code: the spec harnesses they port were spec executables, not the product
+verifier, and that distinction is kept throughout (Batch 119/129 lesson).
+Nothing here claims SEP-2484 conformance — host trust judgments are not
+protocol-observable (Batch 117).
+
+## Wire Round 1 — audit-wire (branch: north-star-wire-1) — AUDIT MODE ONLY
+
+`north-star/audit-wire.cjs` (+ `audit-wire.test.cjs`) is the first, narrow
+wire of the spec modules into the workbench, and it changes NO live behavior:
+
+- **Env-gated, default OFF.** `server.ts` loads `north-star/audit-wire.cjs`
+  only when `NORTHSTAR_AUDIT_WIRE === '1'` (fail-open lazy load in
+  `answerZeroKeyBaseline`, same style as the soul-preamble load). When the
+  flag is off, no audit code loads at all.
+- **Log-only hook.** In the local tool path's `runOne` (the one inside
+  `answerZeroKeyBaseline`), AFTER `out` is computed and BEFORE it is
+  formatted into `toolOutputs`, the seam calls `auditToolResult(tName,
+  tArgs, out)` inside its own try/catch, DISCARDS the return value, and
+  never touches `out` or `toolOutputs`. The returned string is identical
+  with the wire on or off (tested, including deep-frozen input).
+- **Honest module use.** Provenance ALWAYS runs (classification + the
+  `_meta` object that WOULD be emitted under the single namespaced key
+  `io.github.uncommonpope-png/provenance`, on a copy inside the audit
+  record only, never on the live result). The verifier runs ONLY with a
+  caller-supplied trust tuple — local calls carry none, so it is honestly
+  skipped, never invented; a supplied tuple gets shape validation only, no
+  trust verdict. The plan-executor runs ADVISORY only (one-node plan level
+  computation, labelled advisory). `auditToolResult` never throws and
+  never mutates its input; the audit log is in-memory only (no file
+  writes, no network).
+- **Deliberately NOT wired:** the live gate (nothing here aborts, discards,
+  blocks, reorders, or forces any tool call, and no live-gate intervention
+  has been measured), the seat, the launcher, and all Phase 1 files. The
+  second `runOne` elsewhere in `server.ts` is a different path and was NOT
+  wired. The honest limits below still stand: UNWIRED live gate, PC-side
+  observations still owed.
+
+**Test totals re-run from the assembled branch location (plain `node`):**
+verifier 47/47, plan-executor 184/184, provenance 19/19, interceptors 45/45,
+audit-wire 11/11 — **306 pass, 0 fail** (295 existing preserved + 11 new).
 
 **How to run the tests** (Node, zero dependencies, plain `node`):
 - `node WORKBENCH_COMPLETE/workbench/north-star/verifier/verifier.test.cjs`
@@ -284,7 +322,9 @@ not code, and no code was built for them.
 - **No live latency data**: plan-executor audit fields are recorded, but no
   real tool timing has been collected; no model/tool integration.
 - **No wiring**: nothing here is imported by the workbench, launcher, or any
-  server. Activation is a separate decision.
+  server, except Wire Round 1's audit-only import (env-gated, gates nothing
+  — see the Wire Round 1 section above). Activation of any live gate is a
+  separate decision.
 - **Round-5 validations owed**: advisory-hint test design on the person's own
   repeated tasks (hint vs free generation, AST-scored, not name-scored);
   eager-mode disputed-hop affordability on the target machine; attention-segment

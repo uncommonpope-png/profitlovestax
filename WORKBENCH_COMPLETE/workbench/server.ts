@@ -607,6 +607,19 @@ async function answerZeroKeyBaseline(message: string): Promise<any> {
   } catch (e: any) {
     console.warn("[ZERO-KEY-BASELINE] soul-preamble.cjs unavailable:", e.message);
   }
+
+  // NORTH-STAR WIRE 1 (audit mode only, env-gated, fail-open): load the
+  // audit wire ONLY when NORTHSTAR_AUDIT_WIRE === '1'. When the flag is
+  // off, no audit code loads at all and the live path below is untouched.
+  // The wire never gates anything: runOne discards its return value.
+  let auditWireNs: any = null;
+  if (process.env.NORTHSTAR_AUDIT_WIRE === '1') {
+    try {
+      auditWireNs = await import(`file://${path.join(__dirname, "north-star", "audit-wire.cjs")}`);
+    } catch (e: any) {
+      console.warn("[NORTHSTAR-AUDIT] audit-wire.cjs unavailable:", e.message);
+    }
+  }
   console.log(`[ZERO-KEY-BASELINE] preamble ${preambleText.length} chars`);
 
   const recallSliceCap = typeof preambleNs?.recallCharsForPreamble === "function"
@@ -1423,6 +1436,18 @@ app.post("/api/gsk/chat", async (req, res) => {
             const tName = call.tool;
             const tArgs = call.args;
             const out = await execLocalTool(tName, tArgs);
+            // NORTH-STAR WIRE 1 (audit mode only): log-only audit of this
+            // result. Return value discarded; `out` is never touched, so
+            // the formatted string below is identical with or without it.
+            // Its own try/catch means an audit failure never reaches the
+            // live path. When the flag is off, auditWireNs is null and
+            // this block is a no-op.
+            if (auditWireNs) {
+              try {
+                const auditFn = auditWireNs.auditToolResult || auditWireNs.default?.auditToolResult;
+                if (typeof auditFn === "function") auditFn(tName, tArgs, out);
+              } catch { /* audit failure never reaches the live path */ }
+            }
             console.log(`[TOOL LOOP] executed local ${tName}`);
             return `[${tName} ${JSON.stringify(tArgs).slice(0, 200)}]\n${String(out).slice(0, 4000)}`;
           } catch (e: any) {

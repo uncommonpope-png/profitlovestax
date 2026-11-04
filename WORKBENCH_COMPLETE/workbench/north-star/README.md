@@ -47,13 +47,16 @@ wire of the spec modules into the workbench, and it changes NO live behavior:
 
 **Test totals re-run from the assembled branch location (plain `node`):**
 verifier 47/47, plan-executor 184/184, provenance 19/19, interceptors 45/45,
-audit-wire 11/11 — **306 pass, 0 fail** (295 existing preserved + 11 new).
+audit-wire 11/11, step-repetition 26/26, completion-predicate 37/37 —
+**369 pass, 0 fail** (332 pre-existing preserved + 37 new in round 16).
 
 **How to run the tests** (Node, zero dependencies, plain `node`):
 - `node WORKBENCH_COMPLETE/workbench/north-star/verifier/verifier.test.cjs`
 - `node WORKBENCH_COMPLETE/workbench/north-star/plan-executor/plan-executor.test.cjs`
 - `node WORKBENCH_COMPLETE/workbench/north-star/provenance/provenance.test.cjs`
 - `node WORKBENCH_COMPLETE/workbench/north-star/interceptors/interceptors.test.cjs`
+- `node WORKBENCH_COMPLETE/workbench/north-star/step-repetition/step-repetition.test.cjs`
+- `node WORKBENCH_COMPLETE/workbench/north-star/completion-predicate/completion-predicate.test.cjs`
 
 Test totals, each re-run by the coordinator from the assembled branch location:
 verifier 47/47, plan-executor 59/59, provenance 19/19, interceptors 45/45 —
